@@ -40,6 +40,7 @@
         <!-- include name="${jersey.lib}"/ -->
         <!-- include name="${jsr311-api.lib}"/ -->
         <include name="${commons-logging.lib}"/>
+    	<include name="${centralWebserviceInterface.lib}"/>
     </dirset>
 
 </project>
