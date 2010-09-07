@@ -24,7 +24,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.net.MalformedURLException;
@@ -63,10 +62,12 @@ public class Ingester {
 	 * - newObject(shardToUpdate)
 	 */
 
+        // Høker-hul-igennem-test
 	CentralWebservice domsAPIWS = getCentralWebserviceConnector();
 	System.out.println(domsAPIWS.newObject("doms:Template_RadioTVFile"));
     }
 
+    // should go somewhere else...
     private static CentralWebservice getCentralWebserviceConnector()
 	    throws MalformedURLException {
 
