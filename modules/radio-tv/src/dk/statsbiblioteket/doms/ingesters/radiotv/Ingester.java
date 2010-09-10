@@ -26,15 +26,9 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Map;
 
-import javax.xml.namespace.QName;
-import javax.xml.ws.BindingProvider;
-
-import dk.statsbiblioteket.doms.centralWebservice.CentralWebservice;
-import dk.statsbiblioteket.doms.centralWebservice.CentralWebserviceService;
 import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 
@@ -51,39 +45,35 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws MalformedURLException,
-	    InvalidCredentialsException, MethodFailedException {
-	/*
-	 * - Start hot-folder scanner
-	 * - wait for file
-	 * - getObjectForFile() or create object: newObject(FileTemplate)
-	 * - addFile(uri, pid)
-	 * - getDS(Metadata)
-	 * - modifyDS(metadata, content)
-	 * - newObject(shardToUpdate)
-	 */
+	    InvalidCredentialsException, MethodFailedException, InterruptedException {
+	
+	final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
+	final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
+	final File COLD_FOLDER = new File("/tmp/processedFiles");
+	final File FOXML_FOLDER = new File("/tmp/ingestedFoxMLFiles");
 
-        // Høker-hul-igennem-test
-	CentralWebservice domsAPIWS = getCentralWebserviceConnector();
-	System.out.println(domsAPIWS.newObject("doms:Template_RadioTVFile"));
+	// Make sure that all the necessary folders exist.
+	if (!HOT_FOLDER.exists()) {
+	    HOT_FOLDER.mkdirs();
+	}
+
+	if (!LUKEWARM_FOLDER.exists()) {
+	    LUKEWARM_FOLDER.mkdirs();
+	}
+	
+	if (!COLD_FOLDER.exists()) {
+	    COLD_FOLDER.mkdirs();
+	}
+
+	if (!FOXML_FOLDER.exists()) {
+	    FOXML_FOLDER.mkdirs();
+	}
+
+	final HotFolderScanner hotFolderScanner = new HotFolderScanner();
+	final RadioTVMetadataProcessor metadataProcessor= new RadioTVMetadataProcessor(LUKEWARM_FOLDER, COLD_FOLDER, FOXML_FOLDER);
+	hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
+
+	// Hang forever....
+	Thread.currentThread().wait();
     }
-
-    // should go somewhere else...
-    private static CentralWebservice getCentralWebserviceConnector()
-	    throws MalformedURLException {
-
-	final URL domsAPIWSLocation = new URL(
-		"http://localhost:8080/centralDomsWebservice/central/?wsdl");
-	final CentralWebservice domsAPI = new CentralWebserviceService(
-		domsAPIWSLocation, new QName(
-			"http://central.doms.statsbiblioteket.dk/",
-			"CentralWebserviceService")).getCentralWebservicePort();
-
-	Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
-		.getRequestContext();
-	domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, "fedoraAdmin");
-	domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, "fedoraAdminPass");
-
-	return domsAPI;
-    }
-
 }
