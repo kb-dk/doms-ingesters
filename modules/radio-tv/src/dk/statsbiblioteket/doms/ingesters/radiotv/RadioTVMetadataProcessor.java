@@ -30,19 +30,22 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
-import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.ws.BindingProvider;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import dk.statsbiblioteket.doms.centralWebservice.CentralWebservice;
-import dk.statsbiblioteket.doms.centralWebservice.CentralWebserviceService;
 import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 
@@ -52,15 +55,24 @@ import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
  */
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
+    private static final String RECORDING_FILES_FILE_ELEMENT = "//program_recording_files/file";
+    private static final String FILE_ELEMENT = "file";
+    private static final String FILE_URL_ELEMENT = "file_url";
+
     private final File failedFilesFolder;
     private final File processedFilesFolder;
     private final File foxMLFolder;
+    private final DOMSLoginInfo domsLoginInfo;
+    private final XPathFactory xPathFactory;
 
-    public RadioTVMetadataProcessor(File failedFilesFolder,
-	    File processedFilesFolder, File foxMLFolder) {
+    public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo,
+	    File failedFilesFolder, File processedFilesFolder, File foxMLFolder) {
 	this.failedFilesFolder = failedFilesFolder;
 	this.processedFilesFolder = processedFilesFolder;
 	this.foxMLFolder = foxMLFolder;
+	this.domsLoginInfo = domsLoginInfo;
+
+	xPathFactory = XPathFactory.newInstance();
     }
 
     /* (non-Javadoc)
@@ -78,17 +90,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
 	    final FoxMLBuilder foxMLBuilder = new FoxMLBuilder();
 
-	    final URL domsAPIWSLocation = new URL(
-		    "http://localhost:8080/centralDomsWebservice/central/?wsdl");
-
 	    final DOMSClient domsClient = new DOMSClient();
-	    domsClient.login(domsAPIWSLocation, "fedoraAdmin",
-		    "fedoraAdminPass");
-	    ingestShards(domsClient, radioTVMetadata);
+	    domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
+		    .getLogin(), domsLoginInfo.getPassword());
 
-	    // build file FoxMLs
-	    // build program FoxML
-	    // ingest FoxMLs
+	    final List<String> filePIDs = ingestFiles(domsClient,
+		    radioTVMetadata);
+	    final String shardPID = ingestShard(domsClient, radioTVMetadata,
+		    filePIDs);
+	    final String programPID = ingestProgram(domsClient,
+		    radioTVMetadata, shardPID);
 
 	    /*
 	     * - getObjectForFile() or create object: newObject(FileTemplate)
@@ -109,6 +120,21 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    moveFile(addedFile, failedFilesFolder);
 	    // TODO: Log this
 	    // TODO: we should not allow endless failures....
+	} catch (MethodFailedException mfe) {
+	    // Failed calling the DOMS server
+	    moveFile(addedFile, failedFilesFolder);
+	    // TODO: Log this
+	    // TODO: we should not allow endless failures....
+	} catch (ServerError se) {
+	    // Failed calling the DOMS server
+	    moveFile(addedFile, failedFilesFolder);
+	    // TODO: Log this
+	    // TODO: we should not allow endless failures....
+	} catch (XPathExpressionException xpee) {
+	    // Failed parsing the Radio-TV XML document...
+	    moveFile(addedFile, failedFilesFolder);
+	    // TODO: Log this
+	    // TODO: we should not allow endless failures....
 
 	} catch (IOException ioe) {
 	    moveFile(addedFile, failedFilesFolder);
@@ -116,6 +142,12 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    // TODO: we should not allow endless failures....
 	}
 
+    }
+
+    private String ingestProgram(DOMSClient domsClient,
+	    Document radioTVMetadata, String shardPID) {
+	// TODO Auto-generated method stub
+	return null;
     }
 
     /* (non-Javadoc)
@@ -134,15 +166,67 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	// Not relevant.
     }
 
-    private void ingestShards(DOMSClient domsClient, Document radioTVMetadata) {
-	
+    private String ingestShard(DOMSClient domsClient, Document radioTVMetadata,
+	    List<String> filePIDs) {
+	return null;
 
     }
 
-    private void ingestFile(DOMSClient domsClient, Document radioTVMetadata) {
-	//System.out.println(domsClient.createFileObject(new URL("doms:Template_RadioTVFile")));
+    /**
+     * Ingest any missing file objects into the DOMS and return a list of PIDs
+     * for all the DOMS file objects corresponding to the files listed in the
+     * <code>radioTVMetadata</code> document.
+     * 
+     * @param domsClient
+     *            Reference to the DOMS client to communicate through.
+     * @param radioTVMetadata
+     *            Metadata XML document containing the file information.
+     * @return A <code>List</code> of DOMS file object PIDs.
+     * @throws XPathExpressionException
+     *             if any errors were encountered while processing the
+     *             <code>radioTVMetadata</code> XML document.
+     * @throws MalformedURLException
+     *             if a file element contains an invalid URL.
+     */
+    private List<String> ingestFiles(DOMSClient domsClient,
+	    Document radioTVMetadata) throws XPathExpressionException,
+	    MalformedURLException, ServerError, MethodFailedException {
 
+	// Get the recording files XML element and process the file information.
+	final XPath xPath = this.xPathFactory.newXPath();
+	final NodeList recordingFiles = (NodeList) xPath.evaluate(
+	        RECORDING_FILES_FILE_ELEMENT, radioTVMetadata,
+	        XPathConstants.NODESET);
+
+	// Ensure that the DOMS contains a file object for each recording file
+	// element in the radio-tv XML document.
+	final List<String> fileObjectPIDs = new ArrayList<String>();
+	for (int nodeIndex = 0; nodeIndex < recordingFiles.getLength(); nodeIndex++) {
+	    final Node currentFileNode = recordingFiles.item(nodeIndex);
+
+	    final Node fileURLNode = (Node) xPath.evaluate(FILE_URL_ELEMENT,
+		    currentFileNode, XPathConstants.NODE);
+	    final String fileURLString = fileURLNode.getTextContent();
+	    final URL fileURL = new URL(fileURLString);
+	    String fileObjectPID;
+	    try {
+		fileObjectPID = domsClient.getFileObjectPID(fileURL);
+	    } catch (NoObjectFound nof) {
+		// The DOMS contains no file object for this file URL. Go
+		// creating it.
+
+		fileObjectPID = ingestNewFile(domsClient, fileURL);
+	    }
+	    fileObjectPIDs.add(fileObjectPID);
+	}
+	return fileObjectPIDs;
     }
+
+    private String ingestNewFile(DOMSClient domsClient, URL fileURL)
+	    throws MethodFailedException {
+	return domsClient.createFileObject(fileURL);
+    }
+
     /**
      * Move <code>fileToMove</code> to the folder specified by
      * <code>destinationFolder</code>.
@@ -154,7 +238,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private void moveFile(File fileToMove, File destinationFolder) {
 	fileToMove.renameTo(new File(destinationFolder.getAbsolutePath()
-	        + fileToMove.getName()));
+	        + File.separator + fileToMove.getName()));
     }
 
 }

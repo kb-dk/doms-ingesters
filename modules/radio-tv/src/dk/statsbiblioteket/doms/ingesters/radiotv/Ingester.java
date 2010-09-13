@@ -28,6 +28,7 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.net.URL;
 
 import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
@@ -45,8 +46,15 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws MalformedURLException,
-	    InvalidCredentialsException, MethodFailedException, InterruptedException {
-	
+	    InvalidCredentialsException, MethodFailedException,
+	    InterruptedException {
+
+	new Ingester().mainInstance();
+    }
+
+    private void mainInstance() throws MalformedURLException,
+	    InvalidCredentialsException, MethodFailedException,
+	    InterruptedException {
 	final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
 	final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
 	final File COLD_FOLDER = new File("/tmp/processedFiles");
@@ -60,7 +68,7 @@ public class Ingester {
 	if (!LUKEWARM_FOLDER.exists()) {
 	    LUKEWARM_FOLDER.mkdirs();
 	}
-	
+
 	if (!COLD_FOLDER.exists()) {
 	    COLD_FOLDER.mkdirs();
 	}
@@ -70,10 +78,22 @@ public class Ingester {
 	}
 
 	final HotFolderScanner hotFolderScanner = new HotFolderScanner();
-	final RadioTVMetadataProcessor metadataProcessor= new RadioTVMetadataProcessor(LUKEWARM_FOLDER, COLD_FOLDER, FOXML_FOLDER);
+
+	// final URL domsAPIWSLocation = new URL(
+	// "http://localhost:8080/centralDomsWebservice/central/?wsdl");
+	final URL domsAPIWSLocation = new URL(
+	        "http://alhena:7980/centralDomsWebservice/central/?wsdl");
+
+	final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
+	        domsAPIWSLocation, "fedoraAdmin", "fedoraAdminPass");
+
+	final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
+	        domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER, FOXML_FOLDER);
 	hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
 
 	// Hang forever....
-	Thread.currentThread().wait();
+	synchronized (this) {
+	    wait();
+	}
     }
 }

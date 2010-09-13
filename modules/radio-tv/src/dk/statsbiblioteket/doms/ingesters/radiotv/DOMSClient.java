@@ -26,7 +26,6 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
 
@@ -44,42 +43,64 @@ import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
  */
 public class DOMSClient {
 
-    private final CentralWebservice domsAPI = null;
-        
+    private CentralWebservice domsAPI;
+
     public void login(URL domsWSAPIEndpoint, String userName, String password) {
-	final CentralWebservice domsAPI = new CentralWebserviceService(
-		domsWSAPIEndpoint, new QName(
-			"http://central.doms.statsbiblioteket.dk/",
-			"CentralWebserviceService")).getCentralWebservicePort();
+	domsAPI = new CentralWebserviceService(domsWSAPIEndpoint, new QName(
+	        "http://central.doms.statsbiblioteket.dk/",
+	        "CentralWebserviceService")).getCentralWebservicePort();
 
 	Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
-		.getRequestContext();
+	        .getRequestContext();
 	domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, userName);
 	domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, password);
     }
-    
+
     /**
      * Create a new file object.
+     * 
      * @param fileURL
      * @throws MethodFailedException
-     * @throws InvalidCredentialsException
      */
-    public String createFileObject(URL fileURL) throws MethodFailedException, InvalidCredentialsException {
-	final String pid = domsAPI.newObject("doms:Template_RadioTVFile");
+    public String createFileObject(URL fileURL) throws MethodFailedException {
 
-	//TODO: Add file URL to object;
-	// brug domsAPI.addFileFromPermanentURL()
-	
-	// createFileObject() is a bad choice of name.
-	
-	return pid;
+	try {
+	    final String pid = domsAPI.newObject("doms:Template_RadioTVFile");
+	    // TODO: Add file URL to object;
+	    // brug domsAPI.addFileFromPermanentURL()
+
+	    // createFileObject() is a bad choice of name.
+	    return pid;
+
+	} catch (InvalidCredentialsException ice) {
+	    throw new MethodFailedException(
+		    "Method call failed due to invalid credentials.", "", ice);
+	}
     }
-    
+
     /**
-     * Get an existing file object.
+     * Get the PID of an existing file object.
+     * 
      * @param fileURL
+     * @return
+     * @throws NoObjectFound
+     * @throws ServerError
      */
-    public void getFileObject(URL fileURL) {
-	
+    public String getFileObjectPID(URL fileURL) throws NoObjectFound,
+	    ServerError {
+	try {
+	    final String pid = domsAPI.getFileObjectWithURL(fileURL.toString());
+	    if (pid == null) {
+		throw new NoObjectFound(
+		        "Unable to retrieve file object with URL: " + fileURL);
+	    }
+	    return pid;
+	} catch (MethodFailedException mfe) {
+	    throw new ServerError("Unable to retrieve file object with URL: "
+		    + fileURL, mfe);
+	} catch (InvalidCredentialsException ice) {
+	    throw new ServerError("Unable to retrieve file object with URL: "
+		    + fileURL, ice);
+	}
     }
 }
