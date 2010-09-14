@@ -26,11 +26,18 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.net.URL;
 import java.util.Map;
 
+import javax.jws.WebParam;
 import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.ws.BindingProvider;
+
+import org.w3c.dom.Document;
 
 import dk.statsbiblioteket.doms.centralWebservice.CentralWebservice;
 import dk.statsbiblioteket.doms.centralWebservice.CentralWebserviceService;
@@ -57,34 +64,76 @@ public class DOMSClient {
     }
 
     /**
-     * Create a new file object.
+     * Create a new DOMS object from an object template already stored in the
+     * DOMS.
      * 
-     * @param fileURL
-     * @throws MethodFailedException
+     * @param templatePID
+     *            PID identifying the template to use.
+     * @return PID of the created object.
+     * @throws ServerError
+     *             if the object creation failed.
      */
-    public String createFileObject(URL fileURL) throws MethodFailedException {
-
+    public String createObjectFromTemplate(String templatePID)
+	    throws ServerError {
 	try {
-	    final String pid = domsAPI.newObject("doms:Template_RadioTVFile");
-	    // TODO: Add file URL to object;
-	    // brug domsAPI.addFileFromPermanentURL()
-
-	    // createFileObject() is a bad choice of name.
-	    return pid;
-
-	} catch (InvalidCredentialsException ice) {
-	    throw new MethodFailedException(
-		    "Method call failed due to invalid credentials.", "", ice);
+	    return domsAPI.newObject(templatePID);
+	} catch (Exception e) {
+	    throw new ServerError(
+		    "Failed creating a new object from template: "
+		            + templatePID, e);
 	}
     }
 
     /**
-     * Get the PID of an existing file object.
+     * Create a new file object from an existing file object template, based on
+     * the information provided by the <code>FileInfo</code> instance, in the
+     * DOMS.
+     * 
+     * @param templatePID
+     *            The PID of the file object template to use for creation of the
+     *            new file object.
+     * @param fileInfo
+     *            File location, checksum and so on for the physical file
+     *            associated with the object.
+     * @return PID of the created file object in the DOMS.
+     * @throws ServerError
+     *             if the object creation failed.
+     * @see FileInfo
+     */
+    public String createFileObject(String templatePID, FileInfo fileInfo)
+	    throws ServerError {
+
+	try {
+	    final String fileObjectPID = createObjectFromTemplate(templatePID);
+
+	    domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
+		    .getFileName(), fileInfo.getMd5Sum(), fileInfo
+		    .getFileLocation().toString(), fileInfo.getFileFormatURI()
+		    .toString());
+
+	    return fileObjectPID;
+
+	} catch (Exception e) {
+	    throw new ServerError(
+		    "Failed creating a new file object from this file information: "
+		            + fileInfo, e);
+	}
+    }
+
+    /**
+     * Get the PID of an existing file object in the DOMS which is associated
+     * with the physical file specifiec by <code>fileURL</code>.
      * 
      * @param fileURL
-     * @return
+     *            location of the physical file to find the corresponding DOMS
+     *            file object for.
+     * @return PID of the DOMS file object.
      * @throws NoObjectFound
+     *             if there does not exist DOMS file object associated with
+     *             <code>fileURL</code>.
      * @throws ServerError
+     *             if any errors are encountered while looking up the file
+     *             object.
      */
     public String getFileObjectPID(URL fileURL) throws NoObjectFound,
 	    ServerError {
@@ -102,5 +151,57 @@ public class DOMSClient {
 	    throw new ServerError("Unable to retrieve file object with URL: "
 		    + fileURL, ice);
 	}
+    }
+
+    /**
+     * 
+     * @param objectPID
+     * @param datastreamID
+     * @return <code>Document</code> containing the datastream contents.
+     * @throws ServerError
+     */
+    public Document getDataStream(String objectPID, String datastreamID)
+	    throws ServerError {
+	try {
+	    final String datastreamXML = domsAPI.getDatastreamContents(
+		    objectPID, datastreamID);
+
+	    final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+		    .newInstance();
+
+	    final DocumentBuilder documentBuilder = documentBuilderFactory
+		    .newDocumentBuilder();
+
+	    final ByteArrayInputStream datastreamBytes = new ByteArrayInputStream(
+		    datastreamXML.getBytes());
+	    final Document dataStream = documentBuilder.parse(datastreamBytes);
+
+	    return dataStream;
+	} catch (Exception exception) {
+	    throw new ServerError("Failed getting datastream (ID: "
+		    + datastreamID + ") contents from object (PID: "
+		    + objectPID + ")", exception);
+	}
+    }
+
+    /**
+     * 
+     * @param objectPID
+     * @param dataStreamID
+     * @param newDataStreamContents
+     * @throws ServerError
+     */
+    public void updateDataStream(String objectPID, String dataStreamID,
+	    Document newDataStreamContents) throws ServerError {
+	try {
+	    domsAPI.modifyDatastream(objectPID, dataStreamID,
+		    newDataStreamContents.toString());
+	    
+	} catch (Exception exception) {
+	    throw new ServerError("Failed updating datastream (ID: "
+		    + dataStreamID + ") contents from object (PID: "
+		    + objectPID + ")", exception);
+	}
+
     }
 }

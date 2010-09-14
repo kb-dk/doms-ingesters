@@ -29,6 +29,8 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,9 +48,6 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
-import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
-
 /**
  * @author tsh
  * 
@@ -56,8 +55,14 @@ import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private static final String RECORDING_FILES_FILE_ELEMENT = "//program_recording_files/file";
-    private static final String FILE_ELEMENT = "file";
     private static final String FILE_URL_ELEMENT = "file_url";
+    private static final String FILE_NAME_ELEMENT = "file_name";
+    private static final String FORMAT_URI_ELEMENT = "format_uri";
+    private static final String MD5_SUM_ELEMENT = "md5_sum";
+
+    private static final String META_FILE_TEMPLATE_PID = "doms:Template_Shard";
+    private static final String RADIO_TV_FILE_TEMPLATE_PID = "doms:Template_RadioTVFile";
+    private static final String META_FILE_METADATA_DS_ID = "SHARD_METADATA";
 
     private final File failedFilesFolder;
     private final File processedFilesFolder;
@@ -88,18 +93,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 		    .newDocumentBuilder();
 	    final Document radioTVMetadata = documentBuilder.parse(addedFile);
 
-	    final FoxMLBuilder foxMLBuilder = new FoxMLBuilder();
-
 	    final DOMSClient domsClient = new DOMSClient();
 	    domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
 		    .getLogin(), domsLoginInfo.getPassword());
 
 	    final List<String> filePIDs = ingestFiles(domsClient,
 		    radioTVMetadata);
-	    final String shardPID = ingestShard(domsClient, radioTVMetadata,
-		    filePIDs);
+	    final String metaFilePID = ingestMetaFile(domsClient,
+		    radioTVMetadata, filePIDs);
 	    final String programPID = ingestProgram(domsClient,
-		    radioTVMetadata, shardPID);
+		    radioTVMetadata, metaFilePID);
 
 	    /*
 	     * - getObjectForFile() or create object: newObject(FileTemplate)
@@ -120,11 +123,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    moveFile(addedFile, failedFilesFolder);
 	    // TODO: Log this
 	    // TODO: we should not allow endless failures....
-	} catch (MethodFailedException mfe) {
-	    // Failed calling the DOMS server
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
 	} catch (ServerError se) {
 	    // Failed calling the DOMS server
 	    moveFile(addedFile, failedFilesFolder);
@@ -136,18 +134,18 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    // TODO: Log this
 	    // TODO: we should not allow endless failures....
 
+	} catch (URISyntaxException use) {
+	    // Failed parsing the Radio-TV XML document...
+	    moveFile(addedFile, failedFilesFolder);
+	    // TODO: Log this
+	    // TODO: we should not allow endless failures....
+
 	} catch (IOException ioe) {
 	    moveFile(addedFile, failedFilesFolder);
 	    // TODO: Log this
 	    // TODO: we should not allow endless failures....
 	}
 
-    }
-
-    private String ingestProgram(DOMSClient domsClient,
-	    Document radioTVMetadata, String shardPID) {
-	// TODO Auto-generated method stub
-	return null;
     }
 
     /* (non-Javadoc)
@@ -166,10 +164,27 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	// Not relevant.
     }
 
-    private String ingestShard(DOMSClient domsClient, Document radioTVMetadata,
-	    List<String> filePIDs) {
+    private String ingestProgram(DOMSClient domsClient,
+	    Document radioTVMetadata, String shardPID) {
+	// TODO Auto-generated method stub
 	return null;
+    }
 
+    private String ingestMetaFile(DOMSClient domsClient,
+	    Document radioTVMetadata, List<String> filePIDs)
+	    throws ServerError, IOException, SAXException,
+	    ParserConfigurationException {
+
+	final String metaFilePID = domsClient
+	        .createObjectFromTemplate(META_FILE_TEMPLATE_PID);
+
+	final Document metadataDataStream = domsClient.getDataStream(metaFilePID,
+	        META_FILE_METADATA_DS_ID);
+
+	System.out.println("This does not work, does it? " + metadataDataStream.getNextSibling().getTextContent());
+	
+	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID, metadataDataStream);
+	return metaFilePID;
     }
 
     /**
@@ -187,10 +202,15 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             <code>radioTVMetadata</code> XML document.
      * @throws MalformedURLException
      *             if a file element contains an invalid URL.
+     * @throws IOException
+     *             if a file specified in the <code>radioTVMetadata</code>
+     *             document could not be read for checksum calculation.
+     * @throws URISyntaxException
+     *             if the format URI for the file is invalid.
      */
     private List<String> ingestFiles(DOMSClient domsClient,
 	    Document radioTVMetadata) throws XPathExpressionException,
-	    MalformedURLException, ServerError, MethodFailedException {
+	    MalformedURLException, ServerError, IOException, URISyntaxException {
 
 	// Get the recording files XML element and process the file information.
 	final XPath xPath = this.xPathFactory.newXPath();
@@ -202,29 +222,45 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	// element in the radio-tv XML document.
 	final List<String> fileObjectPIDs = new ArrayList<String>();
 	for (int nodeIndex = 0; nodeIndex < recordingFiles.getLength(); nodeIndex++) {
+
 	    final Node currentFileNode = recordingFiles.item(nodeIndex);
 
 	    final Node fileURLNode = (Node) xPath.evaluate(FILE_URL_ELEMENT,
 		    currentFileNode, XPathConstants.NODE);
 	    final String fileURLString = fileURLNode.getTextContent();
 	    final URL fileURL = new URL(fileURLString);
+
 	    String fileObjectPID;
 	    try {
 		fileObjectPID = domsClient.getFileObjectPID(fileURL);
 	    } catch (NoObjectFound nof) {
-		// The DOMS contains no file object for this file URL. Go
-		// creating it.
+		// The DOMS contains no file object for this file URL.
+		// Create a new one now.
+		final Node fileNameNode = (Node) xPath
+		        .evaluate(FILE_NAME_ELEMENT, currentFileNode,
+		                XPathConstants.NODE);
 
-		fileObjectPID = ingestNewFile(domsClient, fileURL);
+		final String fileName = fileNameNode.getTextContent();
+
+		final Node formatURINode = (Node) xPath.evaluate(
+		        FORMAT_URI_ELEMENT, currentFileNode,
+		        XPathConstants.NODE);
+
+		final URI formatURI = new URI(formatURINode.getTextContent());
+
+		final Node md5SumNode = (Node) xPath.evaluate(MD5_SUM_ELEMENT,
+		        currentFileNode, XPathConstants.NODE);
+		final String md5String = md5SumNode.getTextContent();
+
+		final FileInfo fileInfo = new FileInfo(fileName, fileURL,
+		        md5String, formatURI);
+
+		fileObjectPID = domsClient.createFileObject(
+		        RADIO_TV_FILE_TEMPLATE_PID, fileInfo);
 	    }
 	    fileObjectPIDs.add(fileObjectPID);
 	}
 	return fileObjectPIDs;
-    }
-
-    private String ingestNewFile(DOMSClient domsClient, URL fileURL)
-	    throws MethodFailedException {
-	return domsClient.createFileObject(fileURL);
     }
 
     /**
