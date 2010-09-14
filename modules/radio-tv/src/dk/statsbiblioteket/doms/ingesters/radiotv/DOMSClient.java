@@ -43,6 +43,7 @@ import dk.statsbiblioteket.doms.centralWebservice.CentralWebservice;
 import dk.statsbiblioteket.doms.centralWebservice.CentralWebserviceService;
 import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
+import dk.statsbiblioteket.util.xml.DOM;
 
 /**
  * @author tsh
@@ -195,7 +196,7 @@ public class DOMSClient {
 	    Document newDataStreamContents) throws ServerError {
 	try {
 	    domsAPI.modifyDatastream(objectPID, dataStreamID,
-		    newDataStreamContents.toString());
+		    DOM.domToString(newDataStreamContents));
 	    
 	} catch (Exception exception) {
 	    throw new ServerError("Failed updating datastream (ID: "

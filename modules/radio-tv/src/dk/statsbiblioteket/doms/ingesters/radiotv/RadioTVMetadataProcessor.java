@@ -48,6 +48,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import dk.statsbiblioteket.util.xml.DOM;
+
 /**
  * @author tsh
  * 
@@ -181,8 +183,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	final Document metadataDataStream = domsClient.getDataStream(metaFilePID,
 	        META_FILE_METADATA_DS_ID);
 
-	System.out.println("This does not work, does it? " + metadataDataStream.getNextSibling().getTextContent());
-	
 	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID, metadataDataStream);
 	return metaFilePID;
     }
