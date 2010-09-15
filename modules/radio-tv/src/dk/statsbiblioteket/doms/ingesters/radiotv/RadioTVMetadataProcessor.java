@@ -262,7 +262,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    URISyntaxException {
 
 	FileInfo fileInfo = new FileInfo("I_made_this_up", new URL(
-	        "http://localhost/I_made_this_up"), "", new URI(""));
+	        "http://localhost/I_made_this_up"), "", new URI("info:pronom/fmt/199"));
 	final String metaFilePID = domsClient.createFileObject(
 	        META_FILE_TEMPLATE_PID, fileInfo);
 
