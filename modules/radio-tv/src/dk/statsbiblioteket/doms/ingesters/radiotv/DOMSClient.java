@@ -29,6 +29,7 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 import javax.jws.WebParam;
@@ -116,7 +117,8 @@ public class DOMSClient {
 
 	} catch (Exception e) {
 	    throw new ServerError(
-		    "Failed creating a new file object from this file information: "
+		    "Failed creating a new file object (template PID: "
+		            + templatePID + ") from this file information: "
 		            + fileInfo, e);
 	}
     }
@@ -195,14 +197,52 @@ public class DOMSClient {
     public void updateDataStream(String objectPID, String dataStreamID,
 	    Document newDataStreamContents) throws ServerError {
 	try {
-	    domsAPI.modifyDatastream(objectPID, dataStreamID,
-		    DOM.domToString(newDataStreamContents));
-	    
+	    domsAPI.modifyDatastream(objectPID, dataStreamID, DOM
+		    .domToString(newDataStreamContents));
+
 	} catch (Exception exception) {
 	    throw new ServerError("Failed updating datastream (ID: "
 		    + dataStreamID + ") contents from object (PID: "
 		    + objectPID + ")", exception);
 	}
 
+    }
+
+    /**
+     * 
+     * @param sourcePID
+     * @param relationType
+     * @param targetPID
+     * @throws ServerError
+     */
+    public void addObjectRelation(String sourcePID, String relationType,
+	    String targetPID) throws ServerError {
+	try {
+	    domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
+		    relationType, "info:fedora/" + targetPID);
+	} catch (Exception exception) {
+	    throw new ServerError("Failed creating object relation (type: "
+		    + relationType + ") from the source object (PID: "
+		    + sourcePID + ") to the target object (PID: " + targetPID
+		    + ")");
+	}
+    }
+
+    /**
+     * Mark the objects identified by the the PIDs in <code>pidsToPublish</code>
+     * as published, and thus viewable from the DOMS.
+     * 
+     * @param pidsToPublish
+     *            <code>List</code> of PIDs for the objects to publish.
+     * @throws ServerError
+     *             if any errors are encountered while publishing the objects.
+     */
+    public void publishObjects(List<String> pidsToPublish) throws ServerError {
+	try {
+	    domsAPI.markPublishedObject(pidsToPublish);
+	} catch (Exception exception) {
+	    throw new ServerError("Failed making objects as published. PIDs: "
+		    + pidsToPublish);
+	}
     }
 }

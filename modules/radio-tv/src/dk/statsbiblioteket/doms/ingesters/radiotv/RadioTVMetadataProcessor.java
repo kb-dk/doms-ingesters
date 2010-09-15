@@ -56,27 +56,34 @@ import dk.statsbiblioteket.util.xml.DOM;
  */
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
-    private static final String RECORDING_FILES_FILE_ELEMENT = "//program_recording_files/file";
+    private static final String RITZAU_ORIGINALS_ELEMENT = "//program/originals/ritzau_original";
+    private static final String GALLUP_ORIGINALS_ELEMENT = "//program/originals/gallup_original";
+    private static final String HAS_METAFILE_RELATION_TYPE = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasShard";
+    private static final String CONSISTS_OF_RELATION_TYPE = "http://doms.statsbiblioteket.dk/relations/default/0/1/#consistsOf";
+    private static final String RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT = "//program/pbcore/PBCoreDescriptionDocument";
+    private static final String RECORDING_FILES_FILE_ELEMENT = "//program/program_recording_files/file";
     private static final String FILE_URL_ELEMENT = "file_url";
     private static final String FILE_NAME_ELEMENT = "file_name";
     private static final String FORMAT_URI_ELEMENT = "format_uri";
     private static final String MD5_SUM_ELEMENT = "md5_sum";
 
+    private static final String PROGRAM_TEMPLATE_PID = "doms:Template_Program";
+    private static final String PROGRAM_PBCORE_DS_ID = "PBCORE";
+    private static final String RITZAU_ORIGINAL_DS_ID = "RITZAU_ORIGINAL";
+    private static final String GALLUP_ORIGINAL_DS_ID = "GALLUP_ORIGINAL";
     private static final String META_FILE_TEMPLATE_PID = "doms:Template_Shard";
-    private static final String RADIO_TV_FILE_TEMPLATE_PID = "doms:Template_RadioTVFile";
     private static final String META_FILE_METADATA_DS_ID = "SHARD_METADATA";
+    private static final String RADIO_TV_FILE_TEMPLATE_PID = "doms:Template_RadioTVFile";
 
     private final File failedFilesFolder;
     private final File processedFilesFolder;
-    private final File foxMLFolder;
     private final DOMSLoginInfo domsLoginInfo;
     private final XPathFactory xPathFactory;
 
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo,
-	    File failedFilesFolder, File processedFilesFolder, File foxMLFolder) {
+	    File failedFilesFolder, File processedFilesFolder) {
 	this.failedFilesFolder = failedFilesFolder;
 	this.processedFilesFolder = processedFilesFolder;
-	this.foxMLFolder = foxMLFolder;
 	this.domsLoginInfo = domsLoginInfo;
 
 	xPathFactory = XPathFactory.newInstance();
@@ -106,13 +113,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    final String programPID = ingestProgram(domsClient,
 		    radioTVMetadata, metaFilePID);
 
-	    /*
-	     * - getObjectForFile() or create object: newObject(FileTemplate)
-	     * - addFile(uri, pid)
-	     * - getDS(Metadata)
-	     * - modifyDS(metadata, content)
-	     * - newObject(shardToUpdate)
-	     */
+	    List<String> pidsToPublish = new ArrayList<String>(filePIDs);
+	    pidsToPublish.add(metaFilePID);
+	    pidsToPublish.add(programPID);
+	    domsClient.publishObjects(pidsToPublish);
 
 	    // Move the processed file to the finished files folder.
 	    moveFile(addedFile, processedFilesFolder);
@@ -166,24 +170,148 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	// Not relevant.
     }
 
+    /**
+     * 
+     * @param domsClient
+     * @param radioTVMetadata
+     * @param metafilePID
+     * @return
+     * @throws ServerError
+     * @throws XPathExpressionException
+     */
     private String ingestProgram(DOMSClient domsClient,
-	    Document radioTVMetadata, String shardPID) {
-	// TODO Auto-generated method stub
-	return null;
+	    Document radioTVMetadata, String metafilePID) throws ServerError,
+	    XPathExpressionException {
+
+	final String programObjectPID = domsClient
+	        .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
+
+	final Document pbCoredDataStreamDocument = domsClient.getDataStream(
+	        programObjectPID, PROGRAM_PBCORE_DS_ID);
+	final Node pbCoreDataStreamElement = pbCoredDataStreamDocument
+	        .getFirstChild();
+
+	final XPath xPath = this.xPathFactory.newXPath();
+	final Node radioTVPBCoreElement = (Node) xPath.evaluate(
+	        RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT, radioTVMetadata,
+	        XPathConstants.NODE);
+
+	final Node newPBCoreElement = pbCoredDataStreamDocument.importNode(
+	        radioTVPBCoreElement, true);
+
+	// Replace the PBCore metadata template with the real data.
+	pbCoredDataStreamDocument.replaceChild(newPBCoreElement,
+	        pbCoreDataStreamElement);
+
+	domsClient.updateDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID,
+	        pbCoredDataStreamDocument);
+
+	// Add the Ritzau metadata
+	final Node ritzauPreingestElement = (Node) xPath.evaluate(
+	        RITZAU_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
+
+	final Document ritzauOriginalDocument = domsClient.getDataStream(
+	        programObjectPID, RITZAU_ORIGINAL_DS_ID);
+
+	final Node ritzauOriginalElement = ritzauOriginalDocument
+	        .getFirstChild();
+	ritzauOriginalElement.setTextContent(ritzauPreingestElement
+	        .getTextContent());
+
+	domsClient.updateDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID,
+	        ritzauOriginalDocument);
+
+	// Add the Gallup metadata
+	final Node gallupPreingestElement = (Node) xPath.evaluate(
+	        GALLUP_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
+
+	final Document gallupOriginalDocument = domsClient.getDataStream(
+	        programObjectPID, GALLUP_ORIGINAL_DS_ID);
+
+	final Node gallupOriginalElement = gallupOriginalDocument
+	        .getFirstChild();
+	gallupOriginalElement.setTextContent(gallupPreingestElement
+	        .getTextContent());
+
+	domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID,
+	        gallupOriginalDocument);
+
+	// Create relations to the metafile/shard
+	domsClient.addObjectRelation(programObjectPID,
+	        HAS_METAFILE_RELATION_TYPE, metafilePID);
+
+	return programObjectPID;
     }
 
+    /**
+     * 
+     * @param domsClient
+     * @param radioTVMetadata
+     * @param filePIDs
+     * @return
+     * @throws ServerError
+     * @throws IOException
+     * @throws SAXException
+     * @throws ParserConfigurationException
+     * @throws XPathExpressionException
+     */
     private String ingestMetaFile(DOMSClient domsClient,
 	    Document radioTVMetadata, List<String> filePIDs)
 	    throws ServerError, IOException, SAXException,
-	    ParserConfigurationException {
+	    ParserConfigurationException, XPathExpressionException,
+	    URISyntaxException {
 
-	final String metaFilePID = domsClient
-	        .createObjectFromTemplate(META_FILE_TEMPLATE_PID);
+	FileInfo fileInfo = new FileInfo("I_made_this_up", new URL(
+	        "http://localhost/I_made_this_up"), "", new URI(""));
+	final String metaFilePID = domsClient.createFileObject(
+	        META_FILE_TEMPLATE_PID, fileInfo);
 
-	final Document metadataDataStream = domsClient.getDataStream(metaFilePID,
-	        META_FILE_METADATA_DS_ID);
+	final Document metadataDataStreamDocument = domsClient.getDataStream(
+	        metaFilePID, META_FILE_METADATA_DS_ID);
+	final Node metadataDataStreamElement = metadataDataStreamDocument
+	        .getFirstChild();
 
-	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID, metadataDataStream);
+	final NodeList children = metadataDataStreamElement.getChildNodes();
+	if (children.getLength() != 1) {
+	    throw new SAXException("Expected only one XML element in the "
+		    + "metadata datastream (ID: " + META_FILE_METADATA_DS_ID
+		    + ") of the template object (PID: "
+		    + META_FILE_TEMPLATE_PID + "). Found "
+		    + children.getLength() + " elements.");
+	}
+
+	// Remove the "INSERT" comment/instruction from the template
+	metadataDataStreamElement.removeChild(metadataDataStreamElement
+	        .getFirstChild());
+
+	// Add all the "file" elements from the radio-tv metadata document.
+	// TODO: Note that this is just a first-shot implementation until a
+	// proper metadata format has been defined.
+	final XPath xPath = this.xPathFactory.newXPath();
+	final NodeList recordingFileElements = (NodeList) xPath.evaluate(
+	        RECORDING_FILES_FILE_ELEMENT, radioTVMetadata,
+	        XPathConstants.NODESET);
+
+	for (int fileElementIdx = 0; fileElementIdx < recordingFileElements
+	        .getLength(); fileElementIdx++) {
+	    final Node currentRecordingFile = recordingFileElements
+		    .item(fileElementIdx);
+	    final Node newMetadataElement = metadataDataStreamDocument
+		    .importNode(currentRecordingFile, true);
+
+	    // Append to the end of the list of child nodes.
+	    metadataDataStreamElement.insertBefore(newMetadataElement, null);
+	}
+
+	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID,
+	        metadataDataStreamDocument);
+
+	// Create relations to the relevant file(s)
+	for (String filePID : filePIDs) {
+	    domsClient.addObjectRelation(metaFilePID,
+		    CONSISTS_OF_RELATION_TYPE, filePID);
+	}
+
 	return metaFilePID;
     }
 

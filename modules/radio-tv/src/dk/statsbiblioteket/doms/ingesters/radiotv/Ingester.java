@@ -58,7 +58,6 @@ public class Ingester {
 	final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
 	final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
 	final File COLD_FOLDER = new File("/tmp/processedFiles");
-	final File FOXML_FOLDER = new File("/tmp/ingestedFoxMLFiles");
 
 	// Make sure that all the necessary folders exist.
 	if (!HOT_FOLDER.exists()) {
@@ -73,10 +72,6 @@ public class Ingester {
 	    COLD_FOLDER.mkdirs();
 	}
 
-	if (!FOXML_FOLDER.exists()) {
-	    FOXML_FOLDER.mkdirs();
-	}
-
 	final HotFolderScanner hotFolderScanner = new HotFolderScanner();
 
 	// final URL domsAPIWSLocation = new URL(
@@ -88,7 +83,7 @@ public class Ingester {
 	        domsAPIWSLocation, "fedoraAdmin", "fedoraAdminPass");
 
 	final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
-	        domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER, FOXML_FOLDER);
+	        domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER);
 	hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
 
 	// Hang forever....
