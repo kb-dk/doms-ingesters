@@ -33,6 +33,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -261,8 +262,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    ParserConfigurationException, XPathExpressionException,
 	    URISyntaxException {
 
-	FileInfo fileInfo = new FileInfo("I_made_this_up", new URL(
-	        "http://localhost/I_made_this_up"), "", new URI("info:pronom/fmt/199"));
+	final Date now = new Date();
+	final FileInfo fileInfo = new FileInfo("I_made_this_up/" + now.getTime(), new URL(
+	        "http://localhost/I_made_this_up/"+ now.getTime()), "", new URI(
+	        "info:pronom/fmt/199"));
 	final String metaFilePID = domsClient.createFileObject(
 	        META_FILE_TEMPLATE_PID, fileInfo);
 
@@ -378,7 +381,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
 		final Node md5SumNode = (Node) xPath.evaluate(MD5_SUM_ELEMENT,
 		        currentFileNode, XPathConstants.NODE);
-		final String md5String = md5SumNode.getTextContent();
+
+		// The MD5 check sum is optional. Just leave it empty if the
+		// pre-ingest file does not provide it.
+		String md5String = "";
+		if (md5SumNode != null) {
+		    md5String = md5SumNode.getTextContent();
+		}
 
 		final FileInfo fileInfo = new FileInfo(fileName, fileURL,
 		        md5String, formatURI);
