@@ -324,10 +324,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    metadataDataStreamElement.insertBefore(newMetadataElement, null);
 	}
 
-	try {
-	    System.out.println(DOM.domToString(metadataDataStreamDocument));
-	} catch (Exception e) {
-	}
 	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID,
 	        metadataDataStreamDocument);
 
@@ -452,6 +448,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 		printStream.print(", ");
 	    }
 	}
+	printStream.println();
 	printStream.close();
     }
 }
