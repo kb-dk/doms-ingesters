@@ -27,13 +27,16 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -97,60 +100,75 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     public void fileAdded(File addedFile) {
 
 	try {
-	    final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
-		    .newInstance();
-	    final DocumentBuilder documentBuilder = documentBuilderFactory
-		    .newDocumentBuilder();
-	    final Document radioTVMetadata = documentBuilder.parse(addedFile);
+	    List<String> pidsToPublish = new ArrayList<String>();
+	    try {
+		final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+		        .newInstance();
+		final DocumentBuilder documentBuilder = documentBuilderFactory
+		        .newDocumentBuilder();
+		final Document radioTVMetadata = documentBuilder
+		        .parse(addedFile);
 
-	    final DOMSClient domsClient = new DOMSClient();
-	    domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
-		    .getLogin(), domsLoginInfo.getPassword());
+		final DOMSClient domsClient = new DOMSClient();
+		domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
+		        .getLogin(), domsLoginInfo.getPassword());
 
-	    final List<String> filePIDs = ingestFiles(domsClient,
-		    radioTVMetadata);
-	    final String metaFilePID = ingestMetaFile(domsClient,
-		    radioTVMetadata, filePIDs);
-	    final String programPID = ingestProgram(domsClient,
-		    radioTVMetadata, metaFilePID);
+		final List<String> filePIDs = ingestFiles(domsClient,
+		        radioTVMetadata);
+		pidsToPublish.addAll(filePIDs);
 
-	    List<String> pidsToPublish = new ArrayList<String>(filePIDs);
-	    pidsToPublish.add(metaFilePID);
-	    pidsToPublish.add(programPID);
-	    domsClient.publishObjects(pidsToPublish);
+		final String metaFilePID = ingestMetaFile(domsClient,
+		        radioTVMetadata, filePIDs);
+		pidsToPublish.add(metaFilePID);
 
-	    // Move the processed file to the finished files folder.
-	    moveFile(addedFile, processedFilesFolder);
+		final String programPID = ingestProgram(domsClient,
+		        radioTVMetadata, metaFilePID);
+		pidsToPublish.add(programPID);
 
-	} catch (ParserConfigurationException pce) {
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
-	} catch (SAXException se) {
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
-	} catch (ServerError se) {
-	    // Failed calling the DOMS server
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
-	} catch (XPathExpressionException xpee) {
-	    // Failed parsing the Radio-TV XML document...
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
+		domsClient.publishObjects(pidsToPublish);
 
-	} catch (URISyntaxException use) {
-	    // Failed parsing the Radio-TV XML document...
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
+		// Move the processed file to the finished files folder.
+		moveFile(addedFile, processedFilesFolder);
 
-	} catch (IOException ioe) {
-	    moveFile(addedFile, failedFilesFolder);
-	    // TODO: Log this
-	    // TODO: we should not allow endless failures....
+	    } catch (ParserConfigurationException pce) {
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+	    } catch (SAXException se) {
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+	    } catch (ServerError se) {
+		// Failed calling the DOMS server
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+	    } catch (XPathExpressionException xpee) {
+		// Failed parsing the Radio-TV XML document...
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+
+	    } catch (URISyntaxException use) {
+		// Failed parsing the Radio-TV XML document...
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+
+	    } catch (IOException ioe) {
+		moveFile(addedFile, failedFilesFolder);
+		writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+		// TODO: Log this
+		// TODO: we should not allow endless failures....
+	    }
+	} catch (FileNotFoundException fnfe) {
+	    // Failed writing the list of failed PIDs
+	    // TODO: Log this.
 	}
 
     }
@@ -263,9 +281,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    URISyntaxException {
 
 	final Date now = new Date();
-	final FileInfo fileInfo = new FileInfo("I_made_this_up/" + now.getTime(), new URL(
-	        "http://localhost/I_made_this_up/"+ now.getTime()), "", new URI(
-	        "info:pronom/fmt/199"));
+	final FileInfo fileInfo = new FileInfo("I_made_this_up/"
+	        + now.getTime(), new URL("http://localhost/I_made_this_up/"
+	        + now.getTime()), "", new URI("info:pronom/fmt/199"));
 	final String metaFilePID = domsClient.createFileObject(
 	        META_FILE_TEMPLATE_PID, fileInfo);
 
@@ -306,6 +324,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	    metadataDataStreamElement.insertBefore(newMetadataElement, null);
 	}
 
+	try {
+	    System.out.println(DOM.domToString(metadataDataStreamDocument));
+	} catch (Exception e) {
+	}
 	domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID,
 	        metadataDataStreamDocument);
 
@@ -414,4 +436,22 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 	        + File.separator + fileToMove.getName()));
     }
 
+    private void writeFailedPIDs(File failedMetadataFile,
+	    List<String> failedPIDs, File outputFolder)
+	    throws FileNotFoundException {
+
+	final File failedPIDsFile = new File(outputFolder, failedMetadataFile
+	        .getName()
+	        + ".failedPIDs");
+	final PrintStream printStream = new PrintStream(failedPIDsFile);
+
+	final Iterator<String> pidIterator = failedPIDs.iterator();
+	while (pidIterator.hasNext()) {
+	    printStream.print(pidIterator.next());
+	    if (pidIterator.hasNext()) {
+		printStream.print(", ");
+	    }
+	}
+	printStream.close();
+    }
 }

@@ -27,12 +27,10 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.ByteArrayInputStream;
-import java.net.URI;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
-import javax.jws.WebParam;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -42,8 +40,6 @@ import org.w3c.dom.Document;
 
 import dk.statsbiblioteket.doms.centralWebservice.CentralWebservice;
 import dk.statsbiblioteket.doms.centralWebservice.CentralWebserviceService;
-import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
-import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 import dk.statsbiblioteket.util.xml.DOM;
 
 /**
@@ -140,20 +136,19 @@ public class DOMSClient {
      */
     public String getFileObjectPID(URL fileURL) throws NoObjectFound,
 	    ServerError {
+
+	String pid = null;
 	try {
-	    final String pid = domsAPI.getFileObjectWithURL(fileURL.toString());
-	    if (pid == null) {
-		throw new NoObjectFound(
-		        "Unable to retrieve file object with URL: " + fileURL);
-	    }
-	    return pid;
-	} catch (MethodFailedException mfe) {
+	    pid = domsAPI.getFileObjectWithURL(fileURL.toString());
+	} catch (Exception exception) {
 	    throw new ServerError("Unable to retrieve file object with URL: "
-		    + fileURL, mfe);
-	} catch (InvalidCredentialsException ice) {
-	    throw new ServerError("Unable to retrieve file object with URL: "
-		    + fileURL, ice);
+		    + fileURL, exception);
 	}
+	if (pid == null) {
+	    throw new NoObjectFound("Unable to retrieve file object with URL: "
+		    + fileURL);
+	}
+	return pid;
     }
 
     /**
@@ -224,7 +219,7 @@ public class DOMSClient {
 	    throw new ServerError("Failed creating object relation (type: "
 		    + relationType + ") from the source object (PID: "
 		    + sourcePID + ") to the target object (PID: " + targetPID
-		    + ")");
+		    + ")", exception);
 	}
     }
 
@@ -241,8 +236,8 @@ public class DOMSClient {
 	try {
 	    domsAPI.markPublishedObject(pidsToPublish);
 	} catch (Exception exception) {
-	    throw new ServerError("Failed making objects as published. PIDs: "
-		    + pidsToPublish);
+	    throw new ServerError("Failed marking objects as published. PIDs: "
+		    + pidsToPublish, exception);
 	}
     }
 }
