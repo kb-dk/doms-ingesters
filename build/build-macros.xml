@@ -1,4 +1,6 @@
 <!--
+  ~ Doms build framework version 1.0.10
+  ~
   ~ $Id$
   ~ $Revision$
   ~ $Date$
@@ -26,7 +28,7 @@
   -->
 
 <project name="macros">
-    <!--Part of doms build framework version 1.0.6#SNAPSHOT-->
+    <!--Part of doms build framework version 1.0.10-->
 
 
     <property name="global.dir" value="${basedir}/.."/>
@@ -42,15 +44,22 @@
     <property name="docspack.zip" value="${ant.project.name}-apidocs.zip"/>
 
 
-    <path id="rhino.classpath">
+
+    <path id="script.classpath">
         <fileset dir="${my.basedir}/${rhino.folder}">
+            <include name="*.jar"/>
+        </fileset>
+        <fileset dir="${my.basedir}/${bsf.folder}">
+            <include name="*.jar"/>
+        </fileset>
+        <fileset dir="${my.basedir}/${commonslogging.folder}">
             <include name="*.jar"/>
         </fileset>
     </path>
 
     <!--Call the specified target in all the specified dirs-->
     <scriptdef name="dependsloop" language="javascript"
-               classpathref="rhino.classpath"
+               classpathref="script.classpath"
                src="${my.basedir}/dependsforloop.js">
         <attribute name="target"/>
         <attribute name="dependencies"/>
@@ -59,12 +68,17 @@
 
     <!--Create list of files from a dirset-->
     <scriptdef name="convertPath" language="javascript"
-               classpathref="rhino.classpath"
+               classpathref="script.classpath"
                src="${my.basedir}/convertPath.js">
         <attribute name="dirset"/>
         <attribute name="postfix"/>
         <attribute name="newfileset"/>
     </scriptdef>
+    
+
+
+
+
 
 
     <property name="warfilename" value="${ant.project.name}.war"/>
@@ -138,6 +152,9 @@
                 <zipfileset dir="src">
                     <include name="**/*"/>
                 </zipfileset>
+                <zipfileset dir="tempsrc" erroronmissingdir="false">
+                    <include name="**/*"/>
+                </zipfileset>
             </zip>
         </sequential>
     </macrodef>
@@ -164,6 +181,8 @@
             <delete dir="docstemp"/>
         </sequential>
     </macrodef>
+
+
 
 
     <macrodef name="_copyLibsForDist" description="Copy all project libs used by
@@ -197,6 +216,7 @@
         <attribute name="warfilename"/>
         <attribute name="webxml" default="web/WEB-INF/web.xml"/>
         <attribute name="web-inf"/>
+        <attribute name="web-content"/>
         <attribute name="wsdl.dir" default=""/>
         <attribute name="jars.to.pack"/>
         <sequential>
@@ -207,18 +227,23 @@
             </copy>
             <war destfile="dist/@{warfilename}"
                  webxml="@{webxml}" duplicate="fail">
-                <!--                <classes dir="classes"/>-->
+<!--                <classes dir="classes"/>-->
+                <fileset refid="@{web-content}"/>
                 <lib dir="libtemp"/>
                 <lib dir="dist">
                     <include name="*.jar"/>
                 </lib>
                 <webinf refid="@{web-inf}" prefix="WEB-INF"/>
-                <webinf dir="@{wsdl.dir}" prefix="WEB-INF/wsdl"/>
+                <webinf dir="@{wsdl.dir}" prefix="WEB-INF/wsdl" erroronmissingdir="false"/>
             </war>
             <delete dir="libtemp"/>
         </sequential>
 
     </macrodef>
+
+
+    
+
 
 
 </project>

@@ -1,4 +1,6 @@
 <!--
+  ~ Doms build framework version 1.0.10
+  ~
   ~ $Id$
   ~ $Revision$
   ~ $Date$
@@ -53,7 +55,7 @@
     <!--These are the standard targets-->
     <target name="clean">
         <delete dir="classes"/>
-        <delete dir="tempsrc"/>
+        <delete dir="*temp*"/>
         <delete dir="dist"/>
     </target>
 
@@ -69,11 +71,12 @@
 
     <target name="compile" depends="depends,compile.check"
             unless="codeNotChanged">
-        <echo message="Using doms buildframework version 1.0.6#SNAPSHOT"/>
+        <!--<echo message="Using doms buildframework version 1.0.6#SNAPSHOT"/>-->
         <!--This is the classpath calculation-->
         <convertPath dirset="module.libs"
                      postfix="/jars/*.jar"
                      newfileset="module.libs.jars"/>
+
 
 
         <convertPath dirset="project.libs"
@@ -127,7 +130,7 @@
     </target>
 
 
-    <target name="-copyLibsForDist" depends="-copyLicensesForDist">
+    <target name="_copyLibsForDist" depends="_copyLicensesForDist">
         <!--
                 <convertPath dirset="project.libs"
                              postfix="/**/*"
@@ -140,7 +143,7 @@
         </copy>
     </target>
 
-    <target name="-copyLicensesForDist">
+    <target name="_copyLicensesForDist">
         <convertPath dirset="project.libs"
                      postfix="/license/*"
                      newfileset="project.libs.license"/>

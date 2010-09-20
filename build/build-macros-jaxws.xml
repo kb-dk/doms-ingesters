@@ -1,4 +1,6 @@
 <!--
+  ~ Doms build framework version 1.0.10
+  ~
   ~ $Id$
   ~ $Revision$
   ~ $Date$
@@ -26,6 +28,7 @@
   -->
 <project name="macros-jaxws">
 
+    
 
     <fileset id="schema.files" dir="${basedir}">
         <exclude name="**/*"/>
@@ -65,6 +68,7 @@
             </fileset>
         </classpath>
     </taskdef>
+
 
 
     <macrodef name="interface.generate">
@@ -109,6 +113,8 @@
             </replaceregexp>
         </sequential>
     </macrodef>
+
+
 
 
 </project>

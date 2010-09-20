@@ -1,4 +1,6 @@
 /*
+ * Doms build framework version 1.0.10
+ *
  * $Id$
  * $Revision$
  * $Date$
@@ -36,18 +38,18 @@ importPackage(Packages.org.apache.tools.ant.taskdefs);
 // Obtain a reference to a fileset in the enclosing project
 dirSetname = attributes.get("dirset");
 dirSet = project.getReference(dirSetname);
-if (dirSetname == null) {
+if (dirSetname == null){
     self.fail("Invalid number of arguments for convertPath")
 }
 
 
 postfix = attributes.get("postfix")
-if (postfix == null) {
+if (postfix == null){
     self.fail("Invalid number of arguments for convertPath")
 }
 
 newfileset = attributes.get("newfileset")
-if (newfileset == null) {
+if (newfileset == null){
     self.fail("Invalid number of arguments for convertPath")
 }
 

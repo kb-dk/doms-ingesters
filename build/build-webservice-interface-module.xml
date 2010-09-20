@@ -1,8 +1,10 @@
 <!--
-  ~ $Id$
-  ~ $Revision$
-  ~ $Date$
-  ~ $Author$
+  ~ Doms build framework version 1.0.10
+  ~
+  ~ $Id: build-webservice-interface-module.xml 268 2010-02-18 12:44:47Z blekinge $
+  ~ $Revision: 268 $
+  ~ $Date: 2010-02-18 13:44:47 +0100 (Thu, 18 Feb 2010) $
+  ~ $Author: blekinge $
   ~
   ~ The DOMS project.
   ~ Copyright (C) 2007-2010  The State and University Library
@@ -76,6 +78,8 @@
         <interface.generalSuperException
                 exceptionname="${generalSuperExceptionName}"/>
     </target>
+
+
 
 
 </project>
