@@ -192,11 +192,17 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * 
      * @param domsClient
+     *            A reference to the DOMS client instance to communicate with.
      * @param radioTVMetadata
+     *            Bibliographical metadata about the program.
      * @param metafilePID
-     * @return
+     *            PID to the metafile which represents the program data.
+     * @return PID of the newly created program object, created by the DOMS.
      * @throws ServerError
+     *             if creation or manipulation of the program object fails.
      * @throws XPathExpressionException
+     *             if any errors were encountered while processing the
+     *             <code>radioTVMetadata</code> XML document.
      */
     private String ingestProgram(DOMSClient domsClient,
 	    Document radioTVMetadata, String metafilePID) throws ServerError,
@@ -263,16 +269,34 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     }
 
     /**
+     * Ingest a metafile (aka. shard) object which represents the program data
+     * (i.e. video and/or audio). A metafile may consist of data chunks from
+     * multiple physical files identified by the PIDs in the
+     * <code>filePIDs</code> list. The metadata provided by
+     * <code>radioTVMetadata</code> contains, among other things, information
+     * about location and duration of the chunks of data from the physical files
+     * which constitutes the contents of the metafile.
+     * 
+     * TODO: Consider cleaning up/consolidating the exceptions
      * 
      * @param domsClient
+     *            A reference to the DOMS client instance to communicate with.
      * @param radioTVMetadata
+     *            Metadata about location and duration of the relevant data
+     *            chunks from the physical files.
      * @param filePIDs
-     * @return
+     *            List of PIDs for the physical files containing the data
+     *            represented by this metafile.
+     * @return PID of the newly created metafile object, created by the DOMS.
      * @throws ServerError
+     *             if creation or manipulation of the metafile object fails.
      * @throws IOException
      * @throws SAXException
      * @throws ParserConfigurationException
      * @throws XPathExpressionException
+     *             if any errors were encountered while processing the
+     *             <code>radioTVMetadata</code> XML document.
+     * @throws URISyntaxException
      */
     private String ingestMetaFile(DOMSClient domsClient,
 	    Document radioTVMetadata, List<String> filePIDs)
@@ -345,12 +369,15 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *            Reference to the DOMS client to communicate through.
      * @param radioTVMetadata
      *            Metadata XML document containing the file information.
-     * @return A <code>List</code> of DOMS file object PIDs.
+     * @return A <code>List</code> of PIDs of the radio-tv file objects created
+     *         by the DOMS.
      * @throws XPathExpressionException
      *             if any errors were encountered while processing the
      *             <code>radioTVMetadata</code> XML document.
      * @throws MalformedURLException
      *             if a file element contains an invalid URL.
+     * @throws ServerError
+     *             if creation and retrieval of a radio-tv file object fails.
      * @throws IOException
      *             if a file specified in the <code>radioTVMetadata</code>
      *             document could not be read for checksum calculation.
