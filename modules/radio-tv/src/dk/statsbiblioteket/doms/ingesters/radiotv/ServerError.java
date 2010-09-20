@@ -33,26 +33,26 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 public class ServerError extends Exception {
 
     /**
-     * 
+     *
      */
     public ServerError() {
-	// TODO Auto-generated constructor stub
+        // TODO Auto-generated constructor stub
     }
 
     /**
      * @param message
      */
     public ServerError(String message) {
-	super(message);
-	// TODO Auto-generated constructor stub
+        super(message);
+        // TODO Auto-generated constructor stub
     }
 
     /**
      * @param cause
      */
     public ServerError(Throwable cause) {
-	super(cause);
-	// TODO Auto-generated constructor stub
+        super(cause);
+        // TODO Auto-generated constructor stub
     }
 
     /**
@@ -60,8 +60,8 @@ public class ServerError extends Exception {
      * @param cause
      */
     public ServerError(String message, Throwable cause) {
-	super(message, cause);
-	// TODO Auto-generated constructor stub
+        super(message, cause);
+        // TODO Auto-generated constructor stub
     }
 
 }

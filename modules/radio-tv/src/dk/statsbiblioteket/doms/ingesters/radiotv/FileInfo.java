@@ -31,7 +31,7 @@ import java.net.URL;
 
 /**
  * @author tsh
- * 
+ *
  */
 public class FileInfo {
 
@@ -43,7 +43,7 @@ public class FileInfo {
     /**
      * Create a <code>FileInfo</code> instance based on a file name, file
      * location URL, a MD5 checksum hex string and a file format URI.
-     * 
+     *
      * @param fileName
      *            The name of the file.
      * @param fileLocation
@@ -56,51 +56,51 @@ public class FileInfo {
      *            file.
      */
     public FileInfo(String fileName, URL fileLocation, String md5Sum,
-	    URI fileFormatURI) {
-	this.fileName = fileName;
-	this.fileLocation = fileLocation;
-	this.md5Sum = md5Sum;
-	this.fileFormatURI = fileFormatURI;
+                    URI fileFormatURI) {
+        this.fileName = fileName;
+        this.fileLocation = fileLocation;
+        this.md5Sum = md5Sum;
+        this.fileFormatURI = fileFormatURI;
     }
 
     /**
      * Get the name of the file.
-     * 
+     *
      * @return A string containing the file name.
      */
     public String getFileName() {
-	return fileName;
+        return fileName;
     }
 
     /**
      * Get the <code>URL</code> location of the file data.
-     * 
+     *
      * @return A <code>URL</code> of the file data.
      */
     public URL getFileLocation() {
-	return fileLocation;
+        return fileLocation;
     }
 
     /**
      * Get a MD5 checksum hex string for the file described by this
      * <code>FileInfo</code> object.
-     * 
+     *
      * @return The MD5 checksum of the file described by this
      *         <code>FileInfo</code> object.
      */
     public String getMd5Sum() {
-	return md5Sum;
+        return md5Sum;
     }
 
     /**
      * Get the PRONOM format URI identifying the data format used in the file
      * described by this <code>FileInfo</code> object.
-     * 
+     *
      * @return The file format <code>URI</code> for the file described by this
      *         <code>FileInfo</code>.
      */
     public URI getFileFormatURI() {
-	return fileFormatURI;
+        return fileFormatURI;
     }
 
     /* (non-Javadoc)
@@ -108,8 +108,8 @@ public class FileInfo {
      */
     @Override
     public String toString() {
-	return "FileInfo [fileFormatURI=" + fileFormatURI + ", fileLocation="
-	        + fileLocation + ", fileName=" + fileName + ", md5Sum="
-	        + md5Sum + "]";
+        return "FileInfo [fileFormatURI=" + fileFormatURI + ", fileLocation="
+               + fileLocation + ", fileName=" + fileName + ", md5Sum="
+               + md5Sum + "]";
     }
 }

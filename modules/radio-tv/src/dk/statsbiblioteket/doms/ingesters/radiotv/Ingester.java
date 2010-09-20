@@ -35,7 +35,7 @@ import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 
 /**
  * @author tsh
- * 
+ *
  */
 public class Ingester {
 
@@ -46,49 +46,49 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws MalformedURLException,
-	    InvalidCredentialsException, MethodFailedException,
-	    InterruptedException {
+                                                  InvalidCredentialsException, MethodFailedException,
+                                                  InterruptedException {
 
-	new Ingester().mainInstance();
+        new Ingester().mainInstance();
     }
 
     private void mainInstance() throws MalformedURLException,
-	    InvalidCredentialsException, MethodFailedException,
-	    InterruptedException {
-	final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
-	final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
-	final File COLD_FOLDER = new File("/tmp/processedFiles");
+                                       InvalidCredentialsException, MethodFailedException,
+                                       InterruptedException {
+        final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
+        final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
+        final File COLD_FOLDER = new File("/tmp/processedFiles");
 
-	// Make sure that all the necessary folders exist.
-	if (!HOT_FOLDER.exists()) {
-	    HOT_FOLDER.mkdirs();
-	}
+        // Make sure that all the necessary folders exist.
+        if (!HOT_FOLDER.exists()) {
+            HOT_FOLDER.mkdirs();
+        }
 
-	if (!LUKEWARM_FOLDER.exists()) {
-	    LUKEWARM_FOLDER.mkdirs();
-	}
+        if (!LUKEWARM_FOLDER.exists()) {
+            LUKEWARM_FOLDER.mkdirs();
+        }
 
-	if (!COLD_FOLDER.exists()) {
-	    COLD_FOLDER.mkdirs();
-	}
+        if (!COLD_FOLDER.exists()) {
+            COLD_FOLDER.mkdirs();
+        }
 
-	final HotFolderScanner hotFolderScanner = new HotFolderScanner();
+        final HotFolderScanner hotFolderScanner = new HotFolderScanner();
 
-	// final URL domsAPIWSLocation = new URL(
-	// "http://localhost:8080/centralDomsWebservice/central/?wsdl");
-	final URL domsAPIWSLocation = new URL(
-	        "http://alhena:7980/centralDomsWebservice/central/?wsdl");
+        // final URL domsAPIWSLocation = new URL(
+        // "http://localhost:8080/centralDomsWebservice/central/?wsdl");
+        final URL domsAPIWSLocation = new URL(
+                "http://alhena:7980/centralDomsWebservice/central/?wsdl");
 
-	final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
-	        domsAPIWSLocation, "fedoraAdmin", "fedoraAdminPass");
+        final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
+                domsAPIWSLocation, "fedoraAdmin", "fedoraAdminPass");
 
-	final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
-	        domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER);
-	hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
+        final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
+                domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER);
+        hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
 
-	// Hang forever....
-	synchronized (this) {
-	    wait();
-	}
+        // Hang forever....
+        synchronized (this) {
+            wait();
+        }
     }
 }

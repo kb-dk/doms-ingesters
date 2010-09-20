@@ -33,7 +33,7 @@ import java.util.TimerTask;
 /**
  * The <code>{@link HotFolderScanner}</code> provides continous scanning and
  * reporting of file creations, modifications and deletions in a hot folder.
- * 
+ *
  * @author tsh
  */
 public class HotFolderScanner {
@@ -58,53 +58,53 @@ public class HotFolderScanner {
      * folder every 5 seconds. This interval can be changed by calling
      * {@link #setInitialScannerDelay(long)} and {@link #setScannerPeriod(long)}
      * .
-     * 
+     *
      * @see #setInitialScannerDelay(long)
      * @see #setScannerPeriod(long)
      */
     public HotFolderScanner() {
-	scannerDaemon = new Timer(true);
-	scannerDelay = 5000;
-	scannerPeriod = 5000;
+        scannerDaemon = new Timer(true);
+        scannerDelay = 5000;
+        scannerPeriod = 5000;
     }
 
     /**
      * Set the initial delay before the first execution of the hot folder
      * scanner.
-     * 
+     *
      * @param delayMillis
      *            Delay in milliseconds.
      */
     public void setInitialScannerDelay(long delayMillis) {
-	scannerDelay = delayMillis;
+        scannerDelay = delayMillis;
     }
 
     /**
      * Set the delay before each subsequent execution of the hot folder scanner.
-     * 
+     *
      * @param periodMillis
      *            Delay in milliseconds.
      */
     public void setScannerPeriod(long periodMillis) {
-	scannerPeriod = periodMillis;
+        scannerPeriod = periodMillis;
     }
 
     /**
      * Start a continuous scanning of the hot folder specified by
      * <code>hotFolderToScan</code> and report any file creations, modifications
      * and deletions to the <code>client</code>.
-     * 
+     *
      * @param hotFolderToScan Full file path to the directory to scan.
      * @param client Reference to the client to report changes to.
      */
     public void startScanning(File hotFolderToScan,
-	    HotFolderScannerClient client) {
+                              HotFolderScannerClient client) {
 
-	// TODO: We could add a smart feature to let users choose between
-	// different inspector types, however, that is not important right now.
-	TimerTask scannerTask = new NonRecursiveHotFolderInspector(
-		hotFolderToScan, client);
-	scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
-		scannerPeriod);
+        // TODO: We could add a smart feature to let users choose between
+        // different inspector types, however, that is not important right now.
+        TimerTask scannerTask = new NonRecursiveHotFolderInspector(
+                hotFolderToScan, client);
+        scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
+                                          scannerPeriod);
     }
 }

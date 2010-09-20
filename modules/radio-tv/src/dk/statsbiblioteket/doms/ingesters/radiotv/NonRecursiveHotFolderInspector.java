@@ -38,7 +38,7 @@ import java.util.TimerTask;
  * This class performs a shallow (i.e. non-recursive) scan of a directory for
  * file modifications. That is, detection of creation, modification or deletion
  * of files in the directory, a.k.a. hot folder.
- * 
+ *
  * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
 public class NonRecursiveHotFolderInspector extends TimerTask {
@@ -66,17 +66,17 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * the folder specified by <code>hotFolderToScan</code> and notifies the
      * client specified by <code>client</code> about any changes, whenever the
      * <code>{@link #run()}</code> method is executed.
-     * 
+     *
      * @param hotFolderToScan
      *            File path to a hot folder to scan.
      * @param client
      *            Reference to a client to notify about changes in the folder.
      */
     public NonRecursiveHotFolderInspector(File hotFolderToScan,
-	    HotFolderScannerClient client) {
-	folderToScan = hotFolderToScan;
-	callBackClient = client;
-	previousFolderContents = new HashMap<File, Long>();
+                                          HotFolderScannerClient client) {
+        folderToScan = hotFolderToScan;
+        callBackClient = client;
+        previousFolderContents = new HashMap<File, Long>();
     }
 
     /**
@@ -85,36 +85,36 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      */
     @Override
     public void run() {
-	// Scan the hot folder for file addition, deletion or modification.
-	final List<File> currentFolderContents = Arrays.asList(folderToScan
-		.listFiles());
+        // Scan the hot folder for file addition, deletion or modification.
+        final List<File> currentFolderContents = Arrays.asList(folderToScan
+                .listFiles());
 
-	for (File currentFile : currentFolderContents) {
+        for (File currentFile : currentFolderContents) {
 
-	    final Long previousTimeStamp = previousFolderContents
-		    .get(currentFile);
+            final Long previousTimeStamp = previousFolderContents
+                    .get(currentFile);
 
-	    if (previousTimeStamp == null) {
-		// A new file has been created.
-		previousFolderContents.put(currentFile, currentFile
-			.lastModified());
-		callBackClient.fileAdded(currentFile);
-	    } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
-		// The file has been modified since the previous scan. Update
-		// the time stamps and notify the client.
-		previousFolderContents.put(currentFile, currentFile
-			.lastModified());
-		callBackClient.fileModified(currentFile);
-	    }
-	}
+            if (previousTimeStamp == null) {
+                // A new file has been created.
+                previousFolderContents.put(currentFile, currentFile
+                        .lastModified());
+                callBackClient.fileAdded(currentFile);
+            } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
+                // The file has been modified since the previous scan. Update
+                // the time stamps and notify the client.
+                previousFolderContents.put(currentFile, currentFile
+                        .lastModified());
+                callBackClient.fileModified(currentFile);
+            }
+        }
 
-	// Remove information about any deleted files and notify the client.
-	Set<File> deletedFiles = new HashSet<File>(previousFolderContents
-		.keySet());
-	deletedFiles.removeAll(currentFolderContents);
-	for (File deletedFile : deletedFiles) {
-	    previousFolderContents.remove(deletedFile);
-	    callBackClient.fileDeleted(deletedFile);
-	}
+        // Remove information about any deleted files and notify the client.
+        Set<File> deletedFiles = new HashSet<File>(previousFolderContents
+                .keySet());
+        deletedFiles.removeAll(currentFolderContents);
+        for (File deletedFile : deletedFiles) {
+            previousFolderContents.remove(deletedFile);
+            callBackClient.fileDeleted(deletedFile);
+        }
     }
 }

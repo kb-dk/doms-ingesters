@@ -44,27 +44,27 @@ import dk.statsbiblioteket.util.xml.DOM;
 
 /**
  * @author tsh
- * 
+ *
  */
 public class DOMSClient {
 
     private CentralWebservice domsAPI;
 
     public void login(URL domsWSAPIEndpoint, String userName, String password) {
-	domsAPI = new CentralWebserviceService(domsWSAPIEndpoint, new QName(
-	        "http://central.doms.statsbiblioteket.dk/",
-	        "CentralWebserviceService")).getCentralWebservicePort();
+        domsAPI = new CentralWebserviceService(domsWSAPIEndpoint, new QName(
+                "http://central.doms.statsbiblioteket.dk/",
+                "CentralWebserviceService")).getCentralWebservicePort();
 
-	Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
-	        .getRequestContext();
-	domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, userName);
-	domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, password);
+        Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
+                .getRequestContext();
+        domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, userName);
+        domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, password);
     }
 
     /**
      * Create a new DOMS object from an object template already stored in the
      * DOMS.
-     * 
+     *
      * @param templatePID
      *            PID identifying the template to use.
      * @return PID of the created object.
@@ -72,21 +72,21 @@ public class DOMSClient {
      *             if the object creation failed.
      */
     public String createObjectFromTemplate(String templatePID)
-	    throws ServerError {
-	try {
-	    return domsAPI.newObject(templatePID);
-	} catch (Exception e) {
-	    throw new ServerError(
-		    "Failed creating a new object from template: "
-		            + templatePID, e);
-	}
+            throws ServerError {
+        try {
+            return domsAPI.newObject(templatePID);
+        } catch (Exception e) {
+            throw new ServerError(
+                    "Failed creating a new object from template: "
+                    + templatePID, e);
+        }
     }
 
     /**
      * Create a new file object from an existing file object template, based on
      * the information provided by the <code>FileInfo</code> instance, in the
      * DOMS.
-     * 
+     *
      * @param templatePID
      *            The PID of the file object template to use for creation of the
      *            new file object.
@@ -99,30 +99,30 @@ public class DOMSClient {
      * @see FileInfo
      */
     public String createFileObject(String templatePID, FileInfo fileInfo)
-	    throws ServerError {
+            throws ServerError {
 
-	try {
-	    final String fileObjectPID = createObjectFromTemplate(templatePID);
+        try {
+            final String fileObjectPID = createObjectFromTemplate(templatePID);
 
-	    domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
-		    .getFileName(), fileInfo.getMd5Sum(), fileInfo
-		    .getFileLocation().toString(), fileInfo.getFileFormatURI()
-		    .toString());
+            domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
+                    .getFileName(), fileInfo.getMd5Sum(), fileInfo
+                    .getFileLocation().toString(), fileInfo.getFileFormatURI()
+                    .toString());
 
-	    return fileObjectPID;
+            return fileObjectPID;
 
-	} catch (Exception e) {
-	    throw new ServerError(
-		    "Failed creating a new file object (template PID: "
-		            + templatePID + ") from this file information: "
-		            + fileInfo, e);
-	}
+        } catch (Exception e) {
+            throw new ServerError(
+                    "Failed creating a new file object (template PID: "
+                    + templatePID + ") from this file information: "
+                    + fileInfo, e);
+        }
     }
 
     /**
      * Get the PID of an existing file object in the DOMS which is associated
      * with the physical file specifiec by <code>fileURL</code>.
-     * 
+     *
      * @param fileURL
      *            location of the physical file to find the corresponding DOMS
      *            file object for.
@@ -135,109 +135,109 @@ public class DOMSClient {
      *             object.
      */
     public String getFileObjectPID(URL fileURL) throws NoObjectFound,
-	    ServerError {
+                                                       ServerError {
 
-	String pid = null;
-	try {
-	    pid = domsAPI.getFileObjectWithURL(fileURL.toString());
-	} catch (Exception exception) {
-	    throw new ServerError("Unable to retrieve file object with URL: "
-		    + fileURL, exception);
-	}
-	if (pid == null) {
-	    throw new NoObjectFound("Unable to retrieve file object with URL: "
-		    + fileURL);
-	}
-	return pid;
+        String pid = null;
+        try {
+            pid = domsAPI.getFileObjectWithURL(fileURL.toString());
+        } catch (Exception exception) {
+            throw new ServerError("Unable to retrieve file object with URL: "
+                                  + fileURL, exception);
+        }
+        if (pid == null) {
+            throw new NoObjectFound("Unable to retrieve file object with URL: "
+                                    + fileURL);
+        }
+        return pid;
     }
 
     /**
-     * 
+     *
      * @param objectPID
      * @param datastreamID
      * @return <code>Document</code> containing the datastream contents.
      * @throws ServerError
      */
     public Document getDataStream(String objectPID, String datastreamID)
-	    throws ServerError {
-	try {
-	    final String datastreamXML = domsAPI.getDatastreamContents(
-		    objectPID, datastreamID);
+            throws ServerError {
+        try {
+            final String datastreamXML = domsAPI.getDatastreamContents(
+                    objectPID, datastreamID);
 
-	    final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
-		    .newInstance();
+            final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+                    .newInstance();
 
-	    final DocumentBuilder documentBuilder = documentBuilderFactory
-		    .newDocumentBuilder();
+            final DocumentBuilder documentBuilder = documentBuilderFactory
+                    .newDocumentBuilder();
 
-	    final ByteArrayInputStream datastreamBytes = new ByteArrayInputStream(
-		    datastreamXML.getBytes());
-	    final Document dataStream = documentBuilder.parse(datastreamBytes);
+            final ByteArrayInputStream datastreamBytes = new ByteArrayInputStream(
+                    datastreamXML.getBytes());
+            final Document dataStream = documentBuilder.parse(datastreamBytes);
 
-	    return dataStream;
-	} catch (Exception exception) {
-	    throw new ServerError("Failed getting datastream (ID: "
-		    + datastreamID + ") contents from object (PID: "
-		    + objectPID + ")", exception);
-	}
+            return dataStream;
+        } catch (Exception exception) {
+            throw new ServerError("Failed getting datastream (ID: "
+                                  + datastreamID + ") contents from object (PID: "
+                                  + objectPID + ")", exception);
+        }
     }
 
     /**
-     * 
+     *
      * @param objectPID
      * @param dataStreamID
      * @param newDataStreamContents
      * @throws ServerError
      */
     public void updateDataStream(String objectPID, String dataStreamID,
-	    Document newDataStreamContents) throws ServerError {
-	try {
-	    domsAPI.modifyDatastream(objectPID, dataStreamID, DOM
-		    .domToString(newDataStreamContents));
+                                 Document newDataStreamContents) throws ServerError {
+        try {
+            domsAPI.modifyDatastream(objectPID, dataStreamID, DOM
+                    .domToString(newDataStreamContents));
 
-	} catch (Exception exception) {
-	    throw new ServerError("Failed updating datastream (ID: "
-		    + dataStreamID + ") contents from object (PID: "
-		    + objectPID + ")", exception);
-	}
+        } catch (Exception exception) {
+            throw new ServerError("Failed updating datastream (ID: "
+                                  + dataStreamID + ") contents from object (PID: "
+                                  + objectPID + ")", exception);
+        }
 
     }
 
     /**
-     * 
+     *
      * @param sourcePID
      * @param relationType
      * @param targetPID
      * @throws ServerError
      */
     public void addObjectRelation(String sourcePID, String relationType,
-	    String targetPID) throws ServerError {
-	try {
-	    domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
-		    relationType, "info:fedora/" + targetPID);
-	} catch (Exception exception) {
-	    throw new ServerError("Failed creating object relation (type: "
-		    + relationType + ") from the source object (PID: "
-		    + sourcePID + ") to the target object (PID: " + targetPID
-		    + ")", exception);
-	}
+                                  String targetPID) throws ServerError {
+        try {
+            domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
+                                relationType, "info:fedora/" + targetPID);
+        } catch (Exception exception) {
+            throw new ServerError("Failed creating object relation (type: "
+                                  + relationType + ") from the source object (PID: "
+                                  + sourcePID + ") to the target object (PID: " + targetPID
+                                  + ")", exception);
+        }
     }
 
     /**
      * Mark the objects identified by the the PIDs in <code>pidsToPublish</code>
      * as published, and thus viewable from the DOMS.
-     * 
+     *
      * @param pidsToPublish
      *            <code>List</code> of PIDs for the objects to publish.
      * @throws ServerError
      *             if any errors are encountered while publishing the objects.
      */
     public void publishObjects(List<String> pidsToPublish) throws ServerError {
-	try {
-	    domsAPI.markPublishedObject(pidsToPublish);
-	} catch (Exception exception) {
-	    throw new ServerError("Failed marking objects as published. PIDs: "
-		    + pidsToPublish, exception);
-	}
+        try {
+            domsAPI.markPublishedObject(pidsToPublish);
+        } catch (Exception exception) {
+            throw new ServerError("Failed marking objects as published. PIDs: "
+                                  + pidsToPublish, exception);
+        }
     }
 }
