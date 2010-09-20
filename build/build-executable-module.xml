@@ -1,8 +1,10 @@
 <!--
-  ~ $Id$
-  ~ $Revision$
-  ~ $Date$
-  ~ $Author$
+  ~ Doms build framework version 1.0.11#SNAPSHOT
+  ~
+  ~ $Id: build-executable-module.xml 715 2010-09-20 13:12:27Z blekinge $
+  ~ $Revision: 715 $
+  ~ $Date: 2010-09-20 15:12:27 +0200 (Mon, 20 Sep 2010) $
+  ~ $Author: blekinge $
   ~
   ~ The DOMS project.
   ~ Copyright (C) 2007-2010  The State and University Library
@@ -25,23 +27,15 @@
   ~ under the License.
   -->
 
-<project name="radio-tv" basedir=".">
+<project name="webservice">
+    <import file="build-module.xml"/>
 
-    <property name="global.dir" value="${basedir}/../.."/>
-    <property name="executableName" value="radio-tv-bin.zip"/>
+      <target name="executable" depends="jar">
+        <executablezip/>
+        <delete file="dist/${jarfile}"/>
+    </target>
 
-    <!--Contain the normal build tasks, including war-->
-    <import file="${global.dir}/build/build-executable-module.xml"/>
 
-    <!--Project libs used by this module-->
-    <dirset id="project.libs" dir="${global.dir}/lib/">
-        <include name="${domsutil.lib}"/>
-        <include name="${sbutils.lib}"/>
-        <!-- include name="${jaxws-ri.lib}"/ -->
-        <!-- include name="${jersey.lib}"/ -->
-        <!-- include name="${jsr311-api.lib}"/ -->
-        <include name="${commons-logging.lib}"/>
-    	<include name="${centralWebserviceInterface.lib}"/>
-    </dirset>
+    <target name="all" depends="executable,module.all"/>
 
 </project>
