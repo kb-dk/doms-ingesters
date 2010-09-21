@@ -33,7 +33,7 @@ import java.io.File;
  * <code>{@link HotFolderScanner}</code> about file changes in a hot folder,
  * must implement this interface.
  *
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
 public interface HotFolderScannerClient {
 

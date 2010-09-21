@@ -27,7 +27,7 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 /**
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  *
  */
 public class NoObjectFound extends Exception {

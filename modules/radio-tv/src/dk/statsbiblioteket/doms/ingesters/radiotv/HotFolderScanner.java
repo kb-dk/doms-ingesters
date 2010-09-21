@@ -34,7 +34,7 @@ import java.util.TimerTask;
  * The <code>{@link HotFolderScanner}</code> provides continous scanning and
  * reporting of file creations, modifications and deletions in a hot folder.
  *
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
 public class HotFolderScanner {
 

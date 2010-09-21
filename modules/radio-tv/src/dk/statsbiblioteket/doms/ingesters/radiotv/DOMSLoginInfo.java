@@ -29,7 +29,7 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 import java.net.URL;
 
 /**
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  *
  */
 public class DOMSLoginInfo {

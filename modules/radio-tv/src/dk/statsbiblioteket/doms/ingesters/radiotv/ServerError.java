@@ -27,8 +27,8 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 /**
- * @author tsh
- * FIXME! ServerError is a pretty bad name for an exception...
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
+ * TODO! Rename this class; ServerError is a pretty bad name for an exception...
  */
 public class ServerError extends Exception {
 

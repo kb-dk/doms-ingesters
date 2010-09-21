@@ -34,7 +34,7 @@ import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
 
 /**
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  *
  */
 public class Ingester {

@@ -30,7 +30,7 @@ import java.net.URI;
 import java.net.URL;
 
 /**
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  *
  */
 public class FileInfo {

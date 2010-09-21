@@ -53,7 +53,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * @author tsh
+ * @author &lt;tsh@statsbiblioteket.dk&gt;
  *
  */
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
@@ -106,7 +106,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 final Document radioTVMetadata = documentBuilder
                         .parse(addedFile);
 
-                final DOMSClient domsClient = new DOMSClient();
+                final DOMSWSClient domsClient = new DOMSWSClient();
                 domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
                         .getLogin(), domsLoginInfo.getPassword());
 
@@ -201,7 +201,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             if any errors were encountered while processing the
      *             <code>radioTVMetadata</code> XML document.
      */
-    private String ingestProgram(DOMSClient domsClient,
+    private String ingestProgram(DOMSWSClient domsClient,
                                  Document radioTVMetadata, String metafilePID) throws ServerError,
                                                                                       XPathExpressionException {
 
@@ -295,7 +295,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             <code>radioTVMetadata</code> XML document.
      * @throws URISyntaxException
      */
-    private String ingestMetaFile(DOMSClient domsClient,
+    private String ingestMetaFile(DOMSWSClient domsClient,
                                   Document radioTVMetadata, List<String> filePIDs)
             throws ServerError, IOException, SAXException,
                    ParserConfigurationException, XPathExpressionException,
@@ -381,7 +381,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws URISyntaxException
      *             if the format URI for the file is invalid.
      */
-    private List<String> ingestFiles(DOMSClient domsClient,
+    private List<String> ingestFiles(DOMSWSClient domsClient,
                                      Document radioTVMetadata) throws XPathExpressionException,
                                                                       MalformedURLException, ServerError, IOException, URISyntaxException {
 
