@@ -193,7 +193,7 @@
     </group>
   </component>
   <component name="ProjectDetails">
-    <option name="projectName" value="trunk" />
+    <option name="projectName" value="ingesters" />
   </component>
   <component name="ProjectFileVersion" converted="true" />
   <component name="ProjectKey">
@@ -203,7 +203,6 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/modules/radio-tv/Radio-tv.iml" filepath="$PROJECT_DIR$/modules/radio-tv/Radio-tv.iml" />
       <module fileurl="file://$PROJECT_DIR$/ingesters.iml" filepath="$PROJECT_DIR$/ingesters.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ingesters/ingesters.iml" filepath="$PROJECT_DIR$/ingesters/ingesters.iml" />
     </modules>
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_1_5" assert-keyword="true" jdk-15="true" project-jdk-name="1.6" project-jdk-type="JavaSDK">
