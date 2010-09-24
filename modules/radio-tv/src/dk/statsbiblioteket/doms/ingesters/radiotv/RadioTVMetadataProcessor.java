@@ -558,7 +558,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param incrementBy a number of tries
      */
     private void increaseFailedTries(int incrementBy) {
-        exceptionCount += i;
+        exceptionCount += incrementBy;
         if (exceptionCount >= MAX_FAIL_COUNT){
             fatalException();
         }
