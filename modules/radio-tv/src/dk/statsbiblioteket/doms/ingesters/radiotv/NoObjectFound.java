@@ -27,46 +27,42 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 /**
+ * Exception indicating that the thrower could not find an object in the DOMS.
+ * 
  * @author &lt;tsh@statsbiblioteket.dk&gt;
- *
  */
 public class NoObjectFound extends Exception {
 
     /**
-     *
+     * Version UUID for serialisation.
      */
     private static final long serialVersionUID = -3639478367508534640L;
 
     /**
-     *
+     * @see java.lang.Exception#Exception()
      */
     public NoObjectFound() {
-        // TODO Auto-generated constructor stub
+        super();
     }
 
     /**
-     * @param message
+     * @see java.lang.Exception#Exception(String)
      */
     public NoObjectFound(String message) {
         super(message);
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * @param cause
+     * @see java.lang.Exception#Exception(Throwable)
      */
     public NoObjectFound(Throwable cause) {
         super(cause);
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * @param message
-     * @param cause
+     * @see java.lang.Exception#Exception(String, Throwable)
      */
     public NoObjectFound(String message, Throwable cause) {
         super(message, cause);
-        // TODO Auto-generated constructor stub
     }
-
 }

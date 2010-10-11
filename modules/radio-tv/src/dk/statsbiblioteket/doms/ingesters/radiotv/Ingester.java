@@ -27,18 +27,14 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.xml.XMLConstants;
-import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 
 import org.xml.sax.SAXException;
-
-import com.sun.org.apache.xerces.internal.impl.xs.opti.SchemaDOM;
 
 import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;

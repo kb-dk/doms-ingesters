@@ -47,7 +47,11 @@ public class TestHotFolderScanner {
 
     private File tempTestDir;
     private File tempTestFile;
+    
+    //TODO: Add tests for the detection of modified and deleted files. 
+    @SuppressWarnings("unused")
     private File clientFeedbackModifiedFile;
+    @SuppressWarnings("unused")
     private File clientFeedbackDeletedFile;
 
     //TODO: Also test file modification and deletion.

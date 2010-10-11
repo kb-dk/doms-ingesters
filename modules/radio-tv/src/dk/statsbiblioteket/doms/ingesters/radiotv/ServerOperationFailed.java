@@ -27,41 +27,39 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 /**
- * @author &lt;tsh@statsbiblioteket.dk&gt;
- * TODO! Rename this class; ServerError is a pretty bad name for an exception...
+ * @author &lt;tsh@statsbiblioteket.dk&gt; Thomas Skou Hansen
  */
-public class ServerError extends Exception {
+public class ServerOperationFailed extends Exception {
 
     /**
-     *
+     * Version UUID for serialisation.
      */
-    public ServerError() {
-        // TODO Auto-generated constructor stub
+    private static final long serialVersionUID = 9065852985515320422L;
+
+    /**
+     * @see java.lang.Exception#Exception()
+     */
+    public ServerOperationFailed() {
     }
 
     /**
-     * @param message
+     * @see java.lang.Exception#Exception(String)
      */
-    public ServerError(String message) {
+    public ServerOperationFailed(String message) {
         super(message);
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * @param cause
+     * @see java.lang.Exception#Exception(Throwable)
      */
-    public ServerError(Throwable cause) {
+    public ServerOperationFailed(Throwable cause) {
         super(cause);
-        // TODO Auto-generated constructor stub
     }
 
     /**
-     * @param message
-     * @param cause
+     * @see java.lang.Exception#Exception(String, Throwable)
      */
-    public ServerError(String message, Throwable cause) {
+    public ServerOperationFailed(String message, Throwable cause) {
         super(message, cause);
-        // TODO Auto-generated constructor stub
     }
-
 }

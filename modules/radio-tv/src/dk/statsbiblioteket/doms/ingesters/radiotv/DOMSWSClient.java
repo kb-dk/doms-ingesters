@@ -45,7 +45,8 @@ import dk.statsbiblioteket.util.xml.DOM;
 /**
  * TODO: This class and its exceptions and datacarrier objects have been copied
  * to the summa integration. It should be moved into some utility library some
- * time!
+ * time! However, it probably should be the copy that should be chosen, as it
+ * has under gone further development.
  * <p/>
  * Utility class for making it simple and easy to access the DOMS server
  * webservice.
@@ -72,14 +73,14 @@ public class DOMSWSClient {
      *            Password of the user to use for identification.
      */
     public void login(URL domsWSAPIEndpoint, String userName, String password) {
-	domsAPI = new CentralWebserviceService(domsWSAPIEndpoint, new QName(
-	        "http://central.doms.statsbiblioteket.dk/",
-	        "CentralWebserviceService")).getCentralWebservicePort();
+        domsAPI = new CentralWebserviceService(domsWSAPIEndpoint, new QName(
+                "http://central.doms.statsbiblioteket.dk/",
+                "CentralWebserviceService")).getCentralWebservicePort();
 
-	Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
-	        .getRequestContext();
-	domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, userName);
-	domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, password);
+        Map<String, Object> domsAPILogin = ((BindingProvider) domsAPI)
+                .getRequestContext();
+        domsAPILogin.put(BindingProvider.USERNAME_PROPERTY, userName);
+        domsAPILogin.put(BindingProvider.PASSWORD_PROPERTY, password);
     }
 
     /**
@@ -89,18 +90,18 @@ public class DOMSWSClient {
      * @param templatePID
      *            PID identifying the template object to use.
      * @return PID of the created object.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if the object creation failed.
      */
     public String createObjectFromTemplate(String templatePID)
-	    throws ServerError {
-	try {
-	    return domsAPI.newObject(templatePID);
-	} catch (Exception e) {
-	    throw new ServerError(
-		    "Failed creating a new object from template: "
-		            + templatePID, e);
-	}
+            throws ServerOperationFailed {
+        try {
+            return domsAPI.newObject(templatePID);
+        } catch (Exception e) {
+            throw new ServerOperationFailed(
+                    "Failed creating a new object from template: "
+                            + templatePID, e);
+        }
     }
 
     /**
@@ -115,29 +116,29 @@ public class DOMSWSClient {
      *            File location, checksum and so on for the physical file
      *            associated with the object.
      * @return PID of the created file object in the DOMS.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if the object creation failed.
      * @see FileInfo
      */
     public String createFileObject(String templatePID, FileInfo fileInfo)
-	    throws ServerError {
+            throws ServerOperationFailed {
 
-	try {
-	    final String fileObjectPID = createObjectFromTemplate(templatePID);
+        try {
+            final String fileObjectPID = createObjectFromTemplate(templatePID);
 
-	    domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
-		    .getFileName(), fileInfo.getMd5Sum(), fileInfo
-		    .getFileLocation().toString(), fileInfo.getFileFormatURI()
-		    .toString());
+            domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
+                    .getFileName(), fileInfo.getMd5Sum(), fileInfo
+                    .getFileLocation().toString(), fileInfo.getFileFormatURI()
+                    .toString());
 
-	    return fileObjectPID;
+            return fileObjectPID;
 
-	} catch (Exception e) {
-	    throw new ServerError(
-		    "Failed creating a new file object (template PID: "
-		            + templatePID + ") from this file information: "
-		            + fileInfo, e);
-	}
+        } catch (Exception e) {
+            throw new ServerOperationFailed(
+                    "Failed creating a new file object (template PID: "
+                            + templatePID + ") from this file information: "
+                            + fileInfo, e);
+        }
     }
 
     /**
@@ -151,25 +152,25 @@ public class DOMSWSClient {
      * @throws NoObjectFound
      *             if there does not exist DOMS file object associated with
      *             <code>fileURL</code>.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if any errors are encountered while looking up the file
      *             object.
      */
     public String getFileObjectPID(URL fileURL) throws NoObjectFound,
-	    ServerError {
+            ServerOperationFailed {
 
-	String pid = null;
-	try {
-	    pid = domsAPI.getFileObjectWithURL(fileURL.toString());
-	} catch (Exception exception) {
-	    throw new ServerError("Unable to retrieve file object with URL: "
-		    + fileURL, exception);
-	}
-	if (pid == null) {
-	    throw new NoObjectFound("Unable to retrieve file object with URL: "
-		    + fileURL);
-	}
-	return pid;
+        String pid = null;
+        try {
+            pid = domsAPI.getFileObjectWithURL(fileURL.toString());
+        } catch (Exception exception) {
+            throw new ServerOperationFailed("Unable to retrieve file object with URL: "
+                    + fileURL, exception);
+        }
+        if (pid == null) {
+            throw new NoObjectFound("Unable to retrieve file object with URL: "
+                    + fileURL);
+        }
+        return pid;
     }
 
     /**
@@ -182,31 +183,31 @@ public class DOMSWSClient {
      * @param datastreamID
      *            ID of the datastream to get the contents of.
      * @return <code>Document</code> containing the datastream XML contents.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if the datastream contents cannot be retrieved.
      */
     public Document getDataStream(String objectPID, String datastreamID)
-	    throws ServerError {
-	try {
-	    final String datastreamXML = domsAPI.getDatastreamContents(
-		    objectPID, datastreamID);
+            throws ServerOperationFailed {
+        try {
+            final String datastreamXML = domsAPI.getDatastreamContents(
+                    objectPID, datastreamID);
 
-	    final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
-		    .newInstance();
+            final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+                    .newInstance();
 
-	    final DocumentBuilder documentBuilder = documentBuilderFactory
-		    .newDocumentBuilder();
+            final DocumentBuilder documentBuilder = documentBuilderFactory
+                    .newDocumentBuilder();
 
-	    final ByteArrayInputStream datastreamBytes = new ByteArrayInputStream(
-		    datastreamXML.getBytes());
-	    final Document dataStream = documentBuilder.parse(datastreamBytes);
+            final ByteArrayInputStream datastreamBytes = new ByteArrayInputStream(
+                    datastreamXML.getBytes());
+            final Document dataStream = documentBuilder.parse(datastreamBytes);
 
-	    return dataStream;
-	} catch (Exception exception) {
-	    throw new ServerError("Failed getting datastream (ID: "
-		    + datastreamID + ") contents from object (PID: "
-		    + objectPID + ")", exception);
-	}
+            return dataStream;
+        } catch (Exception exception) {
+            throw new ServerOperationFailed("Failed getting datastream (ID: "
+                    + datastreamID + ") contents from object (PID: "
+                    + objectPID + ")", exception);
+        }
     }
 
     /**
@@ -223,20 +224,20 @@ public class DOMSWSClient {
      * @param newDataStreamContents
      *            <code>Document</code> containing the new datastream XML
      *            contents.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if the datastream contents cannot be updated.
      */
     public void updateDataStream(String objectPID, String dataStreamID,
-	    Document newDataStreamContents) throws ServerError {
-	try {
-	    domsAPI.modifyDatastream(objectPID, dataStreamID, DOM
-		    .domToString(newDataStreamContents));
+            Document newDataStreamContents) throws ServerOperationFailed {
+        try {
+            domsAPI.modifyDatastream(objectPID, dataStreamID, DOM
+                    .domToString(newDataStreamContents));
 
-	} catch (Exception exception) {
-	    throw new ServerError("Failed updating datastream (ID: "
-		    + dataStreamID + ") contents from object (PID: "
-		    + objectPID + ")", exception);
-	}
+        } catch (Exception exception) {
+            throw new ServerOperationFailed("Failed updating datastream (ID: "
+                    + dataStreamID + ") contents from object (PID: "
+                    + objectPID + ")", exception);
+        }
 
     }
 
@@ -254,20 +255,20 @@ public class DOMSWSClient {
      *            model for the source object.
      * @param targetPID
      *            ID of the target ("to") object of the relation.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if the relation cannot be added.
      */
     public void addObjectRelation(String sourcePID, String relationType,
-	    String targetPID) throws ServerError {
-	try {
-	    domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
-		    relationType, "info:fedora/" + targetPID);
-	} catch (Exception exception) {
-	    throw new ServerError("Failed creating object relation (type: "
-		    + relationType + ") from the source object (PID: "
-		    + sourcePID + ") to the target object (PID: " + targetPID
-		    + ")", exception);
-	}
+            String targetPID) throws ServerOperationFailed {
+        try {
+            domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
+                    relationType, "info:fedora/" + targetPID);
+        } catch (Exception exception) {
+            throw new ServerOperationFailed("Failed creating object relation (type: "
+                    + relationType + ") from the source object (PID: "
+                    + sourcePID + ") to the target object (PID: " + targetPID
+                    + ")", exception);
+        }
     }
 
     /**
@@ -276,15 +277,15 @@ public class DOMSWSClient {
      * 
      * @param pidsToPublish
      *            <code>List</code> of PIDs for the objects to publish.
-     * @throws ServerError
+     * @throws ServerOperationFailed
      *             if any errors are encountered while publishing the objects.
      */
-    public void publishObjects(List<String> pidsToPublish) throws ServerError {
-	try {
-	    domsAPI.markPublishedObject(pidsToPublish);
-	} catch (Exception exception) {
-	    throw new ServerError("Failed marking objects as published. PIDs: "
-		    + pidsToPublish, exception);
-	}
+    public void publishObjects(List<String> pidsToPublish) throws ServerOperationFailed {
+        try {
+            domsAPI.markPublishedObject(pidsToPublish);
+        } catch (Exception exception) {
+            throw new ServerOperationFailed("Failed marking objects as published. PIDs: "
+                    + pidsToPublish, exception);
+        }
     }
 }
