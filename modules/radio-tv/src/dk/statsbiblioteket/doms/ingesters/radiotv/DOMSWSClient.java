@@ -125,18 +125,45 @@ public class DOMSWSClient {
 
         try {
             final String fileObjectPID = createObjectFromTemplate(templatePID);
-
-            domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
-                    .getFileName(), fileInfo.getMd5Sum(), fileInfo
-                    .getFileLocation().toString(), fileInfo.getFileFormatURI()
-                    .toString());
-
+            addFileToFileObject(fileObjectPID, fileInfo);
             return fileObjectPID;
-
         } catch (Exception e) {
             throw new ServerOperationFailed(
                     "Failed creating a new file object (template PID: "
                             + templatePID + ") from this file information: "
+                            + fileInfo, e);
+        }
+    }
+
+    /**
+     * Add a physical file to an existing file object in the DOMS.
+     * <p/>
+     * 
+     * The existing file object in DOMS with <code>fileObjectPID</code> will be
+     * associated with the pysical file described by the <code>FileInfo</code>
+     * instance.
+     * 
+     * @param fileObjectPID
+     *            The PID of the DOMS file object to associate the physical file with.
+     * @param fileInfo
+     *            File location, checksum and so on for the physical file
+     *            associated with the file object.
+     * @throws ServerOperationFailed
+     *             if the operation fails.
+     * @see FileInfo
+     */
+    public void addFileToFileObject(String fileObjectPID, FileInfo fileInfo)
+            throws ServerOperationFailed {
+
+        try {
+            domsAPI.addFileFromPermanentURL(fileObjectPID, fileInfo
+                    .getFileName(), fileInfo.getMd5Sum(), fileInfo
+                    .getFileLocation().toString(), fileInfo.getFileFormatURI()
+                    .toString());
+        } catch (Exception e) {
+            throw new ServerOperationFailed(
+                    "Failed adding a file to a file object (file object PID: "
+                            + fileObjectPID + ") from this file information: "
                             + fileInfo, e);
         }
     }
@@ -163,8 +190,9 @@ public class DOMSWSClient {
         try {
             pid = domsAPI.getFileObjectWithURL(fileURL.toString());
         } catch (Exception exception) {
-            throw new ServerOperationFailed("Unable to retrieve file object with URL: "
-                    + fileURL, exception);
+            throw new ServerOperationFailed(
+                    "Unable to retrieve file object with URL: " + fileURL,
+                    exception);
         }
         if (pid == null) {
             throw new NoObjectFound("Unable to retrieve file object with URL: "
@@ -264,10 +292,11 @@ public class DOMSWSClient {
             domsAPI.addRelation(sourcePID, "info:fedora/" + sourcePID,
                     relationType, "info:fedora/" + targetPID);
         } catch (Exception exception) {
-            throw new ServerOperationFailed("Failed creating object relation (type: "
-                    + relationType + ") from the source object (PID: "
-                    + sourcePID + ") to the target object (PID: " + targetPID
-                    + ")", exception);
+            throw new ServerOperationFailed(
+                    "Failed creating object relation (type: " + relationType
+                            + ") from the source object (PID: " + sourcePID
+                            + ") to the target object (PID: " + targetPID + ")",
+                    exception);
         }
     }
 
@@ -280,12 +309,14 @@ public class DOMSWSClient {
      * @throws ServerOperationFailed
      *             if any errors are encountered while publishing the objects.
      */
-    public void publishObjects(List<String> pidsToPublish) throws ServerOperationFailed {
+    public void publishObjects(List<String> pidsToPublish)
+            throws ServerOperationFailed {
         try {
             domsAPI.markPublishedObject(pidsToPublish);
         } catch (Exception exception) {
-            throw new ServerOperationFailed("Failed marking objects as published. PIDs: "
-                    + pidsToPublish, exception);
+            throw new ServerOperationFailed(
+                    "Failed marking objects as published. PIDs: "
+                            + pidsToPublish, exception);
         }
     }
 }
