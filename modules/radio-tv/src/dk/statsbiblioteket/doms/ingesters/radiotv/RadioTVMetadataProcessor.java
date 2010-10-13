@@ -388,8 +388,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         // Create a file object from the file object template.
         final String metaFilePID = domsClient.createObjectFromTemplate(META_FILE_TEMPLATE_PID);
 
-        final Date now = new Date();
-
         //TODO: Do something about this.
         final FileInfo fileInfo
                 = new FileInfo("shard/" + metaFilePID,
