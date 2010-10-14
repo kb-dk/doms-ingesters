@@ -26,22 +26,20 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
+import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
+import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
+import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-
-import org.xml.sax.SAXException;
-
-import dk.statsbiblioteket.doms.centralWebservice.InvalidCredentialsException;
-import dk.statsbiblioteket.doms.centralWebservice.MethodFailedException;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * @author &lt;tsh@statsbiblioteket.dk&gt;
- * 
+ *
  */
 public class Ingester {
 
@@ -52,57 +50,77 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws Exception {
-
-	new Ingester().mainInstance();
+   new Ingester().mainInstance(args);
     }
 
-    private void mainInstance() throws MalformedURLException,
-	    InvalidCredentialsException, MethodFailedException,
-	    InterruptedException, SAXException {
-	final File HOT_FOLDER = new File("/tmp/radioTVMetaData");
-	final File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
-	final File COLD_FOLDER = new File("/tmp/processedFiles");
+    private void mainInstance(String[] args) throws MalformedURLException,
+                                       InvalidCredentialsException, MethodFailedException,
+                                       InterruptedException, SAXException {
+        File HOT_FOLDER = new File("/tmp/radioTVMetaData");
+        File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
+        File COLD_FOLDER = new File("/tmp/processedFiles");
 
-	// Make sure that all the necessary folders exist.
-	if (!HOT_FOLDER.exists()) {
-	    HOT_FOLDER.mkdirs();
-	}
+        URL domsAPIWSLocation = new URL(
+                        "http://alhena:7980/centralDomsWebservice/central/?wsdl");
 
-	if (!LUKEWARM_FOLDER.exists()) {
-	    LUKEWARM_FOLDER.mkdirs();
-	}
+        String username = "fedoraAdmin";
+        String password = "fedoraAdminPass";
 
-	if (!COLD_FOLDER.exists()) {
-	    COLD_FOLDER.mkdirs();
-	}
+        for (String arg : args) {
+            if (arg.startsWith("-hotfolder=")){
+                HOT_FOLDER = new File(arg.substring("-hotfolder=".length()));
+            }
+            if (arg.startsWith("-lukefolder=")){
+                LUKEWARM_FOLDER = new File(arg.substring("-lukefolder=".length()));
+            }
+            if (arg.startsWith("-coldfolder=")){
+                COLD_FOLDER = new File(arg.substring("-coldfolder=".length()));
+            }
+            if (arg.startsWith("-wsdl=")){
+                domsAPIWSLocation = new URL(arg.substring("-wsdl=".length()));
+            }
+            if (arg.startsWith("-username=")){
+                username = arg.substring("-username=".length());
+            }
+            if (arg.startsWith("-password=")){
+                password = arg.substring("-password=".length());
+            }
+        }
 
-	final HotFolderScanner hotFolderScanner = new HotFolderScanner();
+        // Make sure that all the necessary folders exist.
+        if (!HOT_FOLDER.exists()) {
+            HOT_FOLDER.mkdirs();
+        }
 
-	 final URL domsAPIWSLocation = new URL(
-	 "http://alhena:7980/centralDomsWebservice/central/?wsdl");
+        if (!LUKEWARM_FOLDER.exists()) {
+            LUKEWARM_FOLDER.mkdirs();
+        }
 
-	// Test against Asgers laptop.
-//	final URL domsAPIWSLocation = new URL(
-//	        "http://172.18.255.198:8080/centralDomsWebservice/central/?wsdl");
+        if (!COLD_FOLDER.exists()) {
+            COLD_FOLDER.mkdirs();
+        }
 
-	final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
-	        domsAPIWSLocation, "fedoraAdmin", "fedoraAdminPass");
+        final HotFolderScanner hotFolderScanner = new HotFolderScanner();
 
-	final SchemaFactory schemaFactory = SchemaFactory
-	        .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-	final File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-	        "config/preingestedRadioTVProgram.xsd");
-	final Schema preIngestFileSchema = schemaFactory
-	        .newSchema(PRE_INGEST_FILE_SCHEMA_FILE);
+        final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
+                        domsAPIWSLocation, username, password);
 
-	final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
-	        domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER,
-	        preIngestFileSchema);
-	hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
 
-	// Hang forever....
-	synchronized (this) {
-	    wait();
-	}
+        final SchemaFactory schemaFactory = SchemaFactory
+                .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        final File PRE_INGEST_FILE_SCHEMA_FILE = new File(
+                "config/preingestedRadioTVProgram.xsd");
+        final Schema preIngestFileSchema = schemaFactory
+                .newSchema(PRE_INGEST_FILE_SCHEMA_FILE);
+
+        final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
+                domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER,
+                preIngestFileSchema);
+        hotFolderScanner.startScanning(HOT_FOLDER, metadataProcessor);
+
+        // Hang forever....
+        synchronized (this) {
+            wait();
+        }
     }
 }
