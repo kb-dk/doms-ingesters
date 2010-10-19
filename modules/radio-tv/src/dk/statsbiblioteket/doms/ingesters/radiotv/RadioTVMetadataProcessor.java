@@ -26,6 +26,22 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+
+import javax.xml.namespace.NamespaceContext;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -37,23 +53,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
 
 /**
  * @author &lt;tsh@statsbiblioteket.dk&gt;
@@ -255,6 +254,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final String programObjectPID = domsClient
                 .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
 
+        //TODO performance. Do not just get the datastream, if you do not need it
         final Document pbCoredDataStreamDocument = domsClient.getDataStream(
                 programObjectPID, PROGRAM_PBCORE_DS_ID);
         final Node pbCoreDataStreamElement = pbCoredDataStreamDocument
@@ -317,6 +317,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final Node ritzauPreingestElement = (Node) xPath.evaluate(
                 RITZAU_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
 
+        //TODO performance. Do not just get the datastream, if you do not need it
         final Document ritzauOriginalDocument = domsClient.getDataStream(
                 programObjectPID, RITZAU_ORIGINAL_DS_ID);
 
@@ -332,6 +333,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final Node gallupPreingestElement = (Node) xPath.evaluate(
                 GALLUP_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
 
+        //TODO performance. Do not just get the datastream, if you do not need it
         final Document gallupOriginalDocument = domsClient.getDataStream(
                 programObjectPID, GALLUP_ORIGINAL_DS_ID);
 
@@ -393,6 +395,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         domsClient.addFileToFileObject(metaFilePID, fileInfo);
 
+        //TODO performance. Do not just get the datastream, if you do not need it
         final Document metadataDataStreamDocument = domsClient.getDataStream(
                 metaFilePID, META_FILE_METADATA_DS_ID);
         final Node metadataDataStreamElement = metadataDataStreamDocument
