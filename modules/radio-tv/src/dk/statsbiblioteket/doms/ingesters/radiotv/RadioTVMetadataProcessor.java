@@ -313,6 +313,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final String programTitle = titleNode.getTextContent();
         //FIXME! Set title on the program object!        System.out.print("Ingesting program: " + programTitle); //FIXME! Kill system.out
 
+
         // Add the Ritzau metadata
         final Node ritzauPreingestElement = (Node) xPath.evaluate(
                 RITZAU_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
