@@ -256,7 +256,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         //TODO performance. Do not just get the datastream, if you do not need it
         final Document pbCoredDataStreamDocument = domsClient.getDataStream(
-                programObjectPID, PROGRAM_PBCORE_DS_ID);
+                PROGRAM_TEMPLATE_PID, PROGRAM_PBCORE_DS_ID);
         final Node pbCoreDataStreamElement = pbCoredDataStreamDocument
                 .getFirstChild();
 
@@ -320,7 +320,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         //TODO performance. Do not just get the datastream, if you do not need it
         final Document ritzauOriginalDocument = domsClient.getDataStream(
-                programObjectPID, RITZAU_ORIGINAL_DS_ID);
+                PROGRAM_TEMPLATE_PID, RITZAU_ORIGINAL_DS_ID);
 
         final Node ritzauOriginalElement = ritzauOriginalDocument
                 .getFirstChild();
@@ -336,7 +336,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         //TODO performance. Do not just get the datastream, if you do not need it
         final Document gallupOriginalDocument = domsClient.getDataStream(
-                programObjectPID, GALLUP_ORIGINAL_DS_ID);
+                PROGRAM_TEMPLATE_PID, GALLUP_ORIGINAL_DS_ID);
 
         final Node gallupOriginalElement = gallupOriginalDocument
                 .getFirstChild();
@@ -398,7 +398,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         //TODO performance. Do not just get the datastream, if you do not need it
         final Document metadataDataStreamDocument = domsClient.getDataStream(
-                metaFilePID, META_FILE_METADATA_DS_ID);
+                META_FILE_TEMPLATE_PID, META_FILE_METADATA_DS_ID);
         final Node metadataDataStreamElement = metadataDataStreamDocument
                 .getFirstChild();
 
