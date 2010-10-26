@@ -61,7 +61,7 @@ public class Ingester {
         File COLD_FOLDER = new File("/tmp/processedFiles");
 
         URL domsAPIWSLocation = new URL(
-                        "http://alhena:7880/centralDomsWebservice/central/?wsdl");
+                        "http://alhena:7980/centralDomsWebservice/central/?wsdl");
 
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
