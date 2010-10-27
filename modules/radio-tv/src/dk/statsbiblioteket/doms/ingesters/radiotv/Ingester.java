@@ -39,7 +39,7 @@ import java.net.URL;
 
 /**
  * @author &lt;tsh@statsbiblioteket.dk&gt;
- *
+ * 
  */
 public class Ingester {
 
@@ -50,40 +50,43 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws Exception {
-   new Ingester().mainInstance(args);
+        new Ingester().mainInstance(args);
     }
 
     private void mainInstance(String[] args) throws MalformedURLException,
-                                       InvalidCredentialsException, MethodFailedException,
-                                       InterruptedException, SAXException {
+            InvalidCredentialsException, MethodFailedException,
+            InterruptedException, SAXException {
+
         File HOT_FOLDER = new File("/tmp/radioTVMetaData");
         File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
         File COLD_FOLDER = new File("/tmp/processedFiles");
 
+        File PRE_INGEST_FILE_SCHEMA_FILE = new File(
+                "config/preingestedRadioTVProgram.xsd");
+
         URL domsAPIWSLocation = new URL(
-                        "http://alhena:7980/centralDomsWebservice/central/?wsdl");
+                "http://alhena:7980/centralDomsWebservice/central/?wsdl");
 
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
 
         for (String arg : args) {
-            if (arg.startsWith("-hotfolder=")){
+            if (arg.startsWith("-hotfolder=")) {
                 HOT_FOLDER = new File(arg.substring("-hotfolder=".length()));
-            }
-            if (arg.startsWith("-lukefolder=")){
-                LUKEWARM_FOLDER = new File(arg.substring("-lukefolder=".length()));
-            }
-            if (arg.startsWith("-coldfolder=")){
+            } else if (arg.startsWith("-lukefolder=")) {
+                LUKEWARM_FOLDER = new File(arg.substring("-lukefolder="
+                        .length()));
+            } else if (arg.startsWith("-coldfolder=")) {
                 COLD_FOLDER = new File(arg.substring("-coldfolder=".length()));
-            }
-            if (arg.startsWith("-wsdl=")){
+            } else if (arg.startsWith("-wsdl=")) {
                 domsAPIWSLocation = new URL(arg.substring("-wsdl=".length()));
-            }
-            if (arg.startsWith("-username=")){
+            } else if (arg.startsWith("-username=")) {
                 username = arg.substring("-username=".length());
-            }
-            if (arg.startsWith("-password=")){
+            } else if (arg.startsWith("-password=")) {
                 password = arg.substring("-password=".length());
+            } else if (arg.startsWith("-preingestschema=")) {
+                PRE_INGEST_FILE_SCHEMA_FILE = new File(arg
+                        .substring("-preingestschema=".length()));
             }
         }
 
@@ -103,13 +106,10 @@ public class Ingester {
         final HotFolderScanner hotFolderScanner = new HotFolderScanner();
 
         final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
-                        domsAPIWSLocation, username, password);
-
+                domsAPIWSLocation, username, password);
 
         final SchemaFactory schemaFactory = SchemaFactory
                 .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "config/preingestedRadioTVProgram.xsd");
         final Schema preIngestFileSchema = schemaFactory
                 .newSchema(PRE_INGEST_FILE_SCHEMA_FILE);
 

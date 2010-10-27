@@ -49,6 +49,7 @@ import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
@@ -257,23 +258,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws XPathExpressionException
      *             if any errors were encountered while processing the
      *             <code>radioTVMetadata</code> XML document.
-     * @throws URISyntaxException
-     *             if the DOMS returns an invalid PID.
+     * @throws ParserConfigurationException
+     *             if creation of a <code>DocumentBuilder</code> instance fails.
      */
     private String ingestProgram(DOMSWSClient domsClient,
             Document radioTVMetadata, String metafilePID)
             throws ServerOperationFailed, XPathExpressionException,
-            URISyntaxException {
+            ParserConfigurationException {
 
-        final String programObjectPID = domsClient
-                .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
-
-        // TODO performance. Do not just get the datastream, if you do not need
-        // it
-        final Document pbCoredDataStreamDocument = domsClient.getDataStream(
-                PROGRAM_TEMPLATE_PID, PROGRAM_PBCORE_DS_ID);
-        final Node pbCoreDataStreamElement = pbCoredDataStreamDocument
-                .getFirstChild();
+        // First, fetch the PBCore metadata document node from the pre-ingest
+        // document.
 
         final XPath xPath = this.xPathFactory.newXPath();
         // FIXME! Remove uglyness!
@@ -308,39 +302,62 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 }
             }
         };
+
         xPath.setNamespaceContext(pbcoreNamespace);
         final Node radioTVPBCoreElement = (Node) xPath.evaluate(
                 RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT, radioTVMetadata,
                 XPathConstants.NODE);
 
-        final Node newPBCoreElement = pbCoredDataStreamDocument.importNode(
+        // Create a program object in the DOMS and update the PBCore metadata
+        // datastream with the PBCore metadata from the pre-ingest file.
+        final String programObjectPID = domsClient
+                .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
+
+        // Set up a DocumentBuilder for creation of the data stream documents
+        // for the program object.
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+                .newInstance();
+
+        final DocumentBuilder documentBuilder = documentBuilderFactory
+                .newDocumentBuilder();
+
+        final Document pbCoreDataStreamDocument = documentBuilder.newDocument();
+
+        // Import the PBCore metadata from the pre-ingest document and use it as
+        // the contents for the PBCore metadata data stream of the program
+        // object.
+        final Node newPBCoreElement = pbCoreDataStreamDocument.importNode(
                 radioTVPBCoreElement, true);
 
-        // Replace the PBCore metadata template with the real data.
-        pbCoredDataStreamDocument.replaceChild(newPBCoreElement,
-                pbCoreDataStreamElement);
+        pbCoreDataStreamDocument.appendChild(newPBCoreElement);
 
         domsClient.updateDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID,
-                pbCoredDataStreamDocument);
+                pbCoreDataStreamDocument);
 
+        // Get the program title from the PBCore metadata and use that as the
+        // object label for this program object.
         final Node titleNode = (Node) xPath.evaluate(
                 "pbc:pbcoreTitle[pbc:titleType=\"title\"]/pbc:title",
                 radioTVPBCoreElement, XPathConstants.NODE);
         final String programTitle = titleNode.getTextContent();
         domsClient.setObjectLabel(programObjectPID, programTitle);
 
-        // Add the Ritzau metadata
+        // Get the Ritzau metadata from the pre-ingest document and add it to
+        // the Ritzau metadata data stream of the program object.
         final Node ritzauPreingestElement = (Node) xPath.evaluate(
                 RITZAU_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
 
-        // TODO performance. Do not just get the datastream, if you do not need
-        // it
-        final Document ritzauOriginalDocument = domsClient.getDataStream(
-                PROGRAM_TEMPLATE_PID, RITZAU_ORIGINAL_DS_ID);
+        // Build a Ritzau data document for the Ritzau data stream in the
+        // program object.
+        final Document ritzauOriginalDocument = documentBuilder.newDocument();
+        final Element ritzauOriginalRootElement = ritzauOriginalDocument
+                .createElement("ritzau_original");
 
-        final Node ritzauOriginalElement = ritzauOriginalDocument
-                .getFirstChild();
-        ritzauOriginalElement.setTextContent(ritzauPreingestElement
+        ritzauOriginalRootElement.setAttribute("xmlns",
+                "http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#");
+        ritzauOriginalDocument.appendChild(ritzauOriginalRootElement);
+
+        ritzauOriginalRootElement.setTextContent(ritzauPreingestElement
                 .getTextContent());
 
         domsClient.updateDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID,
@@ -350,15 +367,18 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final Node gallupPreingestElement = (Node) xPath.evaluate(
                 GALLUP_ORIGINALS_ELEMENT, radioTVMetadata, XPathConstants.NODE);
 
-        // TODO performance. Do not just get the datastream, if you do not need
-        // it
-        final Document gallupOriginalDocument = domsClient.getDataStream(
-                PROGRAM_TEMPLATE_PID, GALLUP_ORIGINAL_DS_ID);
+        final Document gallupOriginalDocument = documentBuilder.newDocument();
 
-        final Node gallupOriginalElement = gallupOriginalDocument
-                .getFirstChild();
-        gallupOriginalElement.setTextContent(gallupPreingestElement
+        final Element gallupOriginalRootElement = gallupOriginalDocument
+                .createElement("gallup_original");
+
+        gallupOriginalRootElement.setAttribute("xmlns",
+                "http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#");
+
+        gallupOriginalRootElement.setTextContent(gallupPreingestElement
                 .getTextContent());
+
+        gallupOriginalDocument.appendChild(gallupOriginalRootElement);
 
         domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID,
                 gallupOriginalDocument);
@@ -393,8 +413,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws ServerOperationFailed
      *             if creation or manipulation of the metafile object fails.
      * @throws IOException
-     * @throws SAXException
      * @throws ParserConfigurationException
+     *             if construction of the DocumentBuilder, for creation of data
+     *             stream documents, fails.
      * @throws XPathExpressionException
      *             if any errors were encountered while processing the
      *             <code>radioTVMetadata</code> XML document.
@@ -402,7 +423,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private String ingestMetaFile(DOMSWSClient domsClient,
             Document radioTVMetadata, List<String> filePIDs)
-            throws ServerOperationFailed, IOException, SAXException,
+            throws ServerOperationFailed, IOException,
             ParserConfigurationException, XPathExpressionException,
             URISyntaxException {
 
@@ -417,25 +438,20 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         domsClient.addFileToFileObject(metaFilePID, fileInfo);
 
-        // TODO performance. Do not just get the datastream, if you do not need
-        // it
-        final Document metadataDataStreamDocument = domsClient.getDataStream(
-                META_FILE_TEMPLATE_PID, META_FILE_METADATA_DS_ID);
-        final Node metadataDataStreamElement = metadataDataStreamDocument
-                .getFirstChild();
+        // Set up a DocumentBuilder for creation of the metadata datastream
+        // document.
+        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
+                .newInstance();
+        final DocumentBuilder documentBuilder = documentBuilderFactory
+                .newDocumentBuilder();
 
-        final NodeList children = metadataDataStreamElement.getChildNodes();
-        if (children.getLength() != 1) {
-            throw new SAXException("Expected only one XML element in the "
-                    + "metadata datastream (ID: " + META_FILE_METADATA_DS_ID
-                    + ") of the template object (PID: "
-                    + META_FILE_TEMPLATE_PID + "). Found "
-                    + children.getLength() + " elements.");
-        }
+        final Document metadataDataStreamDocument = documentBuilder
+                .newDocument();
 
-        // Remove the "INSERT" comment/instruction from the template
-        metadataDataStreamElement.removeChild(metadataDataStreamElement
-                .getFirstChild());
+        final Element metadataDataStreamRootElement = metadataDataStreamDocument
+                .createElement("shard_metadata");
+
+        metadataDataStreamDocument.appendChild(metadataDataStreamRootElement);
 
         // Add all the "file" elements from the radio-tv metadata document.
         // TODO: Note that this is just a first-shot implementation until a
@@ -447,13 +463,15 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         for (int fileElementIdx = 0; fileElementIdx < recordingFileElements
                 .getLength(); fileElementIdx++) {
+
             final Node currentRecordingFile = recordingFileElements
                     .item(fileElementIdx);
+
+            // Append to the end of the list of child nodes.
             final Node newMetadataElement = metadataDataStreamDocument
                     .importNode(currentRecordingFile, true);
 
-            // Append to the end of the list of child nodes.
-            metadataDataStreamElement.insertBefore(newMetadataElement, null);
+            metadataDataStreamRootElement.appendChild(newMetadataElement);
         }
 
         domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID,
