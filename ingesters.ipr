@@ -295,20 +295,23 @@
       <JAVADOC />
       <SOURCES />
     </library>
-    <library name="jars1">
-      <CLASSES>
-        <root url="jar://$PROJECT_DIR$/build/build-libs/rhino-1.7R2/jars/js-14.jar!/" />
-        <root url="jar://$PROJECT_DIR$/build/build-libs/rhino-1.7R2/jars/js.jar!/" />
-      </CLASSES>
-      <JAVADOC />
-      <SOURCES />
-    </library>
     <library name="CentralInterface">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/centralWebserviceInterface-0.0.3/jars/centralWebserviceInterface.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.8/jars/centralWebserviceInterface.jar!/" />
       </CLASSES>
       <JAVADOC />
-      <SOURCES />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.8/src/centralWebserviceInterface-src.zip!/" />
+      </SOURCES>
+    </library>
+    <library name="domsclient">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.2/jars/domsclient.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.2/src/domsclient-src.zip!/" />
+      </SOURCES>
     </library>
   </component>
 </project>
