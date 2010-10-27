@@ -337,7 +337,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         // Get the program title from the PBCore metadata and use that as the
         // object label for this program object.
         final Node titleNode = (Node) xPath.evaluate(
-                "pbc:pbcoreTitle[pbc:titleType=\"title\"]/pbc:title",
+                "pbc:pbcoreTitle[pbc:titleType=\"titel\"]/pbc:title",
                 radioTVPBCoreElement, XPathConstants.NODE);
         final String programTitle = titleNode.getTextContent();
         domsClient.setObjectLabel(programObjectPID, programTitle);
