@@ -92,10 +92,9 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
     public void run() {
         // Scan the hot folder for file addition, deletion or modification.
 
-        final List<File> currentFolderContents = Arrays.asList(folderToScan
-                .listFiles());
-
-
+        File[] files = folderToScan.listFiles();
+        Arrays.sort(files);
+        final List<File> currentFolderContents = Arrays.asList(files);
 
         for (File currentFile : currentFolderContents) {
 
