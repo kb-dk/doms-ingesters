@@ -43,6 +43,11 @@ import java.util.TimerTask;
  */
 public class NonRecursiveHotFolderInspector extends TimerTask {
 
+
+    static long totalIngestTime = 0;
+    static long objectsIngested = 0;
+
+
     /**
      * Full path to the hot folder to scan.
      */
@@ -86,19 +91,34 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
     @Override
     public void run() {
         // Scan the hot folder for file addition, deletion or modification.
+
         final List<File> currentFolderContents = Arrays.asList(folderToScan
                 .listFiles());
 
+
+
         for (File currentFile : currentFolderContents) {
 
+            if (objectsIngested % 10 == 0){
+                System.out.println("Total Objects ingested: "+objectsIngested
+                                   +"; Total time spent ingesting: "
+                                   +totalIngestTime+" ms; Time per object is "+
+                (totalIngestTime+0.0)/objectsIngested +" ms.");
+            }
             final Long previousTimeStamp = previousFolderContents
                     .get(currentFile);
 
             if (previousTimeStamp == null) {
+
                 // A new file has been created.
                 previousFolderContents.put(currentFile, currentFile
                         .lastModified());
+                long startTime = System.currentTimeMillis();
                 callBackClient.fileAdded(currentFile);
+                long endTime = System.currentTimeMillis();
+                long ingesttime = endTime - startTime;
+                totalIngestTime += ingesttime;
+                objectsIngested++;
             } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
                 // The file has been modified since the previous scan. Update
                 // the time stamps and notify the client.
