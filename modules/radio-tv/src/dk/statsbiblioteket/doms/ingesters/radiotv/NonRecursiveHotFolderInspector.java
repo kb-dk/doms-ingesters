@@ -46,6 +46,8 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
 
     static long totalIngestTime = 0;
     static long objectsIngested = 0;
+    static long lastTenObjects = 0;
+
 
 
     /**
@@ -103,6 +105,8 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
                                    +"; Total time spent ingesting: "
                                    +totalIngestTime+" ms; Time per object is "+
                 (totalIngestTime+0.0)/objectsIngested +" ms.");
+                System.out.println("Time per object for the last 10 is: "+lastTenObjects/10+" ms");
+                lastTenObjects = 0;
             }
             final Long previousTimeStamp = previousFolderContents
                     .get(currentFile);
@@ -117,6 +121,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
                 long endTime = System.currentTimeMillis();
                 long ingesttime = endTime - startTime;
                 totalIngestTime += ingesttime;
+                lastTenObjects += ingesttime;
                 objectsIngested++;
             } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
                 // The file has been modified since the previous scan. Update
