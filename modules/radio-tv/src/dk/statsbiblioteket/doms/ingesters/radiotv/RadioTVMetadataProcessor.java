@@ -151,16 +151,23 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         };
         preingestFilesBuilder.setErrorHandler(documentErrorHandler);
 
-        domsClient = new DOMSWSClient();
-        domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
-                .getLogin(), domsLoginInfo.getPassword());
 
 
     }
 
+    public DOMSWSClient getDomsClient() {
+        if (domsClient == null){
+            domsClient = new DOMSWSClient();
+            domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
+                    .getLogin(), domsLoginInfo.getPassword());
+
+        }
+        return domsClient;
+    }
+
     /* (non-Javadoc)
-     * @see dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient#fileAdded(java.io.File)
-     */
+    * @see dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient#fileAdded(java.io.File)
+    */
     public void fileAdded(File addedFile) {
         List<String> pidsToPublish = new ArrayList<String>();
         try {
@@ -171,25 +178,25 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
 
                 final List<String> filePIDs = ingestFiles(
-                        radioTVMetadata, domsClient);
+                        radioTVMetadata, getDomsClient());
                 pidsToPublish.addAll(filePIDs);
 
                 final String metaFilePID = ingestMetaFile(
-                        radioTVMetadata, filePIDs, domsClient);
+                        radioTVMetadata, filePIDs, getDomsClient());
                 pidsToPublish.add(metaFilePID);
 
                 final String programPID = ingestProgram(
-                        radioTVMetadata, metaFilePID, domsClient);
+                        radioTVMetadata, metaFilePID, getDomsClient());
                 pidsToPublish.add(programPID);
 
-                domsClient.publishObjects(pidsToPublish);
+                getDomsClient().publishObjects(pidsToPublish);
 
                 // Move the processed file to the finished files folder.
                 moveFile(addedFile, processedFilesFolder);
 
 
             } catch (SAXException se) {
-                failed(addedFile,pidsToPublish, domsClient);
+                failed(addedFile,pidsToPublish, getDomsClient());
 
                 se.printStackTrace();
                 // TODO: Log this
@@ -198,7 +205,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 incrementFailedTries();
 
             } catch (ServerOperationFailed se) {
-                failed(addedFile,pidsToPublish, domsClient);
+                failed(addedFile,pidsToPublish, getDomsClient());
 
                 // Failed calling the DOMS server
                 se.printStackTrace();
@@ -207,7 +214,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 // TODO: we should not allow endless failures....
 
             } catch (XPathExpressionException xpee) {
-                failed(addedFile,pidsToPublish, domsClient);
+                failed(addedFile,pidsToPublish, getDomsClient());
 
                 // Failed parsing the Radio-TV XML document...
                 xpee.printStackTrace();
@@ -218,7 +225,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             } catch (URISyntaxException use) {
                 // Failed parsing the Radio-TV XML document...
 
-                failed(addedFile,pidsToPublish, domsClient);
+                failed(addedFile,pidsToPublish, getDomsClient());
 
                 use.printStackTrace();
                 // TODO: Log this
@@ -227,7 +234,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 // or from ingestMetaFile as a config/code error
 
             } catch (IOException ioe) {
-                failed(addedFile,pidsToPublish, domsClient);
+                failed(addedFile,pidsToPublish, getDomsClient());
                 ioe.printStackTrace();
                 // TODO: Log this
                 // TODO: we should not allow endless failures....
