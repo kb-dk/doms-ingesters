@@ -66,6 +66,7 @@ public class HotFolderScanner {
         scannerDaemon = new Timer(true);
         scannerDelay = 5000;
         scannerPeriod = 5000;
+        System.out.println("HotFolderScanner has been created");
     }
 
     /**
@@ -100,6 +101,7 @@ public class HotFolderScanner {
     public void startScanning(File hotFolderToScan,
                               HotFolderScannerClient client) {
 
+        System.out.println("HotFolder has started scanning");
         // TODO: We could add a smart feature to let users choose between
         // different inspector types, however, that is not important right now.
         TimerTask scannerTask = new NonRecursiveHotFolderInspector(
