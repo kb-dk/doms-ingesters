@@ -288,11 +288,11 @@
   <component name="libraryTable">
     <library name="domsclient">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.3/jars/domsclient.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.4/jars/domsclient.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.3/src/domsclient-src.zip!/" />
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.4/src/domsclient-src.zip!/" />
       </SOURCES>
     </library>
     <library name="domsserver">
