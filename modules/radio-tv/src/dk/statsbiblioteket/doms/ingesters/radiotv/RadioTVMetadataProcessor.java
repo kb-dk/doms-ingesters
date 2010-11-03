@@ -251,7 +251,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /* (non-Javadoc)
      * @see dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient#fileDeleted(java.io.File)
      */
-
     public void fileDeleted(File deletedFile) {
         // Not relevant.
     }
