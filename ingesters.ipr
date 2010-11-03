@@ -286,31 +286,22 @@
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
   <component name="libraryTable">
-    <library name="domsutil">
-      <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/domsutil-0.0.11/jars/webservice-common.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/domsutil-0.0.11/jars/surveyable_interface.jar!/" />
-        <root url="jar://$PROJECT_DIR$/lib/domsutil-0.0.11/jars/surveyable_impl.jar!/" />
-      </CLASSES>
-      <JAVADOC />
-      <SOURCES />
-    </library>
-    <library name="CentralInterface">
-      <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.8/jars/centralWebserviceInterface.jar!/" />
-      </CLASSES>
-      <JAVADOC />
-      <SOURCES>
-        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.8/src/centralWebserviceInterface-src.zip!/" />
-      </SOURCES>
-    </library>
     <library name="domsclient">
       <CLASSES>
-        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.2/jars/domsclient.jar!/" />
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.3/jars/domsclient.jar!/" />
       </CLASSES>
       <JAVADOC />
       <SOURCES>
-        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.2/src/domsclient-src.zip!/" />
+        <root url="jar://$PROJECT_DIR$/lib/domsclient-0.0.3/src/domsclient-src.zip!/" />
+      </SOURCES>
+    </library>
+    <library name="domsserver">
+      <CLASSES>
+        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.11/jars/centralWebserviceInterface.jar!/" />
+      </CLASSES>
+      <JAVADOC />
+      <SOURCES>
+        <root url="jar://$PROJECT_DIR$/lib/domsserver-0.0.11/src/centralWebserviceInterface-src.zip!/" />
       </SOURCES>
     </library>
   </component>
