@@ -91,12 +91,12 @@ public class Ingester {
         }
         System.out.println("Ingester started with the following configuration "
                             + "detatils:");
-        System.out.println("HOT_FOLDER = " + HOT_FOLDER.getName());
-        System.out.println("LUKEWARM_FOLDER = " + LUKEWARM_FOLDER.getName());
-        System.out.println("COLD_FOLDER = " + COLD_FOLDER.getName());
+        System.out.println("HOT_FOLDER = " + HOT_FOLDER.getAbsolutePath());
+        System.out.println("LUKEWARM_FOLDER = " + LUKEWARM_FOLDER.getAbsolutePath());
+        System.out.println("COLD_FOLDER = " + COLD_FOLDER.getAbsolutePath());
         System.out.println("PRE_INGEST_FILE_SCHEMA_FILE = " +
-                            PRE_INGEST_FILE_SCHEMA_FILE.getName());
-        System.out.println("domsAPIWSLocation = "+domsAPIWSLocation.getPath());
+                            PRE_INGEST_FILE_SCHEMA_FILE.getAbsolutePath());
+        System.out.println("domsAPIWSLocation = "+domsAPIWSLocation.toString());
         System.out.println("username = " + username);
         System.out.println("password = " + password);
 
@@ -105,19 +105,19 @@ public class Ingester {
         if (!HOT_FOLDER.exists()) {
             HOT_FOLDER.mkdirs();
             System.out.println("HOT_FOLDER: " + HOT_FOLDER.getName() + " did "
-                                + "exist. Has been created.");
+                                + "not exist. Has been created.");
         }
 
         if (!LUKEWARM_FOLDER.exists()) {
             LUKEWARM_FOLDER.mkdirs();
             System.out.println("LUKEWARM_FOLDER: " + LUKEWARM_FOLDER.getName()
-                                + " did exist. Has been created.");
+                                + " did not exist. Has been created.");
         }
 
         if (!COLD_FOLDER.exists()) {
             COLD_FOLDER.mkdirs();
             System.out.println("COLD_FOLDER: " + COLD_FOLDER.getName() +
-                                " did exist. Has been created.");
+                                " did not exist. Has been created.");
         }
 
         final HotFolderScanner hotFolderScanner = new HotFolderScanner();
