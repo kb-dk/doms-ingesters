@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
+import java.util.Calendar;
 
 /**
  * This class performs a shallow (i.e. non-recursive) scan of a directory for
@@ -47,6 +48,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
     static long totalIngestTime = 0;
     static long objectsIngested = 0;
     static long lastTenObjects = 0;
+    static int killFlag = 0; // killFlag will be set to 1 when kill occurs.
 
 
 
@@ -54,6 +56,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * Full path to the hot folder to scan.
      */
     private final File folderToScan;
+    private final File stopFolder;
 
     /**
      * Map containing paths and timestamps for all files found in the hot folder
@@ -76,12 +79,15 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      *
      * @param hotFolderToScan
      *            File path to a hot folder to scan.
+     * @param sFolder
+     *            File path to the stop folder.
      * @param client
      *            Reference to a client to notify about changes in the folder.
      */
-    public NonRecursiveHotFolderInspector(File hotFolderToScan,
+    public NonRecursiveHotFolderInspector(File hotFolderToScan, File sFolder,
                                           HotFolderScannerClient client) {
         folderToScan = hotFolderToScan;
+        stopFolder = sFolder;
         callBackClient = client;
         previousFolderContents = new HashMap<File, Long>();
     }
@@ -93,14 +99,26 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
     @Override
     public void run() {
         // Scan the hot folder for file addition, deletion or modification.
-
         File[] files = folderToScan.listFiles();
         Arrays.sort(files);
         final List<File> currentFolderContents = Arrays.asList(files);
 
         for (File currentFile : currentFolderContents) {
 
+            if(objectsIngested % 20 == 0) {
+                File[] stopFiles = stopFolder.listFiles();
+                List<File> stopList = Arrays.asList(stopFiles);
+                for(File stopFile : stopList) {
+                    if(stopFile.getName().toLowerCase().equals("stoprunning")) {
+                        killFlag = 1;
+                    }
+                }
+            }
+            if(1==killFlag) {
+                break;
+            }
             if (objectsIngested % 10 == 0){
+                System.out.println(Calendar.getInstance());
                 System.out.println("Total Objects ingested: "+objectsIngested
                                    +"; Total time spent ingesting: "
                                    +totalIngestTime+" ms; Time per object is "+
@@ -139,6 +157,9 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
         for (File deletedFile : deletedFiles) {
             previousFolderContents.remove(deletedFile);
             callBackClient.fileDeleted(deletedFile);
+        }
+        if(1==killFlag) {
+            System.exit(1);
         }
     }
 }

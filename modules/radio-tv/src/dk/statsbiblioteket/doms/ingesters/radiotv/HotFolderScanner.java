@@ -29,6 +29,7 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Calendar;
 
 /**
  * The <code>{@link HotFolderScanner}</code> provides continous scanning and
@@ -98,14 +99,15 @@ public class HotFolderScanner {
      * @param hotFolderToScan Full file path to the directory to scan.
      * @param client Reference to the client to report changes to.
      */
-    public void startScanning(File hotFolderToScan,
+    public void startScanning(File hotFolderToScan, File stopFolder,
                               HotFolderScannerClient client) {
-
-        System.out.println("HotFolderScanner has started scanning");
+        Calendar rightNow = Calendar.getInstance();
+        System.out.print("HotFolderScanner has started scanning");
+        System.out.println(" at " + rightNow);
         // TODO: We could add a smart feature to let users choose between
         // different inspector types, however, that is not important right now.
         TimerTask scannerTask = new NonRecursiveHotFolderInspector(
-                hotFolderToScan, client);
+                hotFolderToScan, stopFolder, client);
         scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
                                           scannerPeriod);
     }
