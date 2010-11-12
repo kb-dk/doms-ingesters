@@ -190,6 +190,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 pidsToPublish.add(programPID);
 
                 getDomsClient().publishObjects(pidsToPublish);
+                // TODO: Write to "active PIDs file here
+
 
                 // Move the processed file to the finished files folder.
                 moveFile(addedFile, processedFilesFolder);
@@ -250,10 +252,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private void failed(File addedFile, List<String> pidsToPublish, DOMSWSClient domsClient)
             throws FileNotFoundException, ServerOperationFailed {
-        moveFile(addedFile, failedFilesFolder);
-        writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+         moveFile(addedFile, failedFilesFolder);
+        // TODO: move failed PIDs file -- no write
+        // writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
+        // Attempt to delete partial ingest
         domsClient.deleteObjects(pidsToPublish);
     }
+
 
     /* (non-Javadoc)
      * @see dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient#fileDeleted(java.io.File)
@@ -594,8 +599,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
 
         final File failedPIDsFile = new File(outputFolder, failedMetadataFile
-                .getName()
-                                                           + ".failedPIDs");
+                .getName() + ".failedPIDs");
         final PrintStream printStream = new PrintStream(failedPIDsFile);
 
         final Iterator<String> pidIterator = failedPIDs.iterator();
