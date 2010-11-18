@@ -46,7 +46,8 @@ public class TestHotFolderScanner {
 
     private File tempTestDir;
     private File tempTestFile;
-    
+    private File stopFolder;
+
     //TODO: Add tests for the detection of modified and deleted files. 
     @SuppressWarnings("unused")
     private File clientFeedbackModifiedFile;
@@ -54,22 +55,22 @@ public class TestHotFolderScanner {
     private File clientFeedbackDeletedFile;
 
     //TODO: Also test file modification and deletion.
-    
+
     private final HotFolderScannerClient hotFolderScannerClient = new HotFolderScannerClient() {
-	@Override
-	public void fileAdded(File addedFile) {
-	    clientFeedbackAddedFile = addedFile;
-	}
+        @Override
+        public void fileAdded(File addedFile) {
+            clientFeedbackAddedFile = addedFile;
+        }
 
-	@Override
-	public void fileDeleted(File deletedFile) {
-	    clientFeedbackDeletedFile = deletedFile;
-	}
+        @Override
+        public void fileDeleted(File deletedFile) {
+            clientFeedbackDeletedFile = deletedFile;
+        }
 
-	@Override
-	public void fileModified(File modifiedFile) {
-	    clientFeedbackModifiedFile = modifiedFile;
-	}
+        @Override
+        public void fileModified(File modifiedFile) {
+            clientFeedbackModifiedFile = modifiedFile;
+        }
     };
 
     /**
@@ -77,19 +78,22 @@ public class TestHotFolderScanner {
      */
     @Before
     public void setUp() throws Exception {
-	hotFolderScanner = new HotFolderScanner();
-	clientFeedbackAddedFile = null;
+        hotFolderScanner = new HotFolderScanner();
+        clientFeedbackAddedFile = null;
     }
 
     @After
     public void tearDown() throws Exception {
-	if (tempTestFile != null) {
-	    tempTestFile.delete();
-	}
+        if (tempTestFile != null) {
+            tempTestFile.delete();
+        }
 
-	if (tempTestDir != null) {
-	    tempTestDir.delete();
-	}
+        if (tempTestDir != null) {
+            tempTestDir.delete();
+        }
+        if (stopFolder != null) {
+            stopFolder.delete();
+        }
     }
 
     /**
@@ -99,34 +103,37 @@ public class TestHotFolderScanner {
      */
     @Test
     public void testStartScanning() throws IOException {
-	// Create a private temp. dir in the system temp. dir.
-	tempTestDir = new File(System.getProperty("java.io.tmpdir") + "/"
-		+ UUID.randomUUID());
-	assertTrue("Failed creating temp. test dir: " + tempTestDir.toString(),
-		tempTestDir.mkdirs());
+        // Create a private temp. dir in the system temp. dir.
+        tempTestDir = new File(System.getProperty("java.io.tmpdir") +
+                File.pathSeparator + UUID.randomUUID());
+        stopFolder = new File(System.getProperty("java.io.tmpdir") +
+                File.pathSeparator + UUID.randomUUID());
 
-	// Start scanning.
-	final long scanDelay = 5000;
-	hotFolderScanner.setInitialScannerDelay(scanDelay);
-	hotFolderScanner.setScannerPeriod(scanDelay);
-	hotFolderScanner.startScanning(tempTestDir, hotFolderScannerClient);
+        assertTrue("Failed creating temp. test dir: " + tempTestDir.toString(),
+                tempTestDir.mkdirs());
 
-	// Create a test file.
-	tempTestFile = new File(tempTestDir, UUID.randomUUID().toString());
-	assertTrue("Failed creating test file: " + tempTestFile.toString(),
-		tempTestFile.createNewFile());
+        // Start scanning.
+        final long scanDelay = 5000;
+        hotFolderScanner.setInitialScannerDelay(scanDelay);
+        hotFolderScanner.setScannerPeriod(scanDelay);
+        hotFolderScanner.startScanning(tempTestDir, stopFolder, hotFolderScannerClient);
 
-	// Wait for the scanner to detect the change.
-	try {
-	    Thread.sleep(scanDelay * 2);
-	} catch (InterruptedException ir) {
-	    // Never mind that....
-	}
+        // Create a test file.
+        tempTestFile = new File(tempTestDir, UUID.randomUUID().toString());
+        assertTrue("Failed creating test file: " + tempTestFile.toString(),
+                tempTestFile.createNewFile());
 
-	assertEquals(
-		"The created test file was not detected by the hot folder scanner.",
-		tempTestFile, clientFeedbackAddedFile);
+        // Wait for the scanner to detect the change.
+        try {
+            Thread.sleep(scanDelay * 2);
+        } catch (InterruptedException ir) {
+            // Never mind that....
+        }
 
-	// TODO: It wouldn't hurt testing the scanner with more than one file...
+        assertEquals(
+                "The created test file was not detected by the hot folder scanner.",
+                tempTestFile, clientFeedbackAddedFile);
+
+        // TODO: It wouldn't hurt testing the scanner with more than one file...
     }
 }

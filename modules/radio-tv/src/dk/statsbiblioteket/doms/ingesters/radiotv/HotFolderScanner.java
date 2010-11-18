@@ -98,6 +98,7 @@ public class HotFolderScanner {
      *
      * @param hotFolderToScan Full file path to the directory to scan.
      * @param client Reference to the client to report changes to.
+     * @param stopFolder Full file path to the stop directory.
      */
     public void startScanning(File hotFolderToScan, File stopFolder,
                               HotFolderScannerClient client) {
