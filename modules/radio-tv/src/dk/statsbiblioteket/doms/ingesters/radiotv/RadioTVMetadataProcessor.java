@@ -621,22 +621,12 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private void writeFailedPIDs(File failedMetadataFile,
                                  List<String> failedPIDs, File outputFolder)
             throws FileNotFoundException {
-
-
-
+        File activePIDsFile = new File(Ingester.LUKEWARM_FOLDER.getAbsolutePath(), failedMetadataFile
+                .getName() + ".InProcessPIDs");
         final File failedPIDsFile = new File(outputFolder, failedMetadataFile
                 .getName() + ".failedPIDs");
-        final PrintStream printStream = new PrintStream(failedPIDsFile);
+        moveFile(activePIDsFile, failedPIDsFile);
 
-        final Iterator<String> pidIterator = failedPIDs.iterator();
-        while (pidIterator.hasNext()) {
-            printStream.print(pidIterator.next());
-            if (pidIterator.hasNext()) {
-                printStream.print(", ");
-            }
-        }
-        printStream.println();
-        printStream.close();
     }
 
     /**
