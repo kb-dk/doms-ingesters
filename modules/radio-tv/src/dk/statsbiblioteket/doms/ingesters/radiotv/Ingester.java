@@ -53,7 +53,7 @@ public class Ingester {
     public static void main(String[] args) throws Exception {
         new Ingester().mainInstance(args);
     }
-
+    public static  File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
     private void mainInstance(String[] args) throws MalformedURLException,
             InvalidCredentialsException, MethodFailedException,
             InterruptedException, SAXException {
@@ -61,7 +61,7 @@ public class Ingester {
         Calendar rightNow = Calendar.getInstance();
         System.out.println(rightNow);
         File HOT_FOLDER = new File("/tmp/radioTVMetaData");
-        File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
+
         File COLD_FOLDER = new File("/tmp/processedFiles");
         File STOP_FOLDER = new File("/tmp/stopFolder");
 
