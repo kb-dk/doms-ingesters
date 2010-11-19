@@ -247,6 +247,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     }
 
+    /**
+     * Iteratively write the pid of ingested files to a file, making it available
+     * in case of cataclysmic failure.
+     * @param programPID The PID of the currently handled program.
+     * @param failedMetadataFile The file containing the Metadata for a program.
+     * @throws IOException thrown if the file cannot be written to.
+     */
     private void writeActivePID(String programPID, File failedMetadataFile) throws IOException {
         File activePIDsFile = new File(Ingester.LUKEWARM_FOLDER.getAbsolutePath(), failedMetadataFile
                 .getName() + ".InProcessPIDs");
