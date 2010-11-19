@@ -276,6 +276,14 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         }
     }
 
+    /**
+     * For when a series of PIDs fails
+     * @param addedFile The file attempted to have added to the doms
+     * @param pidsToPublish The failed PIDs
+     * @param domsClient The DOMS where the PID post was attempted
+     * @throws FileNotFoundException When the file isn inaccessible
+     * @throws ServerOperationFailed When the server is unreachable
+     */
     private void failed(File addedFile, List<String> pidsToPublish, DOMSWSClient domsClient)
             throws FileNotFoundException, ServerOperationFailed {
         moveFile(addedFile, failedFilesFolder);
