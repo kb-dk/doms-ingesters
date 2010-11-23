@@ -98,7 +98,7 @@ public class TestHotFolderScanner {
 
     /**
      * Test method for
-     * {@link dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScanner#startScanning(java.io.File, dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient)}
+     * {@link dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScanner#startScanning(java.io.File, java.io.File, HotFolderScannerClient)}
      * .
      */
     @Test
