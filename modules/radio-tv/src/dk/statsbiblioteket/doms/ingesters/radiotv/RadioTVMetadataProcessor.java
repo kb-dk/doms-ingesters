@@ -26,10 +26,7 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.client.DOMSWSClient;
-import dk.statsbiblioteket.doms.client.FileInfo;
-import dk.statsbiblioteket.doms.client.NoObjectFound;
-import dk.statsbiblioteket.doms.client.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.*;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -92,7 +89,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private DocumentBuilder preingestFilesBuilder;
     private DocumentBuilder unSchemaedBuilder;
-    private DOMSWSClient domsClient;
+    private DomsWSClient domsClient;
 
 
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo,
@@ -152,9 +149,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     }
 
-    public DOMSWSClient getDomsClient() {
+    public DomsWSClient getDomsClient() {
         if (domsClient == null){
-            domsClient = new DOMSWSClient();
+            domsClient = new DomsWSClientImpl();
             domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
                     .getLogin(), domsLoginInfo.getPassword());
 
@@ -284,7 +281,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws FileNotFoundException When the file isn inaccessible
      * @throws ServerOperationFailed When the server is unreachable
      */
-    private void failed(File addedFile, List<String> pidsToPublish, DOMSWSClient domsClient)
+    private void failed(File addedFile, List<String> pidsToPublish, DomsWSClient domsClient)
             throws FileNotFoundException, ServerOperationFailed {
         moveFile(addedFile, failedFilesFolder);
         try {
@@ -330,7 +327,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             if creation of a <code>DocumentBuilder</code> instance fails.
      */
     private String ingestProgram(
-            Document radioTVMetadata, String metafilePID, DOMSWSClient domsClient)
+            Document radioTVMetadata, String metafilePID, DomsWSClient domsClient)
             throws ServerOperationFailed, XPathExpressionException {
 
         // First, fetch the PBCore metadata document node from the pre-ingest
@@ -480,7 +477,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws URISyntaxException
      */
     private String ingestMetaFile(
-            Document radioTVMetadata, List<String> filePIDs, DOMSWSClient domsClient)
+            Document radioTVMetadata, List<String> filePIDs, DomsWSClient domsClient)
             throws ServerOperationFailed, IOException, XPathExpressionException,
             URISyntaxException {
 
@@ -558,7 +555,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             if the format URI for the file is invalid.
      */
     private List<String> ingestFiles(
-            Document radioTVMetadata, DOMSWSClient domsClient) throws XPathExpressionException,
+            Document radioTVMetadata, DomsWSClient domsClient) throws XPathExpressionException,
             MalformedURLException, ServerOperationFailed, URISyntaxException {
 
         // Get the recording files XML element and process the file information.
