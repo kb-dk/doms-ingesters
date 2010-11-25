@@ -8,7 +8,7 @@
     <xs:complexType name="fileType">
         <xs:sequence>
             <xs:element type="xs:string" name="file_url"/>
-            <xs:element type="xs:string" name="channel_id"/>
+            <xs:element type="xs:string" name="channel_id" minOccurs="0"/>
             <xs:element type="xs:string" name="program_start_offset"/>
             <xs:element type="xs:string" name="program_clip_length"/>
             <xs:element type="xs:string" name="file_name"/>

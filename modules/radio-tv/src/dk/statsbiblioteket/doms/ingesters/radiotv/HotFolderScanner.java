@@ -27,14 +27,15 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
+import java.text.DateFormat;
+import java.util.Calendar;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.Calendar;
 
 /**
  * The <code>{@link HotFolderScanner}</code> provides continous scanning and
  * reporting of file creations, modifications and deletions in a hot folder.
- *
+ * 
  * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
 public class HotFolderScanner {
@@ -59,7 +60,7 @@ public class HotFolderScanner {
      * folder every 5 seconds. This interval can be changed by calling
      * {@link #setInitialScannerDelay(long)} and {@link #setScannerPeriod(long)}
      * .
-     *
+     * 
      * @see #setInitialScannerDelay(long)
      * @see #setScannerPeriod(long)
      */
@@ -73,7 +74,7 @@ public class HotFolderScanner {
     /**
      * Set the initial delay before the first execution of the hot folder
      * scanner.
-     *
+     * 
      * @param delayMillis
      *            Delay in milliseconds.
      */
@@ -83,7 +84,7 @@ public class HotFolderScanner {
 
     /**
      * Set the delay before each subsequent execution of the hot folder scanner.
-     *
+     * 
      * @param periodMillis
      *            Delay in milliseconds.
      */
@@ -95,21 +96,26 @@ public class HotFolderScanner {
      * Start a continuous scanning of the hot folder specified by
      * <code>hotFolderToScan</code> and report any file creations, modifications
      * and deletions to the <code>client</code>.
-     *
-     * @param hotFolderToScan Full file path to the directory to scan.
-     * @param client Reference to the client to report changes to.
-     * @param stopFolder Full file path to the stop directory.
+     * 
+     * @param hotFolderToScan
+     *            Full file path to the directory to scan.
+     * @param client
+     *            Reference to the client to report changes to.
+     * @param stopFolder
+     *            Full file path to the stop directory.
      */
     public void startScanning(File hotFolderToScan, File stopFolder,
-                              HotFolderScannerClient client) {
-        Calendar rightNow = Calendar.getInstance();
-        System.out.print("HotFolderScanner has started scanning");
-        System.out.println(" at " + rightNow);
+            HotFolderScannerClient client) {
+        final Calendar rightNow = Calendar.getInstance();
+        final DateFormat dateFormat = DateFormat
+                .getDateTimeInstance(DateFormat.FULL, DateFormat.FULL);
+        System.out.println("HotFolderScanner has started scanning at "
+                + dateFormat.format(rightNow.getTime()));
         // TODO: We could add a smart feature to let users choose between
         // different inspector types, however, that is not important right now.
         TimerTask scannerTask = new NonRecursiveHotFolderInspector(
                 hotFolderToScan, stopFolder, client);
         scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
-                                          scannerPeriod);
+                scannerPeriod);
     }
 }

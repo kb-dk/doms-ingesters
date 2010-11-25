@@ -37,4 +37,5 @@ shift `expr $OPTIND - 1`
 
 java -cp .:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
-   -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD -preingestschema=$SCHEMA
+   -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
+   -preingestschema=$SCHEMA
