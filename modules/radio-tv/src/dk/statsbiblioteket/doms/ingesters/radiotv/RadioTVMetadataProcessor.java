@@ -26,14 +26,16 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.client.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import javax.xml.namespace.NamespaceContext;
 import javax.xml.parsers.DocumentBuilder;
@@ -44,14 +46,20 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+
+import dk.statsbiblioteket.doms.client.DomsWSClient;
+import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
+import dk.statsbiblioteket.doms.client.FileInfo;
+import dk.statsbiblioteket.doms.client.NoObjectFound;
+import dk.statsbiblioteket.doms.client.ServerOperationFailed;
 
 /**
  * @author &lt;tsh@statsbiblioteket.dk&gt;
@@ -80,24 +88,20 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private final File failedFilesFolder;
     private final File processedFilesFolder;
-    private final Schema preIngestFileSchema;
     private final DOMSLoginInfo domsLoginInfo;
     private final XPathFactory xPathFactory;
 
     private int exceptionCount = 0;
 
-
     private DocumentBuilder preingestFilesBuilder;
     private DocumentBuilder unSchemaedBuilder;
     private DomsWSClient domsClient;
 
-
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo,
-                                    File failedFilesFolder, File processedFilesFolder,
-                                    Schema preIngestFileSchema) {
+            File failedFilesFolder, File processedFilesFolder,
+            Schema preIngestFileSchema) {
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
-        this.preIngestFileSchema = preIngestFileSchema;
         this.domsLoginInfo = domsLoginInfo;
 
         xPathFactory = XPathFactory.newInstance();
@@ -109,8 +113,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         documentBuilderFactory.setSchema(preIngestFileSchema);
         documentBuilderFactory.setNamespaceAware(true);
         try {
-            preingestFilesBuilder = documentBuilderFactory
-                    .newDocumentBuilder();
+            preingestFilesBuilder = documentBuilderFactory.newDocumentBuilder();
 
             unSchemaedBuilder = unschemaedFactory.newDocumentBuilder();
 
@@ -120,7 +123,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             // TODO: we should not allow endless failures....
             // TODO: FATAL
             fatalException();
-            return;//will never be reached, but no matter
+            return;// will never be reached, but no matter
         }
 
         ErrorHandler documentErrorHandler = new org.xml.sax.ErrorHandler() {
@@ -138,19 +141,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             }
 
             @Override
-            public void error(SAXParseException exception)
-                    throws SAXException {
+            public void error(SAXParseException exception) throws SAXException {
                 throw exception;
             }
         };
         preingestFilesBuilder.setErrorHandler(documentErrorHandler);
 
-
-
     }
 
     public DomsWSClient getDomsClient() {
-        if (domsClient == null){
+        if (domsClient == null) {
             domsClient = new DomsWSClientImpl();
             domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
                     .getLogin(), domsLoginInfo.getPassword());
@@ -165,137 +165,153 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     public void fileAdded(File addedFile) {
         List<String> pidsToPublish = new ArrayList<String>();
         try {
-            try {
 
-                final Document radioTVMetadata = preingestFilesBuilder
-                        .parse(addedFile);
+            final Document radioTVMetadata = preingestFilesBuilder
+                    .parse(addedFile);
 
+            final List<String> filePIDs = ingestFiles(radioTVMetadata,
+                    getDomsClient());
+            pidsToPublish.addAll(filePIDs);
+            writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
-                final List<String> filePIDs = ingestFiles(
-                        radioTVMetadata, getDomsClient());
-                pidsToPublish.addAll(filePIDs);
+            final String metaFilePID = ingestMetaFile(radioTVMetadata,
+                    filePIDs, getDomsClient());
+            pidsToPublish.add(metaFilePID);
+            writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
-                final String metaFilePID = ingestMetaFile(
-                        radioTVMetadata, filePIDs, getDomsClient());
-                pidsToPublish.add(metaFilePID);
+            final String programPID = ingestProgram(radioTVMetadata,
+                    metaFilePID, getDomsClient());
+            pidsToPublish.add(programPID);
+            final File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile,
+                    pidsToPublish);
 
-                final String programPID = ingestProgram(
-                        radioTVMetadata, metaFilePID, getDomsClient());
-                pidsToPublish.add(programPID);
+            getDomsClient().publishObjects(pidsToPublish);
 
-                getDomsClient().publishObjects(pidsToPublish);
-                writeActivePID(programPID, addedFile);
+            // The ingest was successful, if we make it here...
+            // Move the processed file to the finished files folder.
+            moveFile(addedFile, processedFilesFolder);
 
-                // Move the processed file to the finished files folder.
-                moveFile(addedFile, processedFilesFolder);
+            // And it is now safe to delete the "in progress" PID file.
+            allWrittenPIDs.delete();
+        } catch (SAXException se) {
+            failed(addedFile, pidsToPublish, getDomsClient());
 
+            se.printStackTrace();
+            // TODO: Log this
+            // TODO: we should not allow endless failures....
+            // TODO: Wounded > many = FATAL
+            incrementFailedTries();
 
+        } catch (ServerOperationFailed se) {
+            failed(addedFile, pidsToPublish, getDomsClient());
 
-            } catch (SAXException se) {
-                failed(addedFile,pidsToPublish, getDomsClient());
+            // Failed calling the DOMS server
+            se.printStackTrace();
+            // TODO: Log this
+            // TODO: FATAL, POSSIBLE RETIRES
+            // TODO: we should not allow endless failures....
 
-                se.printStackTrace();
-                // TODO: Log this
-                // TODO: we should not allow endless failures....
-                // TODO: Wounded > many = FATAL
-                incrementFailedTries();
+        } catch (XPathExpressionException xpee) {
+            failed(addedFile, pidsToPublish, getDomsClient());
 
-            } catch (ServerOperationFailed se) {
-                failed(addedFile,pidsToPublish, getDomsClient());
+            // Failed parsing the Radio-TV XML document...
+            xpee.printStackTrace();
+            // TODO: Log this
+            // TODO: we should not allow endless failures....
+            // TODO: should _NEVER_ happend, code is broken
 
-                // Failed calling the DOMS server
-                se.printStackTrace();
-                // TODO: Log this
-                // TODO: FATAL, POSSIBLE RETIRES
-                // TODO: we should not allow endless failures....
+        } catch (URISyntaxException use) {
+            // Failed parsing the Radio-TV XML document...
 
-            } catch (XPathExpressionException xpee) {
-                failed(addedFile,pidsToPublish, getDomsClient());
+            failed(addedFile, pidsToPublish, getDomsClient());
 
-                // Failed parsing the Radio-TV XML document...
-                xpee.printStackTrace();
-                // TODO: Log this
-                // TODO: we should not allow endless failures....
-                // TODO: should _NEVER_ happend, code is broken
+            use.printStackTrace();
+            // TODO: Log this
+            // TODO: we should not allow endless failures....
+            // failure can be from fileIngest as a pre ibngest error
+            // or from ingestMetaFile as a config/code error
 
-            } catch (URISyntaxException use) {
-                // Failed parsing the Radio-TV XML document...
-
-                failed(addedFile,pidsToPublish, getDomsClient());
-
-                use.printStackTrace();
-                // TODO: Log this
-                // TODO: we should not allow endless failures....
-                // failure can be from fileIngest as a pre ibngest error
-                // or from ingestMetaFile as a config/code error
-
-            } catch (IOException ioe) {
-                failed(addedFile,pidsToPublish, getDomsClient());
-                ioe.printStackTrace();
-                // TODO: Log this
-                // TODO: we should not allow endless failures....
-                // a code error for ingestMetaFile
-            }
+        } catch (IOException ioe) {
+            failed(addedFile, pidsToPublish, getDomsClient());
+            ioe.printStackTrace();
+            // TODO: Log this
+            // TODO: we should not allow endless failures....
+            // a code error for ingestMetaFile
         } catch (Exception fnfe) {
+            // Handle anything unanticipated.
+
+            failed(addedFile, pidsToPublish, getDomsClient());
             // TODO: Log this.
             fnfe.printStackTrace();
         }
-
-
     }
 
     /**
-     * Iteratively write the pid of ingested files to a file, making it available
-     * in case of cataclysmic failure.
-     * @param programPID The PID of the currently handled program.
-     * @param failedMetadataFile The file containing the Metadata for a program.
-     * @throws IOException thrown if the file cannot be written to.
+     * Iteratively (over)write the pid the <code>InProcessPIDs</code> file
+     * associated with the <code>preIngestFile</code>.
+     * 
+     * @param outputDirectory
+     *            absolute path to the directory where the PID file must be
+     *            written.
+     * @param preIngestFile
+     *            The file containing the Metadata for a program.
+     * @param PIDs
+     *            A list of PIDs to write.
+     * @return The <code>File</code> which the PIDs were written to.
+     * @throws IOException
+     *             thrown if the file cannot be written to.
      */
-    private void writeActivePID(String programPID, File failedMetadataFile) throws IOException {
-        File activePIDsFile = new File(Ingester.LUKEWARM_FOLDER.getAbsolutePath(), failedMetadataFile
-                .getName() + ".InProcessPIDs");
-        if (!activePIDsFile.exists()){
-            try{
-                activePIDsFile.createNewFile();
-            } catch (Exception e){
-                System.err.println(e);
+    private File writePIDs(File outputDirectory, File preIngestFile,
+            List<String> PIDs) throws IOException {
+        final File pidFile = new File(outputDirectory, preIngestFile.getName()
+                + ".InProcessPIDs");
+
+        if (!pidFile.exists()) {
+            pidFile.createNewFile();
+        }
+
+        if (pidFile.canWrite()) {
+            final PrintWriter writer = new PrintWriter(pidFile);
+            for (String currentPID : PIDs) {
+                writer.println(currentPID);
             }
-        }
-        if (activePIDsFile.canWrite()){
-            FileWriter fstream = new FileWriter(activePIDsFile);
-            BufferedWriter out = new BufferedWriter(fstream);
-            out.write(programPID + '\n');
-            out.flush();
-            out.close();
-
-        }   else {
-            throw new IOException("Cannot write file " + activePIDsFile.getAbsolutePath());
+            writer.flush();
+            writer.close();
+            return pidFile;
+        } else {
+            throw new IOException("Cannot write file "
+                    + pidFile.getAbsolutePath());
         }
     }
 
     /**
-     * For when a series of PIDs fails
-     * @param addedFile The file attempted to have added to the doms
-     * @param pidsToPublish The failed PIDs
-     * @param domsClient The DOMS where the PID post was attempted
-     * @throws FileNotFoundException When the file isn inaccessible
-     * @throws ServerOperationFailed When the server is unreachable
+     * Move the failed pre-ingest file to the "failedFilesFolder" folder and
+     * rename the in-progress PID list file to a failed PID list file, also
+     * stored in the "failedFilesFolder" folder.
+     * <p/>
+     * This method should be called before "pulling the plug".
+     * 
+     * @param addedFile
+     *            The file attempted to have added to the doms
+     * @param pidsToPublish
+     *            The failed PIDs
+     * @param domsClient
+     *            The DOMS where the PID post was attempted
      */
-    private void failed(File addedFile, List<String> pidsToPublish, DomsWSClient domsClient)
-            throws FileNotFoundException, ServerOperationFailed {
-        moveFile(addedFile, failedFilesFolder);
+    private void failed(File addedFile, List<String> pidsToPublish,
+            DomsWSClient domsClient) {
         try {
-            for ( String programPID : pidsToPublish) {
-                writeActivePID(programPID, addedFile);
-            }
-        } catch(Exception e) {
-            System.err.println(e);
-        }
-        // writeFailedPIDs(addedFile, pidsToPublish, failedFilesFolder);
-        // Attempt to delete partial ingest
-        domsClient.deleteObjects(pidsToPublish);
-    }
+            moveFile(addedFile, failedFilesFolder);
 
+            // Rename the in-progress PIDs to failed PIDs.
+            writeFailedPIDs(addedFile, failedFilesFolder);
+            domsClient.deleteObjects(pidsToPublish);
+        } catch (Exception exception) {
+            // If this bail-out error handling fails, then nothing can save
+            // us...
+            exception.printStackTrace(System.err);
+        }
+    }
 
     /* (non-Javadoc)
      * @see dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScannerClient#fileDeleted(java.io.File)
@@ -326,9 +342,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws ParserConfigurationException
      *             if creation of a <code>DocumentBuilder</code> instance fails.
      */
-    private String ingestProgram(
-            Document radioTVMetadata, String metafilePID, DomsWSClient domsClient)
-            throws ServerOperationFailed, XPathExpressionException {
+    private String ingestProgram(Document radioTVMetadata, String metafilePID,
+            DomsWSClient domsClient) throws ServerOperationFailed,
+            XPathExpressionException {
 
         // First, fetch the PBCore metadata document node from the pre-ingest
         // document.
@@ -377,8 +393,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final String programObjectPID = domsClient
                 .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
 
-
-        final Document pbCoreDataStreamDocument = unSchemaedBuilder.newDocument();
+        final Document pbCoreDataStreamDocument = unSchemaedBuilder
+                .newDocument();
 
         // Import the PBCore metadata from the pre-ingest document and use it as
         // the contents for the PBCore metadata data stream of the program
@@ -457,7 +473,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * which constitutes the contents of the metafile.
      * <p/>
      * TODO: Consider cleaning up/consolidating the exceptions
-     *
+     * 
      * @param radioTVMetadata
      *            Metadata about location and duration of the relevant data
      *            chunks from the physical files.
@@ -476,10 +492,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *             <code>radioTVMetadata</code> XML document.
      * @throws URISyntaxException
      */
-    private String ingestMetaFile(
-            Document radioTVMetadata, List<String> filePIDs, DomsWSClient domsClient)
-            throws ServerOperationFailed, IOException, XPathExpressionException,
-            URISyntaxException {
+    private String ingestMetaFile(Document radioTVMetadata,
+            List<String> filePIDs, DomsWSClient domsClient)
+            throws ServerOperationFailed, IOException,
+            XPathExpressionException, URISyntaxException {
 
         // Create a file object from the file object template.
         final String metaFilePID = domsClient
@@ -491,7 +507,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 "", new URI("info:pronom/fmt/199"));
 
         domsClient.addFileToFileObject(metaFilePID, fileInfo);
-
 
         final Document metadataDataStreamDocument = unSchemaedBuilder
                 .newDocument();
@@ -538,7 +553,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * Ingest any missing file objects into the DOMS and return a list of PIDs
      * for all the DOMS file objects corresponding to the files listed in the
      * <code>radioTVMetadata</code> document.
-     *
+     * 
      * @param radioTVMetadata
      *            Metadata XML document containing the file information.
      * @param domsClient
@@ -554,8 +569,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws URISyntaxException
      *             if the format URI for the file is invalid.
      */
-    private List<String> ingestFiles(
-            Document radioTVMetadata, DomsWSClient domsClient) throws XPathExpressionException,
+    private List<String> ingestFiles(Document radioTVMetadata,
+            DomsWSClient domsClient) throws XPathExpressionException,
             MalformedURLException, ServerOperationFailed, URISyntaxException {
 
         // Get the recording files XML element and process the file information.
@@ -618,7 +633,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * Move <code>fileToMove</code> to the folder specified by
      * <code>destinationFolder</code>.
-     *
+     * 
      * @param fileToMove
      *            Path to the file to move to <code>destinationFolder</code>.
      * @param destinationFolder
@@ -627,18 +642,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private void moveFile(File fileToMove, File destinationFolder) {
         fileToMove.renameTo(new File(destinationFolder.getAbsolutePath()
                 + File.separator + fileToMove.getName()));
-
     }
 
-    private void writeFailedPIDs(File failedMetadataFile,
-                                 List<String> failedPIDs, File outputFolder)
-            throws FileNotFoundException {
-        File activePIDsFile = new File(Ingester.LUKEWARM_FOLDER.getAbsolutePath(), failedMetadataFile
-                .getName() + ".InProcessPIDs");
-        final File failedPIDsFile = new File(outputFolder, failedMetadataFile
-                .getName() + ".failedPIDs");
-        moveFile(activePIDsFile, failedPIDsFile);
-
+    private void writeFailedPIDs(File failedMetadataFile, File directory) {
+        final File activePIDsFile = new File(directory, failedMetadataFile
+                .getName()
+                + ".InProcessPIDs");
+        final File failedPIDsFile = new File(directory, failedMetadataFile
+                .getName()
+                + ".failedPIDs");
+        activePIDsFile.renameTo(failedPIDsFile);
     }
 
     /**
@@ -653,7 +666,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     /**
      * The number of tires is counted up.
-     *
+     * 
      * @param incrementBy
      *            a number of tries
      */

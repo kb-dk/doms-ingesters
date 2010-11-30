@@ -27,30 +27,28 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
+import java.text.DateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimerTask;
-import java.util.Calendar;
 
 /**
  * This class performs a shallow (i.e. non-recursive) scan of a directory for
  * file modifications. That is, detection of creation, modification or deletion
  * of files in the directory, a.k.a. hot folder.
- *
+ * 
  * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
 public class NonRecursiveHotFolderInspector extends TimerTask {
-
 
     static long totalIngestTime = 0;
     static long objectsIngested = 0;
     static long lastTenObjects = 0;
     static int killFlag = 0; // killFlag will be set to 1 when kill occurs.
-
-
 
     /**
      * Full path to the hot folder to scan.
@@ -76,7 +74,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * the folder specified by <code>hotFolderToScan</code> and notifies the
      * client specified by <code>client</code> about any changes, whenever the
      * <code>{@link #run()}</code> method is executed.
-     *
+     * 
      * @param hotFolderToScan
      *            File path to a hot folder to scan.
      * @param sFolder
@@ -85,7 +83,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      *            Reference to a client to notify about changes in the folder.
      */
     public NonRecursiveHotFolderInspector(File hotFolderToScan, File sFolder,
-                                          HotFolderScannerClient client) {
+            HotFolderScannerClient client) {
         folderToScan = hotFolderToScan;
         stopFolder = sFolder;
         callBackClient = client;
@@ -105,25 +103,30 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
 
         for (File currentFile : currentFolderContents) {
 
-            if(objectsIngested % 20 == 0) {
+            if (objectsIngested % 20 == 0) {
                 File[] stopFiles = stopFolder.listFiles();
                 List<File> stopList = Arrays.asList(stopFiles);
-                for(File stopFile : stopList) {
-                    if(stopFile.getName().toLowerCase().equals("stoprunning")) {
+                for (File stopFile : stopList) {
+                    if (stopFile.getName().toLowerCase().equals("stoprunning")) {
                         killFlag = 1;
                     }
                 }
             }
-            if(1==killFlag) {
+            if (1 == killFlag) {
                 break;
             }
-            if (objectsIngested % 10 == 0){
-                System.out.println(Calendar.getInstance());
-                System.out.println("Total Objects ingested: "+objectsIngested
-                                   +"; Total time spent ingesting: "
-                                   +totalIngestTime+" ms; Time per object is "+
-                (totalIngestTime+0.0)/objectsIngested +" ms.");
-                System.out.println("Time per object for the last 10 is: "+lastTenObjects/10+" ms");
+            if (objectsIngested % 10 == 0) {
+                final Calendar rightNow = Calendar.getInstance();
+                final DateFormat dateFormat = DateFormat.getDateTimeInstance(
+                        DateFormat.FULL, DateFormat.FULL);
+                System.out.println(dateFormat.format(rightNow.getTime()));
+
+                System.out.println("Total Objects ingested: " + objectsIngested
+                        + "; Total time spent ingesting: " + totalIngestTime
+                        + " ms; Time per object is " + (totalIngestTime + 0.0)
+                        / objectsIngested + " ms.");
+                System.out.println("Time per object for the last 10 is: "
+                        + lastTenObjects / 10 + " ms");
                 lastTenObjects = 0;
             }
             final Long previousTimeStamp = previousFolderContents
@@ -158,7 +161,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
             previousFolderContents.remove(deletedFile);
             callBackClient.fileDeleted(deletedFile);
         }
-        if(1==killFlag) {
+        if (1 == killFlag) {
             System.exit(1);
         }
     }
