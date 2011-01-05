@@ -27,6 +27,7 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.text.DateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -97,7 +98,16 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
     @Override
     public void run() {
         // Scan the hot folder for file addition, deletion or modification.
-        File[] files = folderToScan.listFiles();
+        File[] files = folderToScan.listFiles(new FilenameFilter(){
+
+            @Override
+            public boolean accept(File dir, String name) {
+                if (name.trim().toLowerCase().endsWith(".xml")){
+                    return true;
+                }
+                return false;  //To change body of implemented methods use File | Settings | File Templates.
+            }
+        });
         Arrays.sort(files);
         final List<File> currentFolderContents = Arrays.asList(files);
 
