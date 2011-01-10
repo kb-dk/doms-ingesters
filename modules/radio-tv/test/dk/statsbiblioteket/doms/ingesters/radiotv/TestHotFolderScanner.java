@@ -26,15 +26,16 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.UUID;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * @author tsh
@@ -48,13 +49,13 @@ public class TestHotFolderScanner {
     private File tempTestFile;
     private File stopFolder;
 
-    //TODO: Add tests for the detection of modified and deleted files. 
+    // TODO: Add tests for the detection of modified and deleted files.
     @SuppressWarnings("unused")
     private File clientFeedbackModifiedFile;
     @SuppressWarnings("unused")
     private File clientFeedbackDeletedFile;
 
-    //TODO: Also test file modification and deletion.
+    // TODO: Also test file modification and deletion.
 
     private final HotFolderScannerClient hotFolderScannerClient = new HotFolderScannerClient() {
         @Override
@@ -104,22 +105,28 @@ public class TestHotFolderScanner {
     @Test
     public void testStartScanning() throws IOException {
         // Create a private temp. dir in the system temp. dir.
-        tempTestDir = new File(System.getProperty("java.io.tmpdir") +
-                File.pathSeparator + UUID.randomUUID());
-        stopFolder = new File(System.getProperty("java.io.tmpdir") +
-                File.pathSeparator + UUID.randomUUID());
+        tempTestDir = new File(System.getProperty("java.io.tmpdir")
+                + File.separator + UUID.randomUUID());
+        stopFolder = new File(System.getProperty("java.io.tmpdir")
+                + File.separator + UUID.randomUUID());
 
-        assertTrue("Failed creating temp. test dir: " + tempTestDir.toString(),
-                tempTestDir.mkdirs());
+        assertTrue("Failed creating temp. test hotfolder dir: "
+                + tempTestDir.toString(), tempTestDir.mkdirs());
+
+        assertTrue("Failed creating temp. test stopfolder dir: "
+                + stopFolder.toString(), stopFolder.mkdirs());
 
         // Start scanning.
         final long scanDelay = 5000;
         hotFolderScanner.setInitialScannerDelay(scanDelay);
         hotFolderScanner.setScannerPeriod(scanDelay);
-        hotFolderScanner.startScanning(tempTestDir, stopFolder, hotFolderScannerClient);
+        hotFolderScanner.startScanning(tempTestDir, stopFolder,
+                hotFolderScannerClient);
 
-        // Create a test file.
-        tempTestFile = new File(tempTestDir, UUID.randomUUID().toString());
+        // Create a test file. It must be an XML file as the folder scanner
+        // filters out XML files.
+        tempTestFile = new File(tempTestDir, UUID.randomUUID().toString()
+                + ".xml");
         assertTrue("Failed creating test file: " + tempTestFile.toString(),
                 tempTestFile.createNewFile());
 

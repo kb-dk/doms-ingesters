@@ -46,10 +46,10 @@ import java.util.TimerTask;
  */
 public class NonRecursiveHotFolderInspector extends TimerTask {
 
-    static long totalIngestTime = 0;
-    static long objectsIngested = 0;
-    static long lastTenObjects = 0;
-    static int killFlag = 0; // killFlag will be set to 1 when kill occurs.
+    private long totalIngestTime = 0;
+    private long objectsIngested = 0;
+    private long lastTenObjects = 0;
+    private boolean killFlag = false; // killFlag will be set to true when kill occurs.
 
     /**
      * Full path to the hot folder to scan.
@@ -111,6 +111,7 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
         Arrays.sort(files);
         final List<File> currentFolderContents = Arrays.asList(files);
 
+        mainLoop:
         for (File currentFile : currentFolderContents) {
 
             if (objectsIngested % 20 == 0) {
@@ -118,13 +119,12 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
                 List<File> stopList = Arrays.asList(stopFiles);
                 for (File stopFile : stopList) {
                     if (stopFile.getName().toLowerCase().equals("stoprunning")) {
-                        killFlag = 1;
+                        killFlag = true;
+                        break mainLoop;
                     }
                 }
             }
-            if (1 == killFlag) {
-                break;
-            }
+
             if (objectsIngested % 10 == 0) {
                 final Calendar rightNow = Calendar.getInstance();
                 final DateFormat dateFormat = DateFormat.getDateTimeInstance(
@@ -171,7 +171,8 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
             previousFolderContents.remove(deletedFile);
             callBackClient.fileDeleted(deletedFile);
         }
-        if (1 == killFlag) {
+        
+        if (killFlag) {
             System.exit(1);
         }
     }
