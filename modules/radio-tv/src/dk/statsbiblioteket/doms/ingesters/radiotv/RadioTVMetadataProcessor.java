@@ -64,7 +64,7 @@ import dk.statsbiblioteket.doms.client.ServerOperationFailed;
 /**
  * @author &lt;tsh@statsbiblioteket.dk&gt;
  */
-public class RadioTVMetadataProcessor implements HotFolderScannerClient {
+public class    RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private static final String RITZAU_ORIGINALS_ELEMENT = "//program/originals/ritzau_original";
     private static final String GALLUP_ORIGINALS_ELEMENT = "//program/originals/gallup_original";
@@ -388,10 +388,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT, radioTVMetadata,
                 XPathConstants.NODE);
 
+        // Extract the ritzauID from the pre-ingest file. 
+        List<String> listOfOldPIDs = new ArrayList<String>();
+        final Node oldPIDNode = (Node) xPath.evaluate(
+                "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier",
+                radioTVPBCoreElement, XPathConstants.NODE);
+        listOfOldPIDs.add(oldPIDNode.getTextContent());
+        
         // Create a program object in the DOMS and update the PBCore metadata
         // datastream with the PBCore metadata from the pre-ingest file.
-        final String programObjectPID = domsClient
-                .createObjectFromTemplate(PROGRAM_TEMPLATE_PID);
+        final String programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, listOfOldPIDs);
 
         final Document pbCoreDataStreamDocument = unSchemaedBuilder
                 .newDocument();
