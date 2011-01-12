@@ -173,6 +173,12 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
         }
         
         if (killFlag) {
+            System.out.println("'stop file' detected. Terminating ingester.");
+            System.out.println("Total Objects ingested: " + objectsIngested
+                    + "; Total time spent ingesting: " + totalIngestTime
+                    + " ms; Time per object is " + (totalIngestTime + 0.0)
+                    / objectsIngested + " ms.");
+
             System.exit(1);
         }
     }
