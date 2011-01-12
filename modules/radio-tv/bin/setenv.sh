@@ -8,6 +8,6 @@ HOTFOLDER=$BASEDIR/files/hotfolder
 STOPFOLDER=$BASEDIR/files/stopfolder
 WSDL=http://alhena:7980/centralDomsWebservice/central/?wsdl
 USERNAME=fedoraAdmin
-PASSWORD=fedoraAdminPass
+PASSWORD=fedoraAdminSecretPass
 SCHEMA=$BASEDIR/config/preingestedRadioTVProgram.xsd
 
