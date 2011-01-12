@@ -81,7 +81,7 @@ public class Ingester {
                 "http://alhena:7980/centralDomsWebservice/central/?wsdl");
 
         String username = "fedoraAdmin";
-        String password = "fedoraAdminPass";
+        String password = "fedoraAdminSecretPass";
 
         for (String arg : args) {
             if (arg.startsWith("-hotfolder=")) {
