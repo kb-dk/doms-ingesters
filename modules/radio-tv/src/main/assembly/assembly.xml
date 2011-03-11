@@ -1,0 +1,27 @@
+<assembly>
+    <id>radio-tv-ingester</id>
+    <formats>
+        <format>zip</format>
+    </formats>
+
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>lib</outputDirectory>
+        </dependencySet>
+    </dependencySets>
+
+    <fileSets>
+        <fileSet>
+            <outputDirectory>resources</outputDirectory>
+            <directory>src/main/resources</directory>
+        </fileSet>
+        <fileSet>
+            <outputDirectory>bin</outputDirectory>
+            <directory>src/main/scripts</directory>
+            <fileMode>0755</fileMode>
+        </fileSet>
+    </fileSets>
+
+
+</assembly>
+
