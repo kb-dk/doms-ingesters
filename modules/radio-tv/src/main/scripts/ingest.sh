@@ -9,7 +9,7 @@ SCRIPT_DIR=$(pwd)
 popd > /dev/null
 BASEDIR=$SCRIPT_DIR/..
 
-source setenv.sh
+source ingest_config.sh
 
 #
 # Parse command line arguments.

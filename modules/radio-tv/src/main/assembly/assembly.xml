@@ -1,5 +1,5 @@
 <assembly>
-    <id>radio-tv-ingester</id>
+    <id>ingester</id>
     <formats>
         <format>zip</format>
     </formats>
