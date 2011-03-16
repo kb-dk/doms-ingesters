@@ -73,13 +73,13 @@ public class Ingester {
         File STOP_FOLDER = new File("/tmp/stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "config/preingestedRadioTVProgram.xsd");
+                "resources/preingestedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
-                "http://alhena:7980/centralDomsWebservice/central/?wsdl");
+                "http://localhost:7880/centralWebservice-service/central/?wsdl");
 
         String username = "fedoraAdmin";
-        String password = "fedoraAdminSecretPass";
+        String password = "fedoraAdminPass";
 
         for (String arg : args) {
             if (arg.startsWith("-hotfolder=")) {

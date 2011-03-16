@@ -445,7 +445,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                                       HAS_METAFILE_RELATION_TYPE, metafilePID), comment);
 
         } else { //Exists
-            domsClient.unpublishObjects(existingPid);
+            domsClient.unpublishObjects(comment, existingPid);
             programObjectPID = existingPid;
         }
 
@@ -597,7 +597,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             domsClient.addFileToFileObject(metaFilePID, fileInfo, comment);
 
         } else {
-            domsClient.unpublishObjects(metaFilePID);
+            domsClient.unpublishObjects(comment, metaFilePID);
         }
 
 
@@ -721,7 +721,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                                        md5String, formatURI);
 
                 fileObjectPID = domsClient.createFileObject(
-                        RADIO_TV_FILE_TEMPLATE_PID, fileInfo);
+                        RADIO_TV_FILE_TEMPLATE_PID, fileInfo, comment);
             }
             fileObjectPIDs.add(fileObjectPID);
         }
