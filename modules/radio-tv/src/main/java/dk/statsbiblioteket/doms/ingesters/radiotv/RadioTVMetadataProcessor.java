@@ -92,6 +92,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private DomsWSClient _domsClient;
     private XPathSelector xpathSelector;
 
+    private String comment;//TODO initialise
+    private String failedComment;
+
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo,
                                     File failedFilesFolder, File processedFilesFolder,
                                     Schema preIngestFileSchema) {
@@ -100,6 +103,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         this.domsLoginInfo = domsLoginInfo;
 
         xpathSelector = DOM.createXPathSelector("pbc", "http://www.pbcore.org/PBCore/PBCoreNamespace.html");
+
+        comment = "Ingest of Radio/TV data";
+        failedComment = comment + ": Something failed, rolling back";
 
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
@@ -293,7 +299,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         final File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile,
                                               pidsToPublish);
 
-        domsClient.publishObjects(pidsToPublish.toArray(new String[pidsToPublish.size()]));
+        domsClient.publishObjects(comment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
 
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
@@ -372,7 +378,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
             // Rename the in-progress PIDs to failed PIDs.
             writeFailedPIDs(addedFile, failedFilesFolder);
-            domsClient.deleteObjects(pidsToPublish.toArray(new String[pidsToPublish.size()]));
+            domsClient.deleteObjects(failedComment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
         } catch (Exception exception) {
             // If this bail-out error handling fails, then nothing can save
             // us...
@@ -431,20 +437,22 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         if (existingPid == null) {//not Exist
             // Create a program object in the DOMS and update the PBCore metadata
             // datastream with the PBCore metadata from the pre-ingest file.
-            programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, listOfOldPIDs);
+            programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID,
+                                                                   listOfOldPIDs,
+                                                                   comment);
             // Create relations to the metafile/shard
-            domsClient.addObjectRelation(programObjectPID,
-                                         HAS_METAFILE_RELATION_TYPE, metafilePID);
+            domsClient.addObjectRelation(new Relation(programObjectPID,
+                                                      HAS_METAFILE_RELATION_TYPE, metafilePID), comment);
 
         } else { //Exists
-            domsClient.unpublishObjects(existingPid);
+            domsClient.unpublishObjects(comment,existingPid);
             programObjectPID = existingPid;
         }
 
 
         final Document pbCoreDataStreamDocument = createPBCoreDocForDoms(radioTVPBCoreElement);
         domsClient.updateDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID,
-                                    pbCoreDataStreamDocument);
+                                    pbCoreDataStreamDocument, comment);
 
         // Get the program title from the PBCore metadata and use that as the
         // object label for this program object.
@@ -453,18 +461,18 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                         radioTVPBCoreElement,
                         "pbc:pbcoreTitle[pbc:titleType=\"titel\"]/pbc:title");
         final String programTitle = titleNode.getTextContent();
-        domsClient.setObjectLabel(programObjectPID, programTitle);
+        domsClient.setObjectLabel(programObjectPID, programTitle, comment);
 
         // Get the Ritzau metadata from the pre-ingest document and add it to
         // the Ritzau metadata data stream of the program object.
         final Document ritzauOriginalDocument = createRitzauDocument(radioTVMetadata);
         domsClient.updateDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID,
-                                    ritzauOriginalDocument);
+                                    ritzauOriginalDocument, comment);
 
         // Add the Gallup metadata
         Document gallupOriginalDocument = createGallupDocument(radioTVMetadata);
         domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID,
-                                    gallupOriginalDocument);
+                                    gallupOriginalDocument, comment);
 
 
         return programObjectPID;
@@ -580,16 +588,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         if (metaFilePID == null) {
             // Create a file object from the file object template.
             metaFilePID = domsClient
-                    .createObjectFromTemplate(META_FILE_TEMPLATE_PID);
+                    .createObjectFromTemplate(META_FILE_TEMPLATE_PID, comment);
             // TODO: Do something about this.
             final FileInfo fileInfo = new FileInfo("shard/" + metaFilePID, new URL(
                     "http://www.statsbiblioteket.dk/doms/shard/" + metaFilePID),
                                                    "", new URI("info:pronom/fmt/199"));
 
-            domsClient.addFileToFileObject(metaFilePID, fileInfo);
+            domsClient.addFileToFileObject(metaFilePID, fileInfo, comment);
 
         } else {
-            domsClient.unpublishObjects(metaFilePID);
+            domsClient.unpublishObjects(comment,metaFilePID);
         }
 
 
@@ -621,26 +629,25 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             metadataDataStreamRootElement.appendChild(newMetadataElement);
         }
 
-        domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID,
-                                    metadataDataStreamDocument);
+        domsClient.updateDataStream(metaFilePID,
+                                    META_FILE_METADATA_DS_ID,
+                                    metadataDataStreamDocument,
+                                    comment);
 
 
         List<Relation> relations = domsClient.listObjectRelations(metaFilePID, CONSISTS_OF_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
             if (!filePIDs.contains(relation.getObject())) {
-                domsClient.removeObjectRelation(
-                        relation.getSubject(),
-                        relation.getPredicate(),
-                        relation.getObject());
+                domsClient.removeObjectRelation(relation, comment);
             } else {
                 existingRels.add(relation.getObject());
             }
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
-                domsClient.addObjectRelation(metaFilePID,
-                                             CONSISTS_OF_RELATION_TYPE, filePID);
+                domsClient.addObjectRelation(new Relation(metaFilePID,
+                                                          CONSISTS_OF_RELATION_TYPE, filePID), comment);
 
             }
         }
@@ -714,7 +721,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                                        md5String, formatURI);
 
                 fileObjectPID = domsClient.createFileObject(
-                        RADIO_TV_FILE_TEMPLATE_PID, fileInfo);
+                        RADIO_TV_FILE_TEMPLATE_PID, fileInfo,comment);
             }
             fileObjectPIDs.add(fileObjectPID);
         }
