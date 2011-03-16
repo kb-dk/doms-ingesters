@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>dk.statsbiblioteket.doms</groupId>
@@ -9,16 +8,16 @@
 
     <groupId>dk.statsbiblioteket.doms.ingesters</groupId>
     <artifactId>ingesters</artifactId>
-    <version>0.0.6-SNAPSHOT</version>
+    <version>0.0.6</version>
     <name>Doms Ingesters package</name>
 
     <packaging>pom</packaging>
 
     <scm>
-        <connection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk</connection>
-        <developerConnection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk
+        <connection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/tags/ingesters-0.0.6</connection>
+        <developerConnection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/tags/ingesters-0.0.6
         </developerConnection>
-        <url>http://doms.svn.sourceforge.net/viewvc/doms/examples/ingesters/trunk</url>
+        <url>http://doms.svn.sourceforge.net/viewvc/doms/examples/ingesters/tags/ingesters-0.0.6</url>
     </scm>
 
 
@@ -32,7 +31,7 @@
             <dependency>
                 <groupId>dk.statsbiblioteket.doms.client</groupId>
                 <artifactId>domsclient</artifactId>
-                <version>0.0.8-SNAPSHOT</version>
+                <version>0.0.8</version>
             </dependency>
             <dependency>
                 <groupId>junit</groupId>
