@@ -425,15 +425,15 @@
         <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/central/centralWebservice-interface/0.0.20/centralWebservice-interface-0.0.20-sources.jar!/" />
       </SOURCES>
     </library>
-    <library name="Maven: dk.statsbiblioteket.doms.client:domsclient:0.0.7-SNAPSHOT">
+    <library name="Maven: dk.statsbiblioteket.doms.client:domsclient:0.0.7">
       <CLASSES>
-        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7-SNAPSHOT/domsclient-0.0.7-SNAPSHOT.jar!/" />
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7/domsclient-0.0.7.jar!/" />
       </CLASSES>
       <JAVADOC>
-        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7-SNAPSHOT/domsclient-0.0.7-SNAPSHOT-javadoc.jar!/" />
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7/domsclient-0.0.7-javadoc.jar!/" />
       </JAVADOC>
       <SOURCES>
-        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7-SNAPSHOT/domsclient-0.0.7-SNAPSHOT-sources.jar!/" />
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.7/domsclient-0.0.7-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Maven: dk.statsbiblioteket.sbutil:sbutil:0.5.2">
