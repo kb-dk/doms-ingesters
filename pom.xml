@@ -8,16 +8,16 @@
 
     <groupId>dk.statsbiblioteket.doms.ingesters</groupId>
     <artifactId>ingesters</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7-SNAPSHOT</version>
     <name>Doms Ingesters package</name>
 
     <packaging>pom</packaging>
 
     <scm>
-        <connection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/tags/ingesters-0.0.6</connection>
-        <developerConnection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/tags/ingesters-0.0.6
+        <connection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk</connection>
+        <developerConnection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk
         </developerConnection>
-        <url>http://doms.svn.sourceforge.net/viewvc/doms/examples/ingesters/tags/ingesters-0.0.6</url>
+        <url>http://doms.svn.sourceforge.net/viewvc/doms/examples/ingesters/trunk</url>
     </scm>
 
 
