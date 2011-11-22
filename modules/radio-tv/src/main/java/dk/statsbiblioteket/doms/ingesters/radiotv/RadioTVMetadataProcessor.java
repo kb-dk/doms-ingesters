@@ -635,7 +635,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                     comment);
 
 
-        List<Relation> relations = domsClient.listObjectRelations(metaFilePID, CONSISTS_OF_RELATION_TYPE);
+        List<Relation> relations = domsClient.listObjectRelations(metaFilePID,
+                CONSISTS_OF_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
             if (!filePIDs.contains(relation.getObject())) {
@@ -647,7 +648,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
                 domsClient.addObjectRelation(new Relation(metaFilePID,
-                                                          CONSISTS_OF_RELATION_TYPE, filePID), comment);
+                    CONSISTS_OF_RELATION_TYPE, filePID), comment);
 
             }
         }

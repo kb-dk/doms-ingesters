@@ -67,16 +67,16 @@ public class Ingester {
         System.out.println("Ingester start-up time: "
                            + dateFormat.format(rightNow.getTime()));
 
-        File HOT_FOLDER = new File("/tmp/radioTVMetaData");
+        File HOT_FOLDER = new File("/home/eab/tmp/radioTVMetaData");
 
-        File COLD_FOLDER = new File("/tmp/processedFiles");
-        File STOP_FOLDER = new File("/tmp/stopFolder");
+        File COLD_FOLDER = new File("/home/eab/tmp/processedFiles");
+        File STOP_FOLDER = new File("/home/eab/tmp/stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "resources/preingestedRadioTVProgram.xsd");
+                "/home/eab/tmp/resources/preingestedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
-                "http://localhost:7880/centralWebservice-service/central/?wsdl");
+                "http://alhena:7880/centralWebservice-service/central/?wsdl");
 
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
