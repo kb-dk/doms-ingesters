@@ -11,10 +11,10 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Properties;
 
 /**
  * Created by IntelliJ IDEA.
@@ -31,11 +31,22 @@ public class Ingester {
 
     public static String URLPrefix = "http://bitfinder.statsbiblioteket.dk/bart/";
 
-    private void mainInstance(String[] args){
+    private void mainInstance(String[] args) {
         if (args.length != 2){
             System.err.println("Ingester takes exactly two arguments");
             System.exit(128);
         }
+        Properties prop = new Properties();
+        String configFileName = "ingester.config";
+        try {
+            InputStream is = new FileInputStream(configFileName);
+            prop.load(is);
+        } catch (IOException e) {
+            System.err.println("You must supply a file named '"+ configFileName
+                    +"' containing: 'doms.wsdl', 'doms.user' & 'doms.passwod'");
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
 
         File inDir = new File(args[0]);
         File doneDir = new File(args[1]);
@@ -43,8 +54,9 @@ public class Ingester {
         DomsWSClient dClient = new DomsWSClientImpl();
         try {
             dClient.setCredentials(
-                    new URL("http://alhena:7880/centralWebservice-service/central/?wsdl"),
-                    "fedoraAdmin", "fedoraAdminPass");
+                    new URL(prop.getProperty("doms.wsdl")),
+                    prop.getProperty("doms.user"),
+                    prop.getProperty("doms.password"));
         } catch (MalformedURLException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }

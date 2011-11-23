@@ -1,5 +1,7 @@
 package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
 
+import dk.statsbiblioteket.doms.client.DomsWSClient;
+import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
 import dk.statsbiblioteket.util.xml.DOM;
 import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.w3c.dom.Document;
@@ -9,10 +11,14 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 /**
  * Created by IntelliJ IDEA.
@@ -33,6 +39,7 @@ public class FfprobeDispacher implements CallBackEventHandler {
     private Map<String, Thread> runningThreads;  // maps <fileName, Thread>
     private XPathSelector xpathSelector;
     private DocumentBuilder docBuilder;
+    private DomsWSClient dClient;
 
 
     public void FfprobeDispacher(Schema ffprobeSchema, HashMap<String, String> files){
@@ -40,7 +47,25 @@ public class FfprobeDispacher implements CallBackEventHandler {
                 .newInstance();
         documentBuilderFactory.setSchema(ffprobeSchema);
         documentBuilderFactory.setNamespaceAware(true);
-
+        dClient = new DomsWSClientImpl();
+        Properties prop = new Properties();
+        String configFileName = "ingester.config";
+        try {
+            InputStream is = new FileInputStream(configFileName);
+            prop.load(is);
+        } catch (IOException e) {
+            System.err.println("You must supply a file named '"+ configFileName
+                    +"' containing: 'doms.wsdl', 'doms.user' & 'doms.passwod'");
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+        try {
+            dClient.setCredentials(
+                    new URL(prop.getProperty("doms.wsdl")),
+                    prop.getProperty("doms.user"),
+                    prop.getProperty("doms.password"));
+        } catch (MalformedURLException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
         this.files = files;
         runningThreads = new HashMap<String, Thread>();
         failedFiles = new HashMap<String, String>();
@@ -108,7 +133,12 @@ public class FfprobeDispacher implements CallBackEventHandler {
             return;
         }
         Document ffprobeDoc = createFfprobeDocForDOMS(analysisResult);
+        ingest(ffprobeDoc, "FFPROBE");
         }
+
+    private void ingest(Document ffprobeDoc, String dataStream) {
+
+    }
 
     private Document createFfprobeDocForDOMS(InputStream analysisResult) throws IOException, SAXException {
         return docBuilder.parse(analysisResult);

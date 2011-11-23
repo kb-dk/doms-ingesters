@@ -4,6 +4,7 @@ package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
 import org.xml.sax.SAXException;
 
 import java.io.*;
+import java.util.Properties;
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,14 +24,26 @@ public class FfprobeAnalyzer extends Thread{
 
     String fileName = null;
     CallBackEventHandler cbHandler;
+    private Properties prop;
 
     /**
-     * This 
+     * This class is responsible for wrapping the ffprobe tool and calling the
+     * callee method in the calling object.
      */
     public FfprobeAnalyzer(CallBackEventHandler cbHandler, String fileName)
     {
         this.cbHandler = cbHandler;
         this.fileName = fileName;
+        prop = new Properties();
+        String configFileName = "ingester.config";
+        try {
+            InputStream is = new FileInputStream(configFileName);
+            prop.load(is);
+        } catch (IOException e) {
+            System.err.println("You must supply a file named '"+ configFileName
+                    +"' containing: 'ffprobe.options'");
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
     }
 
     public void run() {
@@ -40,9 +53,8 @@ public class FfprobeAnalyzer extends Thread{
         String errorLines = null;
         try {
             Runtime rt = Runtime.getRuntime();
-            //Process pr = rt.exec("cmd /c dir");
 
-            String executionString = "ffprobe -show_format -show_streams -print_format xml -i file:"+fileName;
+            String executionString = prop.getProperty("ffprobe.options")+fileName;
 
             Process pr = rt.exec(executionString);
 
@@ -61,16 +73,12 @@ public class FfprobeAnalyzer extends Thread{
 
             cbHandler.incommingEvent(fileName, xmlInputStream, errorLines, null);
 
-//            int exitVal = pr.waitFor();
-//            System.out.println("Exited with error code "+exitVal);
 
         } catch(Exception e) {
             try {
                 cbHandler.incommingEvent(fileName, xmlInputStream, errorLines, e);
             } catch (IOException e1) {
-                e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             } catch (SAXException e1) {
-                e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
             }
             // Errors are returned to the callee, and must be handled there.
         }
