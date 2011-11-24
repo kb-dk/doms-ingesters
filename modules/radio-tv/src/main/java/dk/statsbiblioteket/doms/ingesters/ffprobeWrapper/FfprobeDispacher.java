@@ -2,6 +2,8 @@ package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
+import dk.statsbiblioteket.doms.client.NoObjectFound;
+import dk.statsbiblioteket.doms.client.ServerOperationFailed;
 import dk.statsbiblioteket.util.xml.DOM;
 import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.w3c.dom.Document;
@@ -31,6 +33,22 @@ import java.util.Properties;
  *
  * Errors are handled here in when pushed from the Analyzer.
  *
+ * ~ GENERAL SEQUENCE DIAGRAM ~
+ * FfprobeDispatcher:      ffd
+ * FFprobeAnalyzer:        ffa
+ * CallBackEventHandler:   cbh
+ *   ---------------       -------
+ *   | ffd  :  cbh |       | ffa |
+ *   ---------------       -------
+ *      |       |             |
+ *     | |      |             |
+ *     | |------+----------->| |
+ *      |       |            | |
+ *      |      | |<----------| |
+ *     | |<--- | |            |
+ *      |       |             |
+ *
+ *
  */
 public class FfprobeDispacher implements CallBackEventHandler {
 
@@ -40,22 +58,28 @@ public class FfprobeDispacher implements CallBackEventHandler {
     private XPathSelector xpathSelector;
     private DocumentBuilder docBuilder;
     private DomsWSClient dClient;
+    private Properties prop = null;
 
-
+    /**
+     * Creates a FfprobeDispatcher object
+     * @param ffprobeSchema Schema the ffprobe result adheers to
+     * @param files a map of fileName: PIDs
+     */
     public void FfprobeDispacher(Schema ffprobeSchema, HashMap<String, String> files){
          DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
                 .newInstance();
         documentBuilderFactory.setSchema(ffprobeSchema);
         documentBuilderFactory.setNamespaceAware(true);
         dClient = new DomsWSClientImpl();
-        Properties prop = new Properties();
+        prop = new Properties();
         String configFileName = "ingester.config";
         try {
             InputStream is = new FileInputStream(configFileName);
             prop.load(is);
         } catch (IOException e) {
             System.err.println("You must supply a file named '"+ configFileName
-                    +"' containing: 'doms.wsdl', 'doms.user' & 'doms.passwod'");
+                    +"' containing: 'bart.urlprefix', 'doms.wsdl', 'doms.user'" +
+                    " & 'doms.passwod'");
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
         try {
@@ -93,9 +117,10 @@ public class FfprobeDispacher implements CallBackEventHandler {
     public void startBatch(){
 
         while(!this.files.isEmpty()){
-            String name = files.get(0);
+            for (String name : files.keySet()) {
             runningThreads.put(name, new FfprobeAnalyzer(this, name));
             runningThreads.get(name).start();
+            } 
         }
     }
 
@@ -124,23 +149,39 @@ public class FfprobeDispacher implements CallBackEventHandler {
      * @param error errors raised by the callee 
      */
     @Override
-    synchronized public void incommingEvent(String fileName, InputStream analysisResult,
-                               String analysisErrors, Exception error) throws IOException, SAXException {
+    synchronized public void incommingEvent(String fileName,
+                                            InputStream analysisResult,
+                                            String analysisErrors,
+                                            Exception error) throws IOException,
+            SAXException {
         runningThreads.remove(fileName);
         if (error != null) {
             failedFiles.put(fileName, analysisErrors);
             error.printStackTrace();
             return;
         }
-        Document ffprobeDoc = createFfprobeDocForDOMS(analysisResult);
-        ingest(ffprobeDoc, "FFPROBE");
+        Document ffprobeDoc = docBuilder.parse(analysisResult);
+        URL url = new URL(prop.getProperty("bart.urlprefix")+"/"+fileName);
+        try {
+            ingest(ffprobeDoc, "FFPROBE", url);
+        } catch (ServerOperationFailed serverOperationFailed) {
+            serverOperationFailed.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        } catch (NoObjectFound noObjectFound) {
+            noObjectFound.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
-
-    private void ingest(Document ffprobeDoc, String dataStream) {
-
     }
 
-    private Document createFfprobeDocForDOMS(InputStream analysisResult) throws IOException, SAXException {
-        return docBuilder.parse(analysisResult);
+    /**
+     * Ingests the ffprobe result
+     * @param ffprobeDoc the result
+     * @param dataStream Where to put the result
+     * @param url of the file
+     * @throws ServerOperationFailed
+     * @throws NoObjectFound
+     */
+    private void ingest(Document ffprobeDoc, String dataStream, URL url) throws ServerOperationFailed, NoObjectFound {
+        String pid = dClient.getFileObjectPID(url);
+        dClient.updateDataStream(pid, dataStream, ffprobeDoc, "Injected " +
+                "ffProbe data");
     }
 }
