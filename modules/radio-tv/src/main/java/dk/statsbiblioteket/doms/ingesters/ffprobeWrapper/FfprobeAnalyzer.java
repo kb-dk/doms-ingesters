@@ -47,7 +47,6 @@ public class FfprobeAnalyzer extends Thread{
     }
 
     public void run() {
-        System.out.println("Hello from a thread!");
         String xmlLines = null;
         InputStream xmlInputStream = null;
         String errorLines = null;
