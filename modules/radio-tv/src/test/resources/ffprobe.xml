@@ -1,0 +1,7 @@
+<ffprobe>
+  <streams>
+    <stream avg_frame_rate="25/1" codec_long_name="MPEG-1 video" codec_name="mpeg1video" codec_tag="0x0000" codec_tag_string="[0][0][0][0]" codec_time_base="1/25" codec_type="video" display_aspect_ratio="49:27" duration="4191.000" has_b_frames="1" height="288" id="0x1e0" index="0" level="-99" pix_fmt="yuv420p" r_frame_rate="25/1" sample_aspect_ratio="49:33" start_time="0.400" time_base="1/90000" width="352"></stream>
+    <stream avg_frame_rate="125/3" bits_per_sample="0" channels="2" codec_long_name="MP2 (MPEG audio layer 2)" codec_name="mp2" codec_tag="0x0000" codec_tag_string="[0][0][0][0]" codec_time_base="0/1" codec_type="audio" duration="4191.024" id="0x1c0" index="1" r_frame_rate="0/0" sample_fmt="s16" sample_rate="48000" start_time="0.276" time_base="1/90000"></stream>
+  </streams>
+  <format bit_rate="1354295" duration="4191.124" filename="file:bitarkiv/0100/files/tv2z_663.250_K67-TV2-Zulu_mpeg1_20100415045601_20100415060601_encoder3-2.mpeg" format_long_name="MPEG-PS format" format_name="mpeg" nb_streams="2" size="709502472" start_time="0.276"></format>
+</ffprobe>

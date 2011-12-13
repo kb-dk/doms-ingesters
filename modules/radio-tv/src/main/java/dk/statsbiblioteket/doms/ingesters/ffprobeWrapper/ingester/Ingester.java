@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
+package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ingester;
 
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
@@ -37,7 +37,7 @@ public class Ingester {
             System.exit(128);
         }
         Properties prop = new Properties();
-        String configFileName = "ingester.config";
+        String configFileName = "technicalMetadataInjector.config";
         try {
             InputStream is = new FileInputStream(configFileName);
             prop.load(is);

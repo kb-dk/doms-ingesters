@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
+package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ffprobeRunner;
 
 /**
  * Created by IntelliJ IDEA.
@@ -7,13 +7,15 @@ package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
  * Time: 8:45 AM
  * To change this template use File | Settings | File Templates.
  */
-public class ffprobeWrapper {
+public class FFProbeWrapper {
     public static void main (String[] args) {
         String ffprobeArgs = "";
-        if (args.length == 0){
+
+        if (args.length == 0) {
             System.exit(128);
         }
-        if (args.length > 1){
+
+        if (args.length > 1) {
             for (int i = 0; i < args.length - 2; i++)
                 ffprobeArgs += args[i] + " ";
         }

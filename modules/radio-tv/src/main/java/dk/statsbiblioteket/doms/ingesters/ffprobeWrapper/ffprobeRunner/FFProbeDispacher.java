@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
+package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ffprobeRunner;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
@@ -50,7 +50,7 @@ import java.util.Properties;
  *
  *
  */
-public class FfprobeDispacher implements CallBackEventHandler {
+public class FFProbeDispacher implements CallBackEventHandler {
 
     private Map<String, String> files;  // maps <fileName, shardPID>
     private Map<String, String> failedFiles;  // maps <fileName, analysisError>
@@ -72,7 +72,7 @@ public class FfprobeDispacher implements CallBackEventHandler {
         documentBuilderFactory.setNamespaceAware(true);
         dClient = new DomsWSClientImpl();
         prop = new Properties();
-        String configFileName = "ingester.config";
+        String configFileName = "technicalMetadataInjector.config";
         try {
             InputStream is = new FileInputStream(configFileName);
             prop.load(is);
@@ -118,7 +118,7 @@ public class FfprobeDispacher implements CallBackEventHandler {
 
         while(!this.files.isEmpty()){
             for (String name : files.keySet()) {
-            runningThreads.put(name, new FfprobeAnalyzer(this, name));
+            runningThreads.put(name, new FFProbeAnalyzer(this, name));
             runningThreads.get(name).start();
             } 
         }

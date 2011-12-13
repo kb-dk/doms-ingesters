@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper;
+package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ffprobeRunner;
 
 
 import org.xml.sax.SAXException;
@@ -20,7 +20,7 @@ import java.util.Properties;
  * 1 patch: http://cache.gmane.org//gmane/comp/video/ffmpeg/devel/136199-001.bin
  * patch thread: http://thread.gmane.org/gmane.comp.video.ffmpeg.devel/135857/focus=136199
  */
-public class FfprobeAnalyzer extends Thread{
+public class FFProbeAnalyzer extends Thread{
 
     String fileName = null;
     CallBackEventHandler cbHandler;
@@ -30,12 +30,12 @@ public class FfprobeAnalyzer extends Thread{
      * This class is responsible for wrapping the ffprobe tool and calling the
      * callee method in the calling object.
      */
-    public FfprobeAnalyzer(CallBackEventHandler cbHandler, String fileName)
+    public FFProbeAnalyzer(CallBackEventHandler cbHandler, String fileName)
     {
         this.cbHandler = cbHandler;
         this.fileName = fileName;
         prop = new Properties();
-        String configFileName = "ingester.config";
+        String configFileName = "technicalMetadataInjector.config";
         try {
             InputStream is = new FileInputStream(configFileName);
             prop.load(is);
