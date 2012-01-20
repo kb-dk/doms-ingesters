@@ -22,6 +22,14 @@
             <groupId>dk.statsbiblioteket.doms.client</groupId>
             <artifactId>domsclient</artifactId>
         </dependency>
+        <dependency>
+            <groupId>dk.statsbiblioteket.doms.domsutil</groupId>
+            <artifactId>domsutil-webservice-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-client</artifactId>
+        </dependency>
     </dependencies>
 
 

@@ -19,6 +19,42 @@
   <component name="ClearCaseSharedConfig">
     <option name="myUseUcmModel" value="true" />
   </component>
+  <component name="CodeStyleSettingsManager">
+    <option name="PER_PROJECT_SETTINGS">
+      <value>
+        <ADDITIONAL_INDENT_OPTIONS fileType="java">
+          <option name="INDENT_SIZE" value="4" />
+          <option name="CONTINUATION_INDENT_SIZE" value="8" />
+          <option name="TAB_SIZE" value="4" />
+          <option name="USE_TAB_CHARACTER" value="false" />
+          <option name="SMART_TABS" value="false" />
+          <option name="LABEL_INDENT_SIZE" value="0" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
+          <option name="USE_RELATIVE_INDENTS" value="false" />
+        </ADDITIONAL_INDENT_OPTIONS>
+        <ADDITIONAL_INDENT_OPTIONS fileType="jsp">
+          <option name="INDENT_SIZE" value="4" />
+          <option name="CONTINUATION_INDENT_SIZE" value="8" />
+          <option name="TAB_SIZE" value="4" />
+          <option name="USE_TAB_CHARACTER" value="false" />
+          <option name="SMART_TABS" value="false" />
+          <option name="LABEL_INDENT_SIZE" value="0" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
+          <option name="USE_RELATIVE_INDENTS" value="false" />
+        </ADDITIONAL_INDENT_OPTIONS>
+        <ADDITIONAL_INDENT_OPTIONS fileType="xml">
+          <option name="INDENT_SIZE" value="4" />
+          <option name="CONTINUATION_INDENT_SIZE" value="8" />
+          <option name="TAB_SIZE" value="4" />
+          <option name="USE_TAB_CHARACTER" value="false" />
+          <option name="SMART_TABS" value="false" />
+          <option name="LABEL_INDENT_SIZE" value="0" />
+          <option name="LABEL_INDENT_ABSOLUTE" value="false" />
+          <option name="USE_RELATIVE_INDENTS" value="false" />
+        </ADDITIONAL_INDENT_OPTIONS>
+      </value>
+    </option>
+  </component>
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Javac" />
     <resourceExtensions />
@@ -46,11 +82,24 @@
   <component name="EntryPointsManager">
     <entry_points version="2.0" />
   </component>
-  <component name="Git.Settings">
-    <option name="CHECKOUT_INCLUDE_TAGS" value="false" />
-    <option name="UPDATE_CHANGES_POLICY" value="STASH" />
-  </component>
   <component name="IdProvider" IDEtalkID="0560087105B3C73BDF04185FF12B8B9C" />
+  <component name="InspectionProjectProfileManager">
+    <profiles>
+      <profile version="1.0" is_locked="false">
+        <option name="myName" value="Project Default" />
+        <option name="myLocal" value="false" />
+        <inspection_tool class="DuplicateThrows" enabled="false" level="WARNING" enabled_by_default="false" />
+        <inspection_tool class="SynchronizationOnLocalVariableOrMethodParameter" enabled="false" level="WARNING" enabled_by_default="false">
+          <option name="reportLocalVariables" value="true" />
+          <option name="reportMethodParameters" value="true" />
+        </inspection_tool>
+        <inspection_tool class="UNCHECKED_WARNING" enabled="false" level="WARNING" enabled_by_default="false" />
+      </profile>
+    </profiles>
+    <option name="PROJECT_PROFILE" value="Project Default" />
+    <option name="USE_PROJECT_PROFILE" value="true" />
+    <version value="1.0" />
+  </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_STRING" value="-target 1.6" />
   </component>
@@ -75,6 +124,12 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+      </list>
+    </option>
+    <option name="activeProfiles">
+      <list>
+        <option value="sbforge-release" />
+        <option value="sbforge" />
       </list>
     </option>
   </component>
@@ -283,7 +338,46 @@
     </GetOptions>
   </component>
   <component name="WebServicesPlugin" addRequiredLibraries="true" />
+  <component name="ideadoc.IdeaDocConfigurationGUI">
+    <doccer class="nl.piraya.ideadoc.doccer.DoccerForOverridingMethod" enabled="true">
+      <template>/**$s${@inheritDoc}$s$*/</template>
+    </doccer>
+    <doccer class="nl.piraya.ideadoc.doccer.DoccerForGetter" enabled="true">
+      <template>/**$n$$s$*$s$Getter$s$for$s$property$s$'${PROPERTY_NAME}'.$n$$s$*$n$$s$*$s$@return$s$Value$s$for$s$property$s$'${PROPERTY_NAME}'.$n$$s$*/</template>
+    </doccer>
+    <doccer class="nl.piraya.ideadoc.doccer.DoccerForSetter" enabled="true">
+      <template>/**$n$$s$*$s$Setter$s$for$s$property$s$'${PROPERTY_NAME}'.$n$$s$*$n$$s$*$s$@param$s$${PARAM_NAME}$s$Value$s$to$s$set$s$for$s$property$s$'${PROPERTY_NAME}'.$n$$s$*/</template>
+    </doccer>
+    <doccer class="nl.piraya.ideadoc.doccer.DoccerForDefaultConstructor" enabled="true">
+      <template>/**$s$Constructs$s$a$s$new$s$${CLASS_NAME}.$s$*/</template>
+    </doccer>
+    <doccer class="nl.piraya.ideadoc.doccer.DoccerForPrivateDefaultConstructor" enabled="true">
+      <template>/**$s$Do$s$not$s$instantiate$s$${CLASS_NAME}.$s$*/</template>
+    </doccer>
+  </component>
   <component name="libraryTable">
+    <library name="Maven: com.sun.jersey:jersey-client:1.3">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-client/1.3/jersey-client-1.3.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-client/1.3/jersey-client-1.3-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-client/1.3/jersey-client-1.3-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Maven: com.sun.jersey:jersey-core:1.3">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-core/1.3/jersey-core-1.3.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-core/1.3/jersey-core-1.3-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/com/sun/jersey/jersey-core/1.3/jersey-core-1.3-sources.jar!/" />
+      </SOURCES>
+    </library>
     <library name="Maven: commons-logging:commons-logging:1.1.1">
       <CLASSES>
         <root url="jar://$MAVEN_REPOSITORY$/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar!/" />
@@ -317,6 +411,17 @@
         <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/client/domsclient/0.0.8/domsclient-0.0.8-sources.jar!/" />
       </SOURCES>
     </library>
+    <library name="Maven: dk.statsbiblioteket.doms.domsutil:domsutil-webservice-common:0.0.20">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/domsutil/domsutil-webservice-common/0.0.20/domsutil-webservice-common-0.0.20.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/domsutil/domsutil-webservice-common/0.0.20/domsutil-webservice-common-0.0.20-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/doms/domsutil/domsutil-webservice-common/0.0.20/domsutil-webservice-common-0.0.20-sources.jar!/" />
+      </SOURCES>
+    </library>
     <library name="Maven: dk.statsbiblioteket.sbutil:sbutil:0.5.2">
       <CLASSES>
         <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/sbutil/sbutil/0.5.2/sbutil-0.5.2.jar!/" />
@@ -326,6 +431,17 @@
       </JAVADOC>
       <SOURCES>
         <root url="jar://$MAVEN_REPOSITORY$/dk/statsbiblioteket/sbutil/sbutil/0.5.2/sbutil-0.5.2-sources.jar!/" />
+      </SOURCES>
+    </library>
+    <library name="Maven: javax.ws.rs:jsr311-api:1.1.1">
+      <CLASSES>
+        <root url="jar://$MAVEN_REPOSITORY$/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1.jar!/" />
+      </CLASSES>
+      <JAVADOC>
+        <root url="jar://$MAVEN_REPOSITORY$/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1-javadoc.jar!/" />
+      </JAVADOC>
+      <SOURCES>
+        <root url="jar://$MAVEN_REPOSITORY$/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1-sources.jar!/" />
       </SOURCES>
     </library>
     <library name="Maven: junit:junit:4.8.2">
