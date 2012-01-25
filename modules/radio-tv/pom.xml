@@ -30,6 +30,11 @@
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-client</artifactId>
         </dependency>
+        <dependency>
+            <groupId>net.handle</groupId>
+            <artifactId>hdllib</artifactId>
+            <version>7.0</version>
+        </dependency>
     </dependencies>
 
 

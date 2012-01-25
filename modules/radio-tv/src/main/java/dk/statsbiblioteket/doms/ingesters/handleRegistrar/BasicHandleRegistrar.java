@@ -13,6 +13,8 @@ import dk.statsbiblioteket.doms.webservices.authentication.Base64;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.handle.hdllib.*;
+
 /** Use Fedora risearch for performing Queries, domsClient for adding identifier
  * and a HandleAdministrator instance for registering handles. */
 public class BasicHandleRegistrar implements HandleRegistrar {
@@ -43,12 +45,60 @@ public class BasicHandleRegistrar implements HandleRegistrar {
         }
     }
 
-    private void registerHandle(String pid, String handle, String urlPattern) {
+    /**
+     * Register handle in the Handle-server, so that it resolves to a URL
+     * generated from the given urlPattern.
+     *
+     * @param pid The PID of the DOMS-object in question.
+     * @param handle The handle to be registered.
+     * @param urlPattern The URL-pattern that makes a PID into a URL.
+     * @throws HandleException If resolving the handle failed unexpectedly.
+     */
+    private void registerHandle(String pid, String handle, String urlPattern)
+            throws HandleException {
         String url = String.format(urlPattern, pid);
-        //TODO: Lookup handle in handleserver
-        //TODO: If there and same URL, return
-        //TODO: If there and different URL, update URL
-        //TODO: If not there Add handle and URL in handle server
+        HandleValue values[];
+        boolean handleExists = false;
+
+        // Lookup handle in handleserver
+        try {
+            values = new HandleResolver().resolveHandle(handle, null, null);
+            if (handleExistsAmongValues(values, handle)) {
+                handleExists = true;
+            }
+
+        } catch (HandleException e) {  // True exception-handling, lol :)
+            int exceptionCode = e.getCode();
+            if (exceptionCode == HandleException.HANDLE_ALREADY_EXISTS) {
+                handleExists = true;
+            } else if (exceptionCode == HandleException.HANDLE_DOES_NOT_EXIST) {
+                handleExists = false;
+            } else {
+                throw e;  // TODO is this the right way to do it?
+            }
+        }
+
+        if (handleExists) {
+            //TODO: If there and same URL, return
+
+            //TODO: If there and different URL, update URL
+
+        } else {
+            //TODO: If not there Add handle and URL in handle server
+
+        }
+    }
+
+    /**
+     * TODO javadoc
+     * @param values
+     * @param handle
+     * @return
+     */
+    private boolean handleExistsAmongValues(HandleValue values[],
+                                            String handle) {
+        //TODO implement
+        return false; // TODO redefine
     }
 
     private String addHandleToObject(String pid) {
