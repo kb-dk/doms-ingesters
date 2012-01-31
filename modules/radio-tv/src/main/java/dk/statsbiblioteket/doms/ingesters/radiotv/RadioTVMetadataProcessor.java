@@ -27,6 +27,13 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import dk.statsbiblioteket.doms.client.*;
+import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
+import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import dk.statsbiblioteket.doms.client.impl.relations.ObjectRelationImpl;
+import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
+import dk.statsbiblioteket.doms.client.relations.Relation;
+import dk.statsbiblioteket.doms.client.utils.FileInfo;
 import dk.statsbiblioteket.util.xml.DOM;
 import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.w3c.dom.Document;
@@ -235,7 +242,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
 
     private String alreadyExistsInRepo(Document radioTVMetadata, DomsWSClient domsClient)
-            throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
+            throws XPathExpressionException, ServerOperationFailed,
+            NoObjectFound {
 
         String oldId = getOldIdentifier(radioTVMetadata);
         List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
@@ -268,7 +276,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private void createRecord(Document radioTVMetadata, File addedFile, DomsWSClient domsClient,
                               List<String> pidsToPublish)
-            throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException {
+            throws IOException, ServerOperationFailed, URISyntaxException,
+            XPathExpressionException, XMLParseException {
 
         String originalPid = null;
         try {
@@ -321,7 +330,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private String getShardPidFromProgram(String pid, DomsWSClient domsClient) throws ServerOperationFailed {
         List<Relation> shardrelations = domsClient.listObjectRelations(pid, HAS_METAFILE_RELATION_TYPE);
         for (Relation shardrelation : shardrelations) {//TODO ugly
-            return shardrelation.getObject();
+            return shardrelation.getSubjectPid();
         }
         return null;
     }
@@ -414,8 +423,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *                                  <code>radioTVMetadata</code> XML document.
      */
     private String ingestProgram(Document radioTVMetadata, String metafilePID, String existingPid,
-                                 DomsWSClient domsClient) throws ServerOperationFailed,
-                                                                 XPathExpressionException {
+                                 DomsWSClient domsClient)
+            throws ServerOperationFailed, XPathExpressionException,
+            XMLParseException {
 
 
         // First, fetch the PBCore metadata document node from the pre-ingest
@@ -441,8 +451,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                                                    listOfOldPIDs,
                                                                    comment);
             // Create relations to the metafile/shard
-            domsClient.addObjectRelation(new Relation(programObjectPID,
-                                                      HAS_METAFILE_RELATION_TYPE, metafilePID), comment);
+            domsClient.addObjectRelation(programObjectPID,
+                                         HAS_METAFILE_RELATION_TYPE,
+                                         metafilePID, comment);
 
         } else { //Exists
             domsClient.unpublishObjects(comment, existingPid);
@@ -580,9 +591,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                                   List<String> filePIDs,
                                   String metaFilePID,
                                   DomsWSClient domsClient
-    )
-            throws ServerOperationFailed, IOException,
-                   XPathExpressionException, URISyntaxException {
+    ) throws ServerOperationFailed, IOException, XPathExpressionException,
+            URISyntaxException, XMLParseException {
 
 
         if (metaFilePID == null) {
@@ -639,16 +649,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 CONSISTS_OF_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
-            if (!filePIDs.contains(relation.getObject())) {
-                domsClient.removeObjectRelation(relation, comment);
+            if (!filePIDs.contains(relation.getSubjectPid())) {
+                domsClient.removeObjectRelation((LiteralRelation) relation, comment);
             } else {
-                existingRels.add(relation.getObject());
+                existingRels.add(relation.getSubjectPid());
             }
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
-                domsClient.addObjectRelation(new Relation(metaFilePID,
-                    CONSISTS_OF_RELATION_TYPE, filePID), comment);
+                domsClient.addObjectRelation(metaFilePID,
+                    CONSISTS_OF_RELATION_TYPE, filePID, comment);
 
             }
         }

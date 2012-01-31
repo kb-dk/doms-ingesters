@@ -3,8 +3,8 @@ package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ingester;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
-import dk.statsbiblioteket.doms.client.NoObjectFound;
-import dk.statsbiblioteket.doms.client.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
+import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
 

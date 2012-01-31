@@ -19,10 +19,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>dk.statsbiblioteket.doms.client</groupId>
-            <artifactId>domsclient</artifactId>
-        </dependency>
-        <dependency>
             <groupId>dk.statsbiblioteket.doms.domsutil</groupId>
             <artifactId>domsutil-webservice-common</artifactId>
         </dependency>
@@ -33,7 +29,10 @@
         <dependency>
             <groupId>net.handle</groupId>
             <artifactId>hdllib</artifactId>
-            <version>7.0</version>
+        </dependency>
+        <dependency>
+          <groupId>dk.statsbiblioteket.doms.ingestClient</groupId>
+          <artifactId>ingestClientImpl</artifactId>
         </dependency>
     </dependencies>
 
