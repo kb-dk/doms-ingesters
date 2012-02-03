@@ -11,20 +11,16 @@ import java.net.URL;
 import java.util.Properties;
 
 /**
- * Created by IntelliJ IDEA.
- * User: kfc
- * Date: 1/20/12
- * Time: 3:33 PM
- * To change this template use File | Settings | File Templates.
+ * Configuration read by property file.
  */
 public class PropertyBasedRegistrarConfiguration
         implements RegistrarConfiguration {
     private final Properties properties;
     private final Log log = LogFactory.getLog(getClass());
-    private static final String FEDORA_LOCATION_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.fedoraLocation";
-    private static final String USER_NAME_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.userName";
-    private static final String PASSWORD_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.password";
-    private static final String DOMS_WS_API_ENDPOINT_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.DomsWSAPIEndpoint";
+    public static final String FEDORA_LOCATION_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.fedoraLocation";
+    public static final String USER_NAME_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.userName";
+    public static final String PASSWORD_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.password";
+    public static final String DOMS_WS_API_ENDPOINT_KEY = "dk.statsbiblioteket.doms.ingesters.handleRegistrar.domsWSAPIEndpoint";
 
     public PropertyBasedRegistrarConfiguration(File propertiesFile) {
         this.properties = new Properties();

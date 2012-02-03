@@ -133,10 +133,10 @@ public class BasicHandleRegistrar implements HandleRegistrar {
         domsClient.setCredentials(config.getDomsWSAPIEndpoint(),
                                   config.getUsername(), config.getPassword());
 
-        // Generate handle from UUID ("hdl:109.1/<uuid> I think, must check syntax)
-        String handle = HANDLE_URI_NAMESPACE + HANDLE_PREFIX + dk.statsbiblioteket.doms.client.utils.Constants.ensurePID(pid);//TODO: Generate handle from UUID ("hdl:109.3.1/<uuid>" I think, must check syntax)
+        // Generate handle from UUID
+        String handle = HANDLE_URI_NAMESPACE + HANDLE_PREFIX + dk.statsbiblioteket.doms.client.utils.Constants.ensurePID(pid);
         //Read DC datastream
-        Document dataStream = null;
+        Document dataStream;
         try {
             dataStream = domsClient.getDataStream(pid, DC_DATASTREAM_ID);
         } catch (ServerOperationFailed serverOperationFailed) {
@@ -147,22 +147,22 @@ public class BasicHandleRegistrar implements HandleRegistrar {
         boolean found = false;
         XPath xPath = XPathFactory.newInstance().newXPath();
         xPath.setNamespaceContext(dsNamespaceContext);
-        NodeList result = null;
+        NodeList result;
         try {
             result = (NodeList) xPath.evaluate("//" + DC_PREFIX + ":" + DC_IDENTIFIER_ELEMENT, new DOMSource(dataStream), XPathConstants.NODESET);
         } catch (XPathExpressionException e) {
             throw new InconsistentDataException("Unexpected trouble working with DC datastream from '" + pid + "'", e);
         }
         if (result.getLength() == 0) {
-            throw new InconsistentDataException("Unexpected trouble working with DC datastream from '" + pid + "': No dc.identifier elements");
+            throw new InconsistentDataException("Unexpected trouble working with DC datastream from '" + pid + "': No dc:identifier elements");
         }
-        Node item = null;
-        for (int i = 0; i < result.getLength(); i++) {
-            item = result.item(i);
-            if (item.getTextContent().trim().equals(handle)) {
+        Node item;
+        int i = 0;
+        do {
+            if ((item = result.item(i++)).getTextContent().trim().equals(handle)) {
                 found = true;
             }
-        }
+        } while (!found && i < result.getLength());
         //If not
         if (!found) {
             //Add it to DC XML
@@ -195,7 +195,7 @@ public class BasicHandleRegistrar implements HandleRegistrar {
                     .header("Authorization", getBase64Creds())
                     .post(String.class);
             String[] lines = objects.split("\n");
-            List<String> foundobjects = new ArrayList<String>();
+            List<String> foundObjects = new ArrayList<String>();
             for (String line : lines) {
                 if (line.startsWith("\"")) {
                     continue;
@@ -203,9 +203,9 @@ public class BasicHandleRegistrar implements HandleRegistrar {
                 if (line.startsWith("info:fedora/")) {
                     line = line.substring("info:fedora/".length());
                 }
-                foundobjects.add(line);
+                foundObjects.add(line);
             }
-            return foundobjects;
+            return foundObjects;
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == ClientResponse.Status
                     .UNAUTHORIZED.getStatusCode()) {
