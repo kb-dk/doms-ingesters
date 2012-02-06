@@ -58,16 +58,17 @@ public class BasicHandleRegistrar implements HandleRegistrar {
     private void registerHandle(String pid, String handle, String urlPattern)
             throws ResolveHandleFailedException {
         String url = String.format(urlPattern, pid);
-        HandleValue values[];
+        HandleValue values[] = new HandleValue[];
         boolean handleExists = false;
 
         // Lookup handle in handleserver
         try {
             values = new HandleResolver().resolveHandle(handle, null, null);
-            if (handleExistsAmongValues(values, handle)) {
+            if (values != null) {
                 handleExists = true;
+            } else {
+                handleExists = false;
             }
-
         } catch (HandleException e) {  // True exception-handling, lol :)
             int exceptionCode = e.getCode();
             if (exceptionCode == HandleException.HANDLE_DOES_NOT_EXIST) {
@@ -79,29 +80,25 @@ public class BasicHandleRegistrar implements HandleRegistrar {
         }
 
         if (handleExists) {
-            //TODO: If there and same URL, return
-
-
-            //TODO: If there and different URL, update URL
+            // If handle was there, find its url
+            for (int i = 0; i < values.length; i++) {
+                String type = values[i].getTypeAsString();
+                if (type.equalsIgnoreCase("URL")) {
+                    String valueData = values[i].getDataAsString();
+                    if (valueData.equalsIgnoreCase(url)) {
+                        // It was the same url, so just return
+                        return;
+                    } else {
+                        // It was a different url, replace it
+                         //TODO
+                    }
+                }
+            }
 
         } else {
             //TODO: If not there Add handle and URL in handle server
 
         }
-    }
-
-    /**
-     * TODO javadoc
-     * @param values
-     * @param handle
-     * @return
-     */
-    private boolean handleExistsAmongValues(HandleValue values[],
-                                            String handle) {
-
-
-        //TODO implement
-        return false; // TODO redefine
     }
 
     private String addHandleToObject(String pid) {
