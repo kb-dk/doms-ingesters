@@ -8,48 +8,21 @@ import org.apache.commons.logging.LogFactory;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
-import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.webservices.authentication.Base64;
-import dk.statsbiblioteket.util.xml.DefaultNamespaceContext;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import net.handle.hdllib.*;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-
-import javax.xml.namespace.NamespaceContext;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
 
 /** Use Fedora risearch for performing Queries, domsClient for adding identifier
  * and a HandleAdministrator instance for registering handles. */
 public class BasicHandleRegistrar implements HandleRegistrar {
     private static final Client client = Client.create();
-    private static final String HANDLE_URI_NAMESPACE = "hdl:";
-    private static final String HANDLE_PREFIX = "109.3.1/"; //TODO: Config
-    private static final String DC_IDENTIFIER_ELEMENT = "identifier";
-    private static final String DC_DATASTREAM_ID = "DC";
     private final RegistrarConfiguration config;
     private final Log log = LogFactory.getLog(getClass());
     private int success = 0;
     private int failure = 0;
-    private static NamespaceContext dsNamespaceContext = new DefaultNamespaceContext();
-
-    private static final String DC_NAMESPACE_URI
-            = "http://purl.org/dc/elements/1.1/";
-
-    private static final String DC_PREFIX = "dc";
-
-    static {
-        ((DefaultNamespaceContext) dsNamespaceContext).setNameSpace(DC_PREFIX,
-                                                                    DC_NAMESPACE_URI);
-    }
 
     public BasicHandleRegistrar(RegistrarConfiguration config) {
         this.config = config;
@@ -79,10 +52,11 @@ public class BasicHandleRegistrar implements HandleRegistrar {
      * @param pid The PID of the DOMS-object in question.
      * @param handle The handle to be registered.
      * @param urlPattern The URL-pattern that makes a PID into a URL.
-     * @throws HandleException If resolving the handle failed unexpectedly.
+     * @throws ResolveHandleFailedException If resolving the handle failed
+     * unexpectedly.
      */
     private void registerHandle(String pid, String handle, String urlPattern)
-            throws HandleException {
+            throws ResolveHandleFailedException {
         String url = String.format(urlPattern, pid);
         HandleValue values[];
         boolean handleExists = false;
@@ -96,17 +70,17 @@ public class BasicHandleRegistrar implements HandleRegistrar {
 
         } catch (HandleException e) {  // True exception-handling, lol :)
             int exceptionCode = e.getCode();
-            if (exceptionCode == HandleException.HANDLE_ALREADY_EXISTS) {
-                handleExists = true;
-            } else if (exceptionCode == HandleException.HANDLE_DOES_NOT_EXIST) {
+            if (exceptionCode == HandleException.HANDLE_DOES_NOT_EXIST) {
                 handleExists = false;
             } else {
-                throw e;  // TODO is this the right way to do it?
+                throw new ResolveHandleFailedException("Did not succeed in "
+                        + "resolving handle, existing or not.", e);
             }
         }
 
         if (handleExists) {
             //TODO: If there and same URL, return
+
 
             //TODO: If there and different URL, update URL
 
@@ -124,6 +98,8 @@ public class BasicHandleRegistrar implements HandleRegistrar {
      */
     private boolean handleExistsAmongValues(HandleValue values[],
                                             String handle) {
+
+
         //TODO implement
         return false; // TODO redefine
     }
@@ -195,7 +171,7 @@ public class BasicHandleRegistrar implements HandleRegistrar {
                     .header("Authorization", getBase64Creds())
                     .post(String.class);
             String[] lines = objects.split("\n");
-            List<String> foundObjects = new ArrayList<String>();
+            List<String> foundobjects = new ArrayList<String>();
             for (String line : lines) {
                 if (line.startsWith("\"")) {
                     continue;
@@ -203,9 +179,9 @@ public class BasicHandleRegistrar implements HandleRegistrar {
                 if (line.startsWith("info:fedora/")) {
                     line = line.substring("info:fedora/".length());
                 }
-                foundObjects.add(line);
+                foundobjects.add(line);
             }
-            return foundObjects;
+            return foundobjects;
         } catch (UniformInterfaceException e) {
             if (e.getResponse().getStatus() == ClientResponse.Status
                     .UNAUTHORIZED.getStatusCode()) {
