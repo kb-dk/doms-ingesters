@@ -160,12 +160,59 @@ public class BasicHandleRegistrar implements HandleRegistrar {
                 }
             }
             // There was no url, so add it to the existing handle
-            addUrlToHandleAtServer();
-            // TODO
+            addUrlToHandleAtServer(handle, urlToRegister);
 
         } else {
             // If not there, add handle and url in handle server
             addHandleToServer(handle, urlToRegister);
+        }
+    }
+
+    /**
+     * Add URL to given handle at the server.
+     *
+     * @param handle Handle which needs to have url added
+     * @param url The url to be used in the handle
+     * @throws RegisteringHandleFailedException In case we couldn't add URL
+     * to handle at the server.
+     */
+    private void addUrlToHandleAtServer(String handle, String url)
+            throws RegisteringHandleFailedException {
+
+        // Create the new value to be registered at the server. This will
+        // be added to the given handle
+        int timestamp = (int) (System.currentTimeMillis() / 1000);
+        HandleValue newValue = new HandleValue(
+                URL_RECORD_INDEX,                   // unique index
+                "URL".getBytes(DEFAULT_ENCODING),   // handle value type
+                url.getBytes(DEFAULT_ENCODING),     // value data
+                HandleValue.TTL_TYPE_RELATIVE,
+                Common.DEFAULT_SESSION_TIMEOUT,
+                timestamp, REFERENCES,
+                ADMIN_READ, ADMIN_WRITE,
+                PUBLIC_READ, PUBLIC_WRITE);
+
+        // Create the request to send and the resolver to send it
+        AddValueRequest request =
+                new AddValueRequest(handle.getBytes(DEFAULT_ENCODING),
+                        newValue, PUB_KEY_AUTH_INFO);
+        HandleResolver resolver = new HandleResolver();
+        AbstractResponse response;
+
+        // Let the resolver process the request
+        try {
+            response = resolver.processRequest(request);
+        } catch (HandleException e) {
+            throw new RegisteringHandleFailedException("Could not process the "
+                    + "request to add URL to handle at the server.", e);
+        }
+
+        // Check the response to see if operation was successful
+        if (response.responseCode == AbstractMessage.RC_SUCCESS) {
+            // Resolution successful, hooray
+        } else {
+            throw new RegisteringHandleFailedException("Failed trying to "
+                    + "add URL to handle at the server.");
         }
     }
 
@@ -182,17 +229,6 @@ public class BasicHandleRegistrar implements HandleRegistrar {
     private void replaceUrlOfHandleAtServer(String handle,
                                             int indexOfHandleValue, String url)
             throws RegisteringHandleFailedException {
-
-        // Define the admin record for the handle we want to modify
-        AdminRecord admin = new AdminRecord(
-                ADMIN_ID.getBytes(DEFAULT_ENCODING),
-                ADMIN_INDEX, AdminRecord.PRM_ADD_HANDLE,
-                AdminRecord.PRM_DELETE_HANDLE, AdminRecord.PRM_ADD_NA,
-                AdminRecord.PRM_DELETE_NA, AdminRecord.PRM_READ_VALUE,
-                AdminRecord.PRM_MODIFY_VALUE, AdminRecord.PRM_REMOVE_VALUE,
-                AdminRecord.PRM_ADD_VALUE, AdminRecord.PRM_MODIFY_ADMIN,
-                AdminRecord.PRM_REMOVE_ADMIN, AdminRecord.PRM_ADD_ADMIN,
-                AdminRecord.PRM_LIST_HANDLES);
 
         // Create the new value to be registered at the server. This will
         // replace the value on the server that has the same index.
