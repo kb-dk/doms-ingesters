@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.ffprobeWrapper.ffprobeRunner;
+package dk.statsbiblioteket.doms.ingesters.ffprobeMetadataInjector.ffprobeRunner;
 
 
 import org.xml.sax.SAXException;

@@ -9,14 +9,11 @@ SCRIPT_DIR=$(pwd)
 popd > /dev/null
 BASEDIR=$SCRIPT_DIR/..
 
-source $SCRIPT_DIR/ingest_config.sh
+source $SCRIPT_DIR/inject_tech_metadata_config.sh
 
 #
 # Parse command line arguments.
 # http://www.shelldorado.com/goodcoding/cmdargs.html
-#
-# ("don't use the getopt command if the arguments may contain whitespace
-#  characters")
 #
 
 while getopts c:l:h:w:u:p:s: opt
@@ -38,7 +35,7 @@ do
 done
 shift `expr $OPTIND - 1`
 
-java -cp .:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
+java -cp .:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.ffprobeMetadataInjector.ingester.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
    -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
    -preingestschema=$SCHEMA

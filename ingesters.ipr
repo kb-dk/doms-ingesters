@@ -129,7 +129,6 @@
     <option name="activeProfiles">
       <list>
         <option value="sbforge-release" />
-        <option value="sbforge" />
       </list>
     </option>
   </component>
