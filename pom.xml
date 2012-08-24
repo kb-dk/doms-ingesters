@@ -14,10 +14,9 @@
     <packaging>pom</packaging>
 
     <scm>
-        <connection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk</connection>
-        <developerConnection>scm:svn:https://doms.svn.sourceforge.net/svnroot/doms/examples/ingesters/trunk
-        </developerConnection>
-        <url>http://doms.svn.sourceforge.net/viewvc/doms/examples/ingesters/trunk</url>
+        <connection>scm:git:git://github.com/statsbiblioteket/doms-ingesters.git</connection>
+        <developerConnection>scm:git:git@github.com:statsbiblioteket/doms-ingesters.git</developerConnection>
+        <url>https://github.com/statsbiblioteket/doms-ingesters</url>
     </scm>
 
 
