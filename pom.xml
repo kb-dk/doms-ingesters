@@ -21,7 +21,7 @@
 
 
     <modules>
-        <module>modules/radio-tv</module>
+        <module>radio-tv</module>
     </modules>
 
     <dependencyManagement>
