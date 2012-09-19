@@ -67,13 +67,13 @@ public class Ingester {
         System.out.println("Ingester start-up time: "
                            + dateFormat.format(rightNow.getTime()));
 
-        File HOT_FOLDER = new File("/home/eab/tmp/radioTVMetaData");
+        File HOT_FOLDER = new File("radioTVMetaData");
 
-        File COLD_FOLDER = new File("/home/eab/tmp/processedFiles");
-        File STOP_FOLDER = new File("/home/eab/tmp/stopFolder");
+        File COLD_FOLDER = new File("processedFiles");
+        File STOP_FOLDER = new File("stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "/home/eab/tmp/resources/preingestedRadioTVProgram.xsd");
+                "resources/preingestedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
                 "http://alhena:7880/centralWebservice-service/central/?wsdl");
@@ -98,8 +98,7 @@ public class Ingester {
             } else if (arg.startsWith("-password=")) {
                 password = arg.substring("-password=".length());
             } else if (arg.startsWith("-preingestschema=")) {
-                PRE_INGEST_FILE_SCHEMA_FILE = new File(arg
-                                                               .substring("-preingestschema=".length()));
+                PRE_INGEST_FILE_SCHEMA_FILE = new File(arg.substring("-preingestschema=".length()));
             }
         }
         System.out.println("Ingester started with the following configuration "
