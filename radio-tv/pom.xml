@@ -27,10 +27,6 @@
             <artifactId>jersey-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.handle</groupId>
-            <artifactId>hdllib</artifactId>
-        </dependency>
-        <dependency>
           <groupId>dk.statsbiblioteket.doms.ingestClient</groupId>
           <artifactId>ingestClientImpl</artifactId>
         </dependency>
