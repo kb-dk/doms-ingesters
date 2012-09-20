@@ -106,7 +106,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /** Document builder that does not require a specific schema. */
     private final DocumentBuilder unSchemaedBuilder;
     /** Client for communicating with DOMS. */
-    private DomsWSClient _domsClient;
+    private DomsWSClient domsClient;
 
 
     /**
@@ -166,7 +166,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         List<String> pidsToPublish = new ArrayList<String>();
         //This method acts as fault barrier
         try {
-            final Document radioTVMetadata = preingestFilesBuilder.parse(addedFile);
+            Document radioTVMetadata = preingestFilesBuilder.parse(addedFile);
             createRecord(radioTVMetadata, addedFile, getDomsClient(), pidsToPublish);
         } catch (Exception e) {
             // Handle anything unanticipated.
@@ -195,39 +195,53 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @return The DOMS client.
      */
     private DomsWSClient getDomsClient() {
-        if (_domsClient == null) {
-            _domsClient = new DomsWSClientImpl();
-            _domsClient.setCredentials(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo.getLogin(),
+        if (domsClient == null) {
+            domsClient = new DomsWSClientImpl();
+            domsClient.setCredentials(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo.getLogin(),
                                        domsLoginInfo.getPassword());
 
         }
-        return _domsClient;
+        return domsClient;
     }
 
+    /**
+     * Lookup a program in DOMS.
+     * If program exists, returns the PID of the program. Otherwise throws exception {@link NoObjectFound}.
+     *
+     * @param radioTVMetadata The document containing the program metadata.
+     * @param domsClient The client to use for contacting doms.
+     * @return PID of program, if found.
+     *
+     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
+     * @throws ServerOperationFailed Could not communicate with DOMS.
+     * @throws NoObjectFound The program was not found in DOMS.
+     */
     private String alreadyExistsInRepo(Document radioTVMetadata, DomsWSClient domsClient)
             throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
-
         String oldId = getOldIdentifier(radioTVMetadata);
         List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
         if (!pids.isEmpty()) {
             return pids.get(0);
-        } else {
-            throw new NoObjectFound("No object found");
         }
-
-
+        throw new NoObjectFound("No object found");
     }
 
+    /**
+     * Find old identifier in program metadata, and use them for looking up programs in DOMS.
+     *
+     * @param radioTVMetadata The document containing the program metadata.
+     * @return Old indentifier found.
+     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
+     */
     private String getOldIdentifier(Document radioTVMetadata) throws XPathExpressionException {
-
+        // TODO Should support TVMeter identifiers as well, and return a list!
         Node radioTVPBCoreElement = XPATH_SELECTOR
                 .selectNode(radioTVMetadata, RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT);
 
         Node oldPIDNode = XPATH_SELECTOR
                 .selectNode(radioTVPBCoreElement, "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier");
 
-        //TODO what if the node is not set?
-        if (oldPIDNode != null) {
+        if (oldPIDNode != null && !oldPIDNode.getTextContent().isEmpty()) {
             return oldPIDNode.getTextContent();
         } else {
             return null;
