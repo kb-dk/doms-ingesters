@@ -214,13 +214,11 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         }
 
         // Find or create files containing this program
-        // TODO: Fill out metadata for file
         List<String> filePIDs = ingestFiles(radioTVMetadata);
         pidsToPublish.addAll(filePIDs);
         writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
         // Create or update program object for this program
-        // TODO: May require some updates?
         String programPID = ingestProgram(radioTVMetadata, filePIDs, originalPid);
         pidsToPublish.add(programPID);
         File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
