@@ -86,7 +86,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private static final String META_FILE_METADATA_DS_ID = "SHARD_METADATA";
     private static final String RADIO_TV_FILE_TEMPLATE_PID = "doms:Template_RadioTVFile";
 
-    private static final int MAX_FAIL_COUNT = 3;
+    private static final int MAX_FAIL_COUNT = 10;
 
     private static final XPathSelector XPATH_SELECTOR = DOM
             .createXPathSelector("pbc", "http://www.pbcore.org/PBCore/PBCoreNamespace.html");
