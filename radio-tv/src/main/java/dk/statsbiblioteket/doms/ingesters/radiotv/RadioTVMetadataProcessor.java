@@ -26,11 +26,11 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.client.*;
+import dk.statsbiblioteket.doms.client.DomsWSClient;
+import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
 import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
-import dk.statsbiblioteket.doms.client.impl.relations.ObjectRelationImpl;
 import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
 import dk.statsbiblioteket.doms.client.relations.Relation;
 import dk.statsbiblioteket.doms.client.utils.FileInfo;
@@ -61,7 +61,7 @@ import java.util.HashSet;
 import java.util.List;
 
 /**
- * @author &lt;tsh@statsbiblioteket.dk&gt;
+ * On added xml files with radio/tv metadata, add objects to DOMS describing these files.
  */
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
@@ -97,7 +97,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private DocumentBuilder preingestFilesBuilder;
     private DocumentBuilder unSchemaedBuilder;
     private DomsWSClient _domsClient;
-    private XPathSelector xpathSelector;
+    private XPathSelector xpathSelector
+            = DOM.createXPathSelector("pbc", "http://www.pbcore.org/PBCore/PBCoreNamespace.html");
 
     private String comment;//TODO initialise
     private String failedComment;
@@ -109,11 +110,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         this.processedFilesFolder = processedFilesFolder;
         this.domsLoginInfo = domsLoginInfo;
 
-        xpathSelector = DOM.createXPathSelector("pbc", "http://www.pbcore.org/PBCore/PBCoreNamespace.html");
-
         comment = "Ingest of Radio/TV data";
         failedComment = comment + ": Something failed, rolling back";
-
 
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory
                 .newInstance();
@@ -161,8 +159,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private DomsWSClient getDomsClient() {
         if (_domsClient == null) {
             _domsClient = new DomsWSClientImpl();
-            _domsClient.login(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo
-                    .getLogin(), domsLoginInfo.getPassword());
+            _domsClient.setCredentials(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo.getLogin(),
+                                       domsLoginInfo.getPassword());
 
         }
         return _domsClient;
@@ -279,19 +277,20 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             throws IOException, ServerOperationFailed, URISyntaxException,
             XPathExpressionException, XMLParseException {
 
-        String originalPid = null;
+        String originalPid;
         try {
             originalPid = alreadyExistsInRepo(radioTVMetadata, getDomsClient());
         } catch (NoObjectFound noObjectFound) {
             originalPid = null;
         }
 
-
+        // TODO: Fill out metadata for file
         List<String> filePIDs = ingestFiles(radioTVMetadata, domsClient);
         pidsToPublish.addAll(filePIDs);
         writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
 
+        // TODO: Fill out datastreams in program instead
         String shardPid = null;
         if (originalPid != null) { //program already exists
             shardPid = getShardPidFromProgram(originalPid, domsClient);
@@ -301,7 +300,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         pidsToPublish.add(metaFilePID);
         writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
-
+        // TODO: May require some updates?
         final String programPID = ingestProgram(radioTVMetadata,
                                                 metaFilePID, originalPid, domsClient);
         pidsToPublish.add(programPID);
@@ -329,10 +328,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private String getShardPidFromProgram(String pid, DomsWSClient domsClient) throws ServerOperationFailed {
         List<Relation> shardrelations = domsClient.listObjectRelations(pid, HAS_METAFILE_RELATION_TYPE);
-        for (Relation shardrelation : shardrelations) {//TODO ugly
-            return shardrelation.getSubjectPid();
-        }
-        return null;
+        return shardrelations.size() > 0 ? shardrelations.get(0).getSubjectPid() : null;
     }
 
     /**
@@ -492,8 +488,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * Utility method to create the Ritzau document to ingest
      *
-     * @param radioTVMetadata
-     * @return
+     * @param radioTVMetadata Bibliographical metadata about the program.
+     * @return A document containing the Ritzau metadata.
      */
     private Document createRitzauDocument(Document radioTVMetadata) {
         final Node ritzauPreingestElement = xpathSelector.selectNode(
@@ -518,8 +514,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * Utility method to create the Gallup document to ingest
      *
-     * @param radioTVMetadata
-     * @return
+     * @param radioTVMetadata Bibliographical metadata about the program.
+     * @return A document containing the Gallup metadata
      */
     private Document createGallupDocument(Node radioTVMetadata) {
         final Node gallupPreingestElement = xpathSelector.selectNode(
@@ -545,8 +541,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * Utility method to create the PBCore document to ingest
      *
-     * @param radioTVPBCoreElement
-     * @return
+     * @param radioTVPBCoreElement Element containing PBCore.
+     * @return A document containing the PBCore metadata
      */
     private Document createPBCoreDocForDoms(Node radioTVPBCoreElement) {
         final Document pbCoreDataStreamDocument = unSchemaedBuilder
@@ -580,12 +576,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param metaFilePID     The PID of the object, if it exists already. Otherwise null
      * @return PID of the newly created metafile object, created by the DOMS.
      * @throws ServerOperationFailed        if creation or manipulation of the metafile object fails.
-     * @throws IOException
-     * @throws ParserConfigurationException if construction of the DocumentBuilder, for creation of data
-     *                                      stream documents, fails.
+     * @throws IOException                  if io exceptions occur while communicating.
      * @throws XPathExpressionException     if any errors were encountered while processing the
      *                                      <code>radioTVMetadata</code> XML document.
-     * @throws URISyntaxException
+     * @throws URISyntaxException           if shard URL could not be generated
      */
     private String ingestMetaFile(Document radioTVMetadata,
                                   List<String> filePIDs,
@@ -673,7 +667,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * <code>radioTVMetadata</code> document.
      *
      * @param radioTVMetadata Metadata XML document containing the file information.
-     * @param domsClient
+     * @param domsClient The client used for ingesting to DOMS
      * @return A <code>List</code> of PIDs of the radio-tv file objects created
      *         by the DOMS.
      * @throws XPathExpressionException if any errors were encountered while processing the
