@@ -248,23 +248,26 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private String alreadyExistsInRepo(Document radioTVMetadata)
             throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
-        String oldId = getOldIdentifier(radioTVMetadata);
-        List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
-        if (!pids.isEmpty()) {
-            return pids.get(0);
+        List<String> oldIds = getOldIdentifiers(radioTVMetadata);
+        for (String oldId : oldIds) {
+            List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
+            if (!pids.isEmpty()) {
+                return pids.get(0);
+            }
         }
         throw new NoObjectFound("No object found");
     }
 
     /**
-     * Find old identifier in program metadata, and use them for looking up programs in DOMS.
+     * Find old identifiers in program metadata, and use them for looking up programs in DOMS.
      *
      * @param radioTVMetadata The document containing the program metadata.
-     * @return Old indentifier found.
+     * @return Old indentifiers found.
      * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
      */
-    private String getOldIdentifier(Document radioTVMetadata) throws XPathExpressionException {
-        // TODO Should support TVMeter identifiers as well, and return a list!
+    private List<String> getOldIdentifiers(Document radioTVMetadata) throws XPathExpressionException {
+        // TODO Should support TVMeter identifiers as well
+        List<String> result = new ArrayList<String>();
         Node radioTVPBCoreElement = XPATH_SELECTOR
                 .selectNode(radioTVMetadata, RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT);
 
@@ -272,10 +275,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
                 .selectNode(radioTVPBCoreElement, "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier");
 
         if (oldPIDNode != null && !oldPIDNode.getTextContent().isEmpty()) {
-            return oldPIDNode.getTextContent();
-        } else {
-            return null;
+            result.add(oldPIDNode.getTextContent());
         }
+        return result;
     }
 
     /**
@@ -354,13 +356,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         Node radioTVPBCoreElement = XPATH_SELECTOR
                 .selectNode(radioTVMetadata, RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT);
 
-        // Extract the ritzauID from the pre-ingest file.
-        // TODO: Also extract TVMeter identifiers
+        // Extract old IDs from the pre-ingest file.
         List<String> listOfOldPIDs = new ArrayList<String>();
-        String oldId = getOldIdentifier(radioTVMetadata);
-        if (oldId != null) {
-            listOfOldPIDs.add(oldId);
-        }
+        listOfOldPIDs.addAll(getOldIdentifiers(radioTVMetadata));
 
         // Find or create program object.
         String programObjectPID;
@@ -394,7 +392,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         Document gallupOriginalDocument = createGallupDocument(radioTVMetadata);
         domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, COMMENT);
 
-        // TODO Create BROADCAST_METADATA (or whatever it is called)
+        // TODO Add BROADCAST_METADATA (or whatever it is called)
 
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
