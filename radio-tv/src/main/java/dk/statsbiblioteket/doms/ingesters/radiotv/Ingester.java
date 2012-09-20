@@ -73,10 +73,10 @@ public class Ingester {
         File STOP_FOLDER = new File("stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "resources/preingestedRadioTVProgram.xsd");
+                "src/main/resources/preingestedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
-                "http://alhena:7880/centralWebservice-service/central/?wsdl");
+                "http://localhost:7880/centralWebservice-service/central/?wsdl");
 
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
