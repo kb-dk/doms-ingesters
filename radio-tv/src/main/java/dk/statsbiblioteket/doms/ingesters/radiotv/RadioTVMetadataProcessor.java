@@ -66,10 +66,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     private static final String RITZAU_ORIGINALS_ELEMENT = "//program/originals/ritzau_original";
     private static final String GALLUP_ORIGINALS_ELEMENT = "//program/originals/gallup_original";
-    private static final String HAS_METAFILE_RELATION_TYPE
-            = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasShard";
-    private static final String CONSISTS_OF_RELATION_TYPE
-            = "http://doms.statsbiblioteket.dk/relations/default/0/1/#consistsOf";
     private static final String RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT
             = "//program/pbcore/pbc:PBCoreDescriptionDocument";
     private static final String RECORDING_FILES_FILE_ELEMENT = "//program/program_recording_files/file";
@@ -78,12 +74,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private static final String FORMAT_URI_ELEMENT = "format_uri";
     private static final String MD5_SUM_ELEMENT = "md5_sum";
 
+    private static final String HAS_FILE_RELATION_TYPE
+            = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasFile";
+
     private static final String PROGRAM_TEMPLATE_PID = "doms:Template_Program";
     private static final String PROGRAM_PBCORE_DS_ID = "PBCORE";
     private static final String RITZAU_ORIGINAL_DS_ID = "RITZAU_ORIGINAL";
     private static final String GALLUP_ORIGINAL_DS_ID = "GALLUP_ORIGINAL";
-    private static final String META_FILE_TEMPLATE_PID = "doms:Template_Shard";
-    private static final String META_FILE_METADATA_DS_ID = "SHARD_METADATA";
     private static final String RADIO_TV_FILE_TEMPLATE_PID = "doms:Template_RadioTVFile";
 
     private static final int MAX_FAIL_COUNT = 10;
@@ -222,19 +219,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         pidsToPublish.addAll(filePIDs);
         writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
-        // Create or update shard for this program
-        // TODO: Fill out datastreams in program instead
-        String shardPid = null;
-        if (originalPid != null) { //program already exists
-            shardPid = getShardPidFromProgram(originalPid);
-        }
-        String metaFilePID = ingestMetaFile(radioTVMetadata, filePIDs, shardPid);
-        pidsToPublish.add(metaFilePID);
-        writePIDs(failedFilesFolder, addedFile, pidsToPublish);
-
         // Create or update program object for this program
         // TODO: May require some updates?
-        String programPID = ingestProgram(radioTVMetadata, metaFilePID, originalPid);
+        String programPID = ingestProgram(radioTVMetadata, filePIDs, originalPid);
         pidsToPublish.add(programPID);
         File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
@@ -291,19 +278,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         } else {
             return null;
         }
-    }
-
-    /**
-     * queries the list of relations in the program, and extracts the shard-pid from these
-     *
-     * @param pid        the program object pid
-     * @return the shard pid, or null if none found
-     *
-     * @throws ServerOperationFailed if something failed
-     */
-    private String getShardPidFromProgram(String pid) throws ServerOperationFailed {
-        List<Relation> shardrelations = domsClient.listObjectRelations(pid, HAS_METAFILE_RELATION_TYPE);
-        return shardrelations.size() > 0 ? shardrelations.get(0).getSubjectPid() : null;
     }
 
     /**
@@ -366,7 +340,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * Ingests or update a program object
      *
      * @param radioTVMetadata Bibliographical metadata about the program.
-     * @param metafilePID     PID to the metafile which represents the program data.
+     * @param filePIDs        PIDs of files containing part or the program.
      * @param existingPid     the existing pid of the program object, or null if it does not exist
      * @return PID of the newly created program object, created by the DOMS.
      *
@@ -375,7 +349,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws XMLParseException        if any errors were encountered while processing the
      *                                  <code>radioTVMetadata</code> XML document.
      */
-    private String ingestProgram(Document radioTVMetadata, String metafilePID, String existingPid)
+    private String ingestProgram(Document radioTVMetadata, List<String> filePIDs, String existingPid)
             throws ServerOperationFailed, XPathExpressionException, XMLParseException {
         // First, fetch the PBCore metadata document node from the pre-ingest
         // document.
@@ -396,9 +370,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             // Create a program object in the DOMS and update the PBCore metadata
             // datastream with the PBCore metadata from the pre-ingest file.
             programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, listOfOldPIDs, COMMENT);
-            // Create relations to the metafile/shard
-            domsClient.addObjectRelation(programObjectPID, HAS_METAFILE_RELATION_TYPE, metafilePID, COMMENT);
-
         } else { //Exists
             domsClient.unpublishObjects(COMMENT, existingPid);
             // TODO Add old PIDs
@@ -406,19 +377,19 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         }
 
         // Add PBCore datastream
-        final Document pbCoreDataStreamDocument = createPBCoreDocForDoms(radioTVPBCoreElement);
+        Document pbCoreDataStreamDocument = createPBCoreDocForDoms(radioTVPBCoreElement);
         domsClient.updateDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, COMMENT);
 
         // Get the program title from the PBCore metadata and use that as the
         // object label for this program object.
         Node titleNode = XPATH_SELECTOR
                 .selectNode(radioTVPBCoreElement, "pbc:pbcoreTitle[pbc:titleType=\"titel\"]/pbc:title");
-        final String programTitle = titleNode.getTextContent();
+        String programTitle = titleNode.getTextContent();
         domsClient.setObjectLabel(programObjectPID, programTitle, COMMENT);
 
         // Get the Ritzau metadata from the pre-ingest document and add it to
         // the Ritzau metadata data stream of the program object.
-        final Document ritzauOriginalDocument = createRitzauDocument(radioTVMetadata);
+        Document ritzauOriginalDocument = createRitzauDocument(radioTVMetadata);
         domsClient.updateDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, COMMENT);
 
         // Add the Gallup metadata
@@ -426,6 +397,22 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, COMMENT);
 
         // TODO Create BROADCAST_METADATA (or whatever it is called)
+
+        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION_TYPE);
+        HashSet<String> existingRels = new HashSet<String>();
+        for (Relation relation : relations) {
+            if (!filePIDs.contains(relation.getSubjectPid())) {
+                domsClient.removeObjectRelation((LiteralRelation) relation, COMMENT);
+            } else {
+                existingRels.add(relation.getSubjectPid());
+            }
+        }
+        for (String filePID : filePIDs) {
+            if (!existingRels.contains(filePID)) {
+                domsClient.addObjectRelation(programObjectPID, HAS_FILE_RELATION_TYPE, filePID, COMMENT);
+
+            }
+        }
         return programObjectPID;
     }
 
@@ -487,94 +474,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         pbCoreDataStreamDocument.appendChild(newPBCoreElement);
         return pbCoreDataStreamDocument;
-    }
-
-    /**
-     * Ingest a metafile (aka. shard) object which represents the program data
-     * (i.e. video and/or audio). A metafile may consist of data chunks from
-     * multiple physical files identified by the PIDs in the
-     * <code>filePIDs</code> list. The metadata provided by
-     * <code>radioTVMetadata</code> contains, among other things, information
-     * about location and duration of the chunks of data from the physical files
-     * which constitutes the contents of the metafile.
-     * <p/>
-     *
-     * @param radioTVMetadata Metadata about location and duration of the relevant data
-     *                        chunks from the physical files.
-     * @param filePIDs        List of PIDs for the physical files containing the data
-     *                        represented by this metafile.
-     * @param metaFilePID     The PID of the object, if it exists already. Otherwise null
-     * @return PID of the newly created metafile object, created by the DOMS.
-     *
-     * @throws ServerOperationFailed    if creation or manipulation of the metafile object fails.
-     * @throws IOException              if io exceptions occur while communicating.
-     * @throws XPathExpressionException should never happen. Means error in program with invalid XPath.
-     * @throws URISyntaxException       if shard URL could not be generated
-     * @throws XMLParseException        if any errors were encountered while processing the
-     *                                  <code>radioTVMetadata</code> XML document.
-     */
-    private String ingestMetaFile(Document radioTVMetadata, List<String> filePIDs, String metaFilePID)
-            throws ServerOperationFailed, IOException, XPathExpressionException, URISyntaxException, XMLParseException {
-        //TODO: This should simply no longer happen at all. We have no shards. Note that the bottom lines of this method\
-        //adds file realtions to the object, though. This should be migrated to program.
-
-        //TODO: Consider cleaning up/consolidating the exceptions
-
-        if (metaFilePID == null) {
-            // Create a file object from the file object template.
-            metaFilePID = domsClient.createObjectFromTemplate(META_FILE_TEMPLATE_PID, COMMENT);
-            // TODO: Do something about this.
-            final FileInfo fileInfo = new FileInfo("shard/" + metaFilePID,
-                                                   new URL("http://www.statsbiblioteket.dk/doms/shard/" + metaFilePID),
-                                                   "", new URI("info:pronom/fmt/199"));
-
-            domsClient.addFileToFileObject(metaFilePID, fileInfo, COMMENT);
-
-        } else {
-            domsClient.unpublishObjects(COMMENT, metaFilePID);
-        }
-
-        final Document metadataDataStreamDocument = unSchemaedBuilder.newDocument();
-
-        final Element metadataDataStreamRootElement = metadataDataStreamDocument.createElement("shard_metadata");
-
-        metadataDataStreamDocument.appendChild(metadataDataStreamRootElement);
-
-        // Add all the "file" elements from the radio-tv metadata document.
-        // TODO: Note that this is just a first-shot implementation until a
-        // proper metadata format has been defined.
-        final NodeList recordingFileElements = XPATH_SELECTOR
-                .selectNodeList(radioTVMetadata, RECORDING_FILES_FILE_ELEMENT);
-
-        for (int fileElementIdx = 0; fileElementIdx < recordingFileElements.getLength(); fileElementIdx++) {
-
-            final Node currentRecordingFile = recordingFileElements.item(fileElementIdx);
-
-            // Append to the end of the list of child nodes.
-            final Node newMetadataElement = metadataDataStreamDocument.importNode(currentRecordingFile, true);
-
-            metadataDataStreamRootElement.appendChild(newMetadataElement);
-        }
-
-        domsClient.updateDataStream(metaFilePID, META_FILE_METADATA_DS_ID, metadataDataStreamDocument, COMMENT);
-
-        List<Relation> relations = domsClient.listObjectRelations(metaFilePID, CONSISTS_OF_RELATION_TYPE);
-        HashSet<String> existingRels = new HashSet<String>();
-        for (Relation relation : relations) {
-            if (!filePIDs.contains(relation.getSubjectPid())) {
-                domsClient.removeObjectRelation((LiteralRelation) relation, COMMENT);
-            } else {
-                existingRels.add(relation.getSubjectPid());
-            }
-        }
-        for (String filePID : filePIDs) {
-            if (!existingRels.contains(filePID)) {
-                domsClient.addObjectRelation(metaFilePID, CONSISTS_OF_RELATION_TYPE, filePID, COMMENT);
-
-            }
-        }
-
-        return metaFilePID;
     }
 
     /**
