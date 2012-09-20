@@ -365,7 +365,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     /**
      * Ingests or update a program object
      *
-     *
      * @param radioTVMetadata Bibliographical metadata about the program.
      * @param metafilePID     PID to the metafile which represents the program data.
      * @param existingPid     the existing pid of the program object, or null if it does not exist
@@ -378,20 +377,20 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private String ingestProgram(Document radioTVMetadata, String metafilePID, String existingPid)
             throws ServerOperationFailed, XPathExpressionException, XMLParseException {
-
         // First, fetch the PBCore metadata document node from the pre-ingest
         // document.
-
         Node radioTVPBCoreElement = XPATH_SELECTOR
                 .selectNode(radioTVMetadata, RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT);
 
         // Extract the ritzauID from the pre-ingest file.
+        // TODO: Also extract TVMeter identifiers
         List<String> listOfOldPIDs = new ArrayList<String>();
         String oldId = getOldIdentifier(radioTVMetadata);
         if (oldId != null) {
             listOfOldPIDs.add(oldId);
         }
 
+        // Find or create program object.
         String programObjectPID;
         if (existingPid == null) {//not Exist
             // Create a program object in the DOMS and update the PBCore metadata
@@ -402,9 +401,11 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
         } else { //Exists
             domsClient.unpublishObjects(COMMENT, existingPid);
+            // TODO Add old PIDs
             programObjectPID = existingPid;
         }
 
+        // Add PBCore datastream
         final Document pbCoreDataStreamDocument = createPBCoreDocForDoms(radioTVPBCoreElement);
         domsClient.updateDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, COMMENT);
 
@@ -424,6 +425,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         Document gallupOriginalDocument = createGallupDocument(radioTVMetadata);
         domsClient.updateDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, COMMENT);
 
+        // TODO Create BROADCAST_METADATA (or whatever it is called)
         return programObjectPID;
     }
 
@@ -496,7 +498,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * about location and duration of the chunks of data from the physical files
      * which constitutes the contents of the metafile.
      * <p/>
-     * TODO: Consider cleaning up/consolidating the exceptions
      *
      * @param radioTVMetadata Metadata about location and duration of the relevant data
      *                        chunks from the physical files.
@@ -514,6 +515,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private String ingestMetaFile(Document radioTVMetadata, List<String> filePIDs, String metaFilePID)
             throws ServerOperationFailed, IOException, XPathExpressionException, URISyntaxException, XMLParseException {
+        //TODO: This should simply no longer happen at all. We have no shards. Note that the bottom lines of this method\
+        //adds file realtions to the object, though. This should be migrated to program.
+
+        //TODO: Consider cleaning up/consolidating the exceptions
 
         if (metaFilePID == null) {
             // Create a file object from the file object template.
@@ -589,7 +594,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     private List<String> ingestFiles(Document radioTVMetadata)
             throws XPathExpressionException, MalformedURLException, ServerOperationFailed, URISyntaxException {
-
         // Get the recording files XML element and process the file information.
         final NodeList recordingFiles = XPATH_SELECTOR.selectNodeList(radioTVMetadata, RECORDING_FILES_FILE_ELEMENT);
 
@@ -597,13 +601,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         // element in the radio-tv XML document.
         final List<String> fileObjectPIDs = new ArrayList<String>();
         for (int nodeIndex = 0; nodeIndex < recordingFiles.getLength(); nodeIndex++) {
-
             final Node currentFileNode = recordingFiles.item(nodeIndex);
 
             final Node fileURLNode = XPATH_SELECTOR.selectNode(currentFileNode, FILE_URL_ELEMENT);
             final String fileURLString = fileURLNode.getTextContent();
             final URL fileURL = new URL(fileURLString);
 
+            // Lookup or create file object.
             String fileObjectPID;
             try {
                 fileObjectPID = domsClient.getFileObjectPID(fileURL);
@@ -631,6 +635,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
                 fileObjectPID = domsClient.createFileObject(RADIO_TV_FILE_TEMPLATE_PID, fileInfo, COMMENT);
             }
+            //TODO: Add metadata for file if this does not exist.
+
             fileObjectPIDs.add(fileObjectPID);
         }
         return fileObjectPIDs;
