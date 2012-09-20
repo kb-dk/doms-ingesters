@@ -164,65 +164,16 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     @Override
     public void fileAdded(File addedFile) {
         List<String> pidsToPublish = new ArrayList<String>();
+        //This method acts as fault barrier
         try {
-
             final Document radioTVMetadata = preingestFilesBuilder.parse(addedFile);
-
             createRecord(radioTVMetadata, addedFile, getDomsClient(), pidsToPublish);
-
-            //This method acts as fault barrier
-        } catch (SAXException se) {
-            failed(addedFile, pidsToPublish, getDomsClient());
-
-            se.printStackTrace();
-            // TODO: Log this
-            // TODO: we should not allow endless failures....
-            // TODO: Wounded > many = FATAL
-            incrementFailedTries();
-
-        } catch (IOException ioe) {
-            failed(addedFile, pidsToPublish, getDomsClient());
-            ioe.printStackTrace();
-            // TODO: Log this
-            // TODO: we should not allow endless failures....
-            // a code error for ingestMetaFile
-        } catch (ServerOperationFailed se) {
-            failed(addedFile, pidsToPublish, getDomsClient());
-
-            // Failed calling the DOMS server
-            se.printStackTrace();
-            // TODO: Log this
-            // TODO: FATAL, POSSIBLE RETIRES
-            // TODO: we should not allow endless failures....
-
-        } catch (XPathExpressionException xpee) {
-            failed(addedFile, pidsToPublish, getDomsClient());
-
-            // Failed parsing the Radio-TV XML document...
-            xpee.printStackTrace();
-            // TODO: Log this
-            // TODO: we should not allow endless failures....
-            // TODO: should _NEVER_ happend, code is broken
-
-        } catch (URISyntaxException use) {
-            // Failed parsing the Radio-TV XML document...
-
-            failed(addedFile, pidsToPublish, getDomsClient());
-
-            use.printStackTrace();
-            // TODO: Log this
-            // TODO: we should not allow endless failures....
-            // failure can be from fileIngest as a pre ingest error
-            // or from ingestMetaFile as a config/code error
-
-        } catch (Exception fnfe) {
+        } catch (Exception e) {
             // Handle anything unanticipated.
-
             failed(addedFile, pidsToPublish, getDomsClient());
-            // TODO: Log this.
-            fnfe.printStackTrace();
+            e.printStackTrace();
+            incrementFailedTries();
         }
-
     }
 
     /* (non-Javadoc)
