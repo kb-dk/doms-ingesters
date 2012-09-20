@@ -205,6 +205,68 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     }
 
     /**
+     * Create objects in DOMS for given program metadata. On success, the originating file will be moved to the folder
+     * for processed files. On failure, a file in the folder of failed files will contain the pids that were not
+     * published.
+     *
+     * @param radioTVMetadata The Metadata for the program.
+     * @param addedFile The file containing the program metadata
+     * @param domsClient The DOMS client to use for ingest.
+     * @param pidsToPublish Initially empty list of pids to update with pids collected during process, to be published
+     * in the end.
+     *
+     * @throws IOException On io trouble communicating.
+     * @throws ServerOperationFailed On trouble updating DOMS.
+     * @throws URISyntaxException Should never happen. Means shard URI generated is invalid.
+     * @throws XPathExpressionException Should never happen. Means program is broken with wrong XPath exception.
+     * @throws XMLParseException On trouble parsing XML.
+     */
+    private void createRecord(Document radioTVMetadata, File addedFile, DomsWSClient domsClient,
+                              List<String> pidsToPublish)
+            throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException {
+        // Check if program is already in DOMS
+        String originalPid;
+        try {
+            originalPid = alreadyExistsInRepo(radioTVMetadata, getDomsClient());
+        } catch (NoObjectFound noObjectFound) {
+            originalPid = null;
+        }
+
+        // Find or create files containing this program
+        // TODO: Fill out metadata for file
+        List<String> filePIDs = ingestFiles(radioTVMetadata, domsClient);
+        pidsToPublish.addAll(filePIDs);
+        writePIDs(failedFilesFolder, addedFile, pidsToPublish);
+
+        // Create or update shard for this program
+        // TODO: Fill out datastreams in program instead
+        String shardPid = null;
+        if (originalPid != null) { //program already exists
+            shardPid = getShardPidFromProgram(originalPid, domsClient);
+        }
+        final String metaFilePID = ingestMetaFile(radioTVMetadata, filePIDs, shardPid, domsClient);
+        pidsToPublish.add(metaFilePID);
+        writePIDs(failedFilesFolder, addedFile, pidsToPublish);
+
+        // Create or update program object for this program
+        // TODO: May require some updates?
+        final String programPID = ingestProgram(radioTVMetadata, metaFilePID, originalPid, domsClient);
+        pidsToPublish.add(programPID);
+        final File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
+
+        // Publish the objects created in the process
+        domsClient.publishObjects(COMMENT, pidsToPublish.toArray(new String[pidsToPublish.size()]));
+
+        // The ingest was successful, if we make it here...
+        // Move the processed file to the finished files folder.
+        moveFile(addedFile, processedFilesFolder);
+
+        // And it is now safe to delete the "in progress" PID file.
+        allWrittenPIDs.delete();
+
+    }
+
+    /**
      * Lookup a program in DOMS.
      * If program exists, returns the PID of the program. Otherwise throws exception {@link NoObjectFound}.
      *
@@ -246,47 +308,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         } else {
             return null;
         }
-    }
-
-    private void createRecord(Document radioTVMetadata, File addedFile, DomsWSClient domsClient,
-                              List<String> pidsToPublish)
-            throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException {
-
-        String originalPid;
-        try {
-            originalPid = alreadyExistsInRepo(radioTVMetadata, getDomsClient());
-        } catch (NoObjectFound noObjectFound) {
-            originalPid = null;
-        }
-
-        // TODO: Fill out metadata for file
-        List<String> filePIDs = ingestFiles(radioTVMetadata, domsClient);
-        pidsToPublish.addAll(filePIDs);
-        writePIDs(failedFilesFolder, addedFile, pidsToPublish);
-
-        // TODO: Fill out datastreams in program instead
-        String shardPid = null;
-        if (originalPid != null) { //program already exists
-            shardPid = getShardPidFromProgram(originalPid, domsClient);
-        }
-        final String metaFilePID = ingestMetaFile(radioTVMetadata, filePIDs, shardPid, domsClient);
-        pidsToPublish.add(metaFilePID);
-        writePIDs(failedFilesFolder, addedFile, pidsToPublish);
-
-        // TODO: May require some updates?
-        final String programPID = ingestProgram(radioTVMetadata, metaFilePID, originalPid, domsClient);
-        pidsToPublish.add(programPID);
-        final File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
-
-        domsClient.publishObjects(COMMENT, pidsToPublish.toArray(new String[pidsToPublish.size()]));
-
-        // The ingest was successful, if we make it here...
-        // Move the processed file to the finished files folder.
-        moveFile(addedFile, processedFilesFolder);
-
-        // And it is now safe to delete the "in progress" PID file.
-        allWrittenPIDs.delete();
-
     }
 
     /**
