@@ -372,7 +372,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             moveFile(addedFile, failedFilesFolder);
 
             // Rename the in-progress PIDs to failed PIDs.
-            writeFailedPIDs(addedFile, failedFilesFolder);
+            writeFailedPIDs(addedFile);
             domsClient.deleteObjects(FAILED_COMMENT, pidsToPublish.toArray(new String[pidsToPublish.size()]));
         } catch (Exception exception) {
             // If this bail-out error handling fails, then nothing can save
@@ -664,12 +664,17 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param destinationFolder Path of the destination folder to move the file to.
      */
     private void moveFile(File fileToMove, File destinationFolder) {
-        fileToMove.renameTo(new File(destinationFolder.getAbsolutePath() + File.separator + fileToMove.getName()));
+        fileToMove.renameTo(new File(destinationFolder.getAbsolutePath(), fileToMove.getName()));
     }
 
-    private void writeFailedPIDs(File failedMetadataFile, File directory) {
-        final File activePIDsFile = new File(directory, failedMetadataFile.getName() + ".InProcessPIDs");
-        final File failedPIDsFile = new File(directory, failedMetadataFile.getName() + ".failedPIDs");
+    /**
+     * Rename the file with a list of PIDs in progress and never published to a file with a list of failed PIDs.
+     * @param failedMetadataFile The originating file.
+     *
+     */
+    private void writeFailedPIDs(File failedMetadataFile) {
+        final File activePIDsFile = new File(failedFilesFolder, failedMetadataFile.getName() + ".InProcessPIDs");
+        final File failedPIDsFile = new File(failedFilesFolder, failedMetadataFile.getName() + ".failedPIDs");
         activePIDsFile.renameTo(failedPIDsFile);
     }
 
@@ -681,11 +686,12 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
         System.exit(-1);
     }
 
-    /** The number of tries is incremented by one */
+    /** The number of tries is incremented by one.
+     * If this exceeds the maximum number of allowed failures,  */
     private void incrementFailedTries() {
         exceptionCount += 1;
         if (exceptionCount >= MAX_FAIL_COUNT) {
-            System.err.println("Too many errors in ingest. Exiting.");
+            System.err.println("Too many errors (" + exceptionCount + ") in ingest. Exiting.");
             fatalException();
         }
     }
