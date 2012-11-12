@@ -8,12 +8,13 @@
     <xs:complexType name="fileType">
         <xs:sequence>
             <xs:element type="xs:string" name="file_url"/>
+         <!--The following are deprecated, but we can keep them in for now-->
             <xs:element type="xs:string" name="channel_id" minOccurs="0"/>
-            <xs:element type="xs:string" name="program_start_offset"/>
-            <xs:element type="xs:string" name="program_clip_length"/>
-            <xs:element type="xs:string" name="file_name"/>
+            <xs:element type="xs:string" name="program_start_offset" minOccurs="0"/>
+            <xs:element type="xs:string" name="program_clip_length" minOccurs="0"/>
+            <xs:element type="xs:string" name="file_name" minOccurs="0"/>
             <xs:element type="xs:string" name="md5_sum" minOccurs="0"/>
-            <xs:element type="xs:string" name="format_uri"/>
+            <xs:element type="xs:string" name="format_uri" minOccurs="0"/>
         </xs:sequence>
     </xs:complexType>
     <xs:complexType name="originalsType">

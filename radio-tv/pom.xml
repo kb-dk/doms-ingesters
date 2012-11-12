@@ -27,8 +27,12 @@
             <artifactId>jersey-client</artifactId>
         </dependency>
         <dependency>
-          <groupId>dk.statsbiblioteket.doms.ingestClient</groupId>
-          <artifactId>ingestClientImpl</artifactId>
+            <groupId>dk.statsbiblioteket.doms.ingestClient</groupId>
+            <artifactId>ingestClientImpl</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>dk.statsbiblioteket.doms.transformers</groupId>
+            <artifactId>shardmigrator</artifactId>
         </dependency>
     </dependencies>
 
