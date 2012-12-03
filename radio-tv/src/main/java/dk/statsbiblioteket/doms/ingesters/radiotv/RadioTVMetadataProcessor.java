@@ -171,16 +171,11 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private void createRecord(Document radioTVMetadata, File addedFile, List<String> pidsToPublish)
             throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException, JAXBException, ParseException, ParserConfigurationException, NoObjectFound {
         // Check if program is already in DOMS
-        String originalPid;
-        try {
-            originalPid = alreadyExistsInRepo(radioTVMetadata);
-        } catch (NoObjectFound noObjectFound) {
-            originalPid = null;
-        }
-
         List<String> oldIds = getOldIdentifiers(radioTVMetadata);
+        String originalPid = alreadyExistsInRepo(oldIds);
+
         // Create or update program object for this program
-        String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata, originalPid,oldIds);
+        String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata, originalPid, oldIds);
         pidsToPublish.add(programPID);
         File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
 
@@ -211,25 +206,22 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     /**
      * Lookup a program in DOMS.
-     * If program exists, returns the PID of the program. Otherwise throws exception {@link NoObjectFound}.
+     * If program exists, returns the PID of the program. Otherwise returns null.
      *
-     * @param radioTVMetadata The document containing the program metadata.
-     * @return PID of program, if found.
+     * @return PID of program, if found. Null otherwise
      *
-     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
      * @throws ServerOperationFailed Could not communicate with DOMS.
-     * @throws NoObjectFound The program was not found in DOMS.
+     * @param oldIdentifiers List of old identifiers to look up.
      */
-    private String alreadyExistsInRepo(Document radioTVMetadata)
+    private String alreadyExistsInRepo(List<String> oldIdentifiers)
             throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
-        List<String> oldIds = getOldIdentifiers(radioTVMetadata);
-        for (String oldId : oldIds) {
+        for (String oldId : oldIdentifiers) {
             List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
             if (!pids.isEmpty()) {
                 return pids.get(0);
             }
         }
-        throw new NoObjectFound("No object found");
+        return null;
     }
 
 
