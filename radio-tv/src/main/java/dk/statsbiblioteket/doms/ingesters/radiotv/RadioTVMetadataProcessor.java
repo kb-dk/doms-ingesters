@@ -54,8 +54,7 @@ import java.util.List;
 
 /** On added xml files with radio/tv metadata, add objects to DOMS describing these files. */
 public class RadioTVMetadataProcessor implements HotFolderScannerClient {
-
-
+    /** How many times we failed during ingest. */
     private int exceptionCount = 0;
 
     /** Folder to move failed files to. */
@@ -125,14 +124,14 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     @Override
     public void fileAdded(File addedFile) {
-        List<String> pidsToPublish = new ArrayList<String>();
+        List<String> pidsInProgress = new ArrayList<String>();
         //This method acts as fault barrier
         try {
             Document radioTVMetadata = preingestFilesBuilder.parse(addedFile);
-            createRecord(radioTVMetadata, addedFile, pidsToPublish);
+            createRecord(radioTVMetadata, addedFile, pidsInProgress);
         } catch (Exception e) {
             // Handle anything unanticipated.
-            failed(addedFile, pidsToPublish);
+            failed(addedFile, pidsInProgress);
             e.printStackTrace();
             incrementFailedTries();
         }
@@ -159,8 +158,8 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      *
      * @param radioTVMetadata The Metadata for the program.
      * @param addedFile The file containing the program metadata
-     * @param pidsToPublish Initially empty list of pids to update with pids collected during process, to be published
-     * in the end.
+     * @param pidsInProgress Initially empty list of pids to update with pids collected during process, to be published
+     * or reported as failed in the end.
      *
      * @throws IOException On io trouble communicating.
      * @throws ServerOperationFailed On trouble updating DOMS.
@@ -168,19 +167,15 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws XPathExpressionException Should never happen. Means program is broken with wrong XPath exception.
      * @throws XMLParseException On trouble parsing XML.
      */
-    private void createRecord(Document radioTVMetadata, File addedFile, List<String> pidsToPublish)
+    private void createRecord(Document radioTVMetadata, File addedFile, List<String> pidsInProgress)
             throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException, JAXBException, ParseException, ParserConfigurationException, NoObjectFound {
-        // Check if program is already in DOMS
-        List<String> oldIds = getOldIdentifiers(radioTVMetadata);
-        String originalPid = alreadyExistsInRepo(oldIds);
-
         // Create or update program object for this program
-        String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata, originalPid, oldIds);
-        pidsToPublish.add(programPID);
-        File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsToPublish);
+        String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata);
+        pidsInProgress.add(programPID);
+        File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsInProgress);
 
         // Publish the objects created in the process
-        domsClient.publishObjects(Common.COMMENT, pidsToPublish.toArray(new String[pidsToPublish.size()]));
+        domsClient.publishObjects(Common.COMMENT, pidsInProgress.toArray(new String[pidsInProgress.size()]));
 
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
@@ -203,26 +198,6 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     }
 
 
-
-    /**
-     * Lookup a program in DOMS.
-     * If program exists, returns the PID of the program. Otherwise returns null.
-     *
-     * @return PID of program, if found. Null otherwise
-     *
-     * @throws ServerOperationFailed Could not communicate with DOMS.
-     * @param oldIdentifiers List of old identifiers to look up.
-     */
-    private String alreadyExistsInRepo(List<String> oldIdentifiers)
-            throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
-        for (String oldId : oldIdentifiers) {
-            List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
-            if (!pids.isEmpty()) {
-                return pids.get(0);
-            }
-        }
-        return null;
-    }
 
 
     /**
@@ -278,6 +253,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             // If this bail-out error handling fails, then nothing can save
             // us...
             exception.printStackTrace(System.err);
+            throw new Error("Unrecoverable error during ingesting", exception);
         }
     }
 
@@ -310,29 +286,4 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             fatalException();
         }
     }
-
-    /**
-     * Find old identifiers in program metadata, and use them for looking up programs in DOMS.
-     *
-     * @param radioTVMetadata The document containing the program metadata.
-     * @return Old indentifiers found.
-     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
-     */
-    private List<String> getOldIdentifiers(Document radioTVMetadata) throws XPathExpressionException {
-        // TODO Should support TVMeter identifiers as well
-        List<String> result = new ArrayList<String>();
-        Node radioTVPBCoreElement = Common.XPATH_SELECTOR
-                .selectNode(radioTVMetadata, Common.RECORDING_PBCORE_DESCRIPTION_DOCUMENT_ELEMENT);
-
-        Node oldPIDNode = Common.XPATH_SELECTOR
-                .selectNode(radioTVPBCoreElement, "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier");
-
-        if (oldPIDNode != null && !oldPIDNode.getTextContent().isEmpty()) {
-            result.add(oldPIDNode.getTextContent());
-        }
-        return result;
-    }
-
-
-
 }
