@@ -157,11 +157,15 @@ public class RecordCreator {
      * @param oldIdentifiers List of old identifiers to look up.
      */
     private String alreadyExistsInRepo(List<String> oldIdentifiers)
-            throws XPathExpressionException, ServerOperationFailed, NoObjectFound {
+            throws XPathExpressionException, ServerOperationFailed {
         for (String oldId : oldIdentifiers) {
-            List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
-            if (!pids.isEmpty()) {
-                return pids.get(0);
+            try {
+                List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
+                if (!pids.isEmpty()) {
+                    return pids.get(0);
+                }
+            } catch (NoObjectFound e) {
+                // Ignore, then
             }
         }
         return null;
