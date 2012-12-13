@@ -22,7 +22,7 @@
         <xs:sequence>
             <xs:element type="pbcore" name="pbcore"/>
             <xs:element type="originals" name="originals"/>
-            <xs:element type="pb:programBroadcast" name="programBroadcast"/>
+            <xs:element ref="pb:programBroadcast"/>
             <xs:element type="fileUrls" name="fileUrls"/>
         </xs:sequence>
     </xs:complexType>
