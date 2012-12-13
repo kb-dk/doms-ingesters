@@ -176,11 +176,11 @@
             <ns4:emmisionsLevel>1</ns4:emmisionsLevel>
         </ns4:tvmeterProgram>
     </originals>
-    <programBroadcast>
+    <ns5:programBroadcast>
         <ns5:timeStart>2012-11-14T23:23:02.000+01:00</ns5:timeStart>
         <ns5:timeStop>2012-11-15T00:04:24.000+01:00</ns5:timeStop>
         <ns5:channelId>dr1</ns5:channelId>
-    </programBroadcast>
+    </ns5:programBroadcast>
     <fileUrls>
         <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts</fileUrl>
         <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts</fileUrl>

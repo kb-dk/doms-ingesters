@@ -1,11 +1,10 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
-import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
-import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
-import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
-import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
-import dk.statsbiblioteket.doms.client.relations.Relation;
+import dk.statsbiblioteket.doms.client.NoObjectFound;
+import dk.statsbiblioteket.doms.client.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.Relation;
+import dk.statsbiblioteket.util.xml.DOM;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -15,6 +14,7 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 import javax.xml.xpath.XPathExpressionException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -45,14 +45,12 @@ public class RecordCreator {
      * @return PID of the newly created program object, created by the DOMS.
      *
      * @throws ServerOperationFailed    if creation or manipulation of the program object fails.
-     * @throws XMLParseException        if any errors were encountered while processing the
-     *                                  <code>radioTVMetadata</code> XML document.
      * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
      * @throws MalformedURLException if a file element contains an invalid URL.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
     public String ingestProgram(Document radioTVMetadata)
-            throws ServerOperationFailed, XMLParseException, MalformedURLException, NoObjectFound,
+            throws ServerOperationFailed, MalformedURLException, NoObjectFound,
             XPathExpressionException {
         // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
         List<String> filePIDs = getFilePids(radioTVMetadata);
@@ -97,15 +95,15 @@ public class RecordCreator {
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, Common.HAS_FILE_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
-            if (!filePIDs.contains(relation.getSubjectPid())) {
-                domsClient.removeObjectRelation((LiteralRelation) relation, Common.COMMENT);
+            if (!filePIDs.contains(relation.getSubject())) {
+                domsClient.removeObjectRelation(relation, Common.COMMENT);
             } else {
-                existingRels.add(relation.getSubjectPid());
+                existingRels.add(relation.getSubject());
             }
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
-                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Common.COMMENT);
+                domsClient.addObjectRelation(new Relation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID), Common.COMMENT);
 
             }
         }
@@ -113,8 +111,15 @@ public class RecordCreator {
     }
 
     private void addOldPids(String existingPid, List<String> oldIdentifiers) throws ServerOperationFailed {
-        Document dcDataStream = domsClient.getDataStream(existingPid, Common.DC_DS_ID);
-        NodeList existingIDNodes = Common.XPATH_SELECTOR.selectNodeList(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
+        Document dcDataStream;
+        try {
+            //TODO: This rewraps document to make sure it's namespace aware. Remove when newer version of DOMS client supports this.
+            dcDataStream = DOM.stringToDOM(DOM.domToString(domsClient.getDataStream(existingPid, Common.DC_DS_ID)), true);
+        } catch (TransformerException e) {
+            throw new Error("Broken java configuration", e);
+        }
+
+        NodeList existingIDNodes = DOM.selectNodeList(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
         Set<String> idsToAdd = new HashSet<String>(oldIdentifiers);
         for (int i = 0; i < existingIDNodes.getLength(); i++) {
             idsToAdd.remove(existingIDNodes.item(i).getTextContent());
@@ -161,7 +166,7 @@ public class RecordCreator {
         for (String oldId : oldIdentifiers) {
             try {
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
-                if (!pids.isEmpty()) {
+                if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
                     return pids.get(0);
                 }
             } catch (NoObjectFound e) {
