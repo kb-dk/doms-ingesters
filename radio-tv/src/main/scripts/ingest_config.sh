@@ -9,5 +9,5 @@ STOPFOLDER=$BASEDIR/files/stopfolder
 WSDL=http://localhost:7980/centralWebservice-service/central/?wsdl
 USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
-SCHEMA=$BASEDIR/resources/preingestedRadioTVProgram.xsd
+SCHEMA=$BASEDIR/resources/exportedRadioTVProgram.xsd
 

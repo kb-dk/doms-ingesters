@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:pbc="http://www.pbcore.org/PBCore/PBCoreNamespace.html"
+           xmlns:pb="http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#"
+           xmlns:gallup="http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#"
+           xmlns:ritzau="http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#">
+
+    <xs:import namespace="http://www.pbcore.org/PBCore/PBCoreNamespace.html"
+               schemaLocation="http://www.pbcore.org/PBCore/PBCoreSchema.xsd"/>
+    <xs:import namespace="http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#"
+               schemaLocation="PROGRAM_BROADCAST_SCHEMA.xsd"/>
+    <xs:import namespace="http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#"
+               schemaLocation="GALLUP_ORIGINAL_SCHEMA.xsd"/>
+    <xs:import namespace="http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#"
+               schemaLocation="RITZAU_ORIGINAL_SCHEMA.xsd"/>
+    <xs:element name="program" type="program"/>
+
+
+    <!-- type definitions -->
+    <xs:complexType name="program">
+        <xs:sequence>
+            <xs:element type="pbcore" name="pbcore"/>
+            <xs:element type="originals" name="originals"/>
+            <xs:element type="pb:programBroadcast" name="programBroadcast"/>
+            <xs:element type="fileUrls" name="fileUrls"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="pbcore">
+        <xs:sequence>
+            <xs:element ref="pbc:PBCoreDescriptionDocument"  />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="originals">
+        <xs:sequence>
+            <xs:element ref="ritzau:ritzau_original" minOccurs="0"/>
+            <xs:element ref="gallup:tvmeterProgram" minOccurs="0"/>
+            <xs:element ref="gallup:gallup_original" minOccurs="0"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="fileUrls">
+        <xs:sequence>
+            <xs:element type="xs:string" name="fileUrl" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

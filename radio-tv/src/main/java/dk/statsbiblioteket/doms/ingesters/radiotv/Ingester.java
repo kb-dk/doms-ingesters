@@ -73,7 +73,7 @@ public class Ingester {
         File STOP_FOLDER = new File("stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
-                "src/main/resources/preingestedRadioTVProgram.xsd");
+                "src/main/resources/exportedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
                 "http://localhost:7880/centralWebservice-service/central/?wsdl");
