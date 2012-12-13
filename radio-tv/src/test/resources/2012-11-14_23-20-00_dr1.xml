@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<program xmlns:ns2="http://www.pbcore.org/PBCore/PBCoreNamespace.html" xmlns:ns3="http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#" xmlns:ns4="http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#" xmlns:ns5="http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#">
+    <pbcore>
+        <ns2:PBCoreDescriptionDocument>
+            <ns2:pbcoreIdentifier>
+                <ns2:identifier>5444487RitzauProgram</ns2:identifier>
+                <ns2:identifierSource>id</ns2:identifierSource>
+            </ns2:pbcoreIdentifier>
+            <ns2:pbcoreIdentifier>
+                <ns2:identifier>00011211142323021211150004242000310044002000410010001800310031003000400020090000Damages                                                     Damages                                                     Damages                                                        33FREM      010000000000000000000Stereo    16:9      172000000000000211636800          000001TvmeterProgram</ns2:identifier>
+                <ns2:identifierSource>tvmeter</ns2:identifierSource>
+            </ns2:pbcoreIdentifier>
+            <ns2:pbcoreTitle>
+                <ns2:title>Damages</ns2:title>
+                <ns2:titleType>titel</ns2:titleType>
+            </ns2:pbcoreTitle>
+            <ns2:pbcoreDescription>
+                <ns2:description>Amerikansk dramaserie fra 2010.</ns2:description>
+                <ns2:descriptionType>kortomtale</ns2:descriptionType>
+            </ns2:pbcoreDescription>
+            <ns2:pbcoreDescription>
+                <ns2:description>Patty Hewes har mistanke om, at Tessa Marchetti bliver brugt til at smugle Louis Tobins penge ud af USA. Så Tom Shayes sendes til Antigua i Caribien for at efterforske sagen og lokke oplysninger ud af Tessa. Samtidig erfarer Joe Tobin for første gang, at hans far havde en datter uden for ægteskab.</ns2:description>
+                <ns2:descriptionType>langomtale1</ns2:descriptionType>
+            </ns2:pbcoreDescription>
+            <ns2:pbcoreGenre>
+                <ns2:genre>hovedgenre: Serier</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcoreGenre>
+                <ns2:genre>undergenre: Dramaserie</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcoreGenre>
+                <ns2:genre>indhold_emne: Fiktion</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Tom Shayes: Tate Donovan</ns2:contributor>
+                <ns2:contributorRole>medvirkende</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Ellen Parsons: Rose Byrne</ns2:contributor>
+                <ns2:contributorRole>medvirkende</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Patty Hewes: Glenn Close</ns2:contributor>
+                <ns2:contributorRole>medvirkende</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Tom Shayes: Tate Donovan</ns2:contributor>
+                <ns2:contributorRole>instruktion</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Ellen Parsons: Rose Byrne</ns2:contributor>
+                <ns2:contributorRole>instruktion</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcoreContributor>
+                <ns2:contributor>Patty Hewes: Glenn Close</ns2:contributor>
+                <ns2:contributorRole>instruktion</ns2:contributorRole>
+            </ns2:pbcoreContributor>
+            <ns2:pbcorePublisher>
+                <ns2:publisher>dr1</ns2:publisher>
+                <ns2:publisherRole>channel_name</ns2:publisherRole>
+            </ns2:pbcorePublisher>
+            <ns2:pbcorePublisher>
+                <ns2:publisher>DR1</ns2:publisher>
+                <ns2:publisherRole>kanalnavn</ns2:publisherRole>
+            </ns2:pbcorePublisher>
+            <ns2:pbcoreInstantiation>
+                <ns2:dateCreated>2009</ns2:dateCreated>
+                <ns2:formatLocation>Statsbiblioteket; Radio/TV-samlingen</ns2:formatLocation>
+                <ns2:formatStandard>ikke hd</ns2:formatStandard>
+                <ns2:formatDuration>2482000</ns2:formatDuration>
+                <ns2:formatAspectRatio>16:9</ns2:formatAspectRatio>
+                <ns2:formatColors>farve</ns2:formatColors>
+                <ns2:formatChannelConfiguration>ikke surround</ns2:formatChannelConfiguration>
+                <ns2:pbcoreDateAvailable>
+                    <ns2:dateAvailableStart>2012-11-14T23:20:00+0100</ns2:dateAvailableStart>
+                    <ns2:dateAvailableEnd>2012-11-15T00:00:00+0100</ns2:dateAvailableEnd>
+                </ns2:pbcoreDateAvailable>
+                <ns2:pbcoreFormatID>
+                    <ns2:formatIdentifier>5444487RitzauProgram</ns2:formatIdentifier>
+                    <ns2:formatIdentifierSource>id</ns2:formatIdentifierSource>
+                </ns2:pbcoreFormatID>
+            </ns2:pbcoreInstantiation>
+            <ns2:pbcoreExtension>
+                <ns2:extension>antalepisoder:39</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>episodenr:33</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>premiere:ikke premiere</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>genudsendelse:ikke genudsendelse</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>hovedgenre_id:4</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>kanalid:3</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>live:ikke live</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>produktionsland_id:0</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>program_id:29121458</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>program_ophold:ikke program ophold</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>undergenre_id:684</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>afsnit_id:59202</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>saeson_id:2382</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>serie_id:1009</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>tekstet:ikke tekstet</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>th:ikke tekstet for hørehæmmede</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>ttv:ikke tekst-tv</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>showviewcode:355397</ns2:extension>
+            </ns2:pbcoreExtension>
+        </ns2:PBCoreDescriptionDocument>
+    </pbcore>
+    <originals>
+        <ns3:ritzau_original>RitzauProgram{Id=5444487, channel_name='dr1', kanalId=3, starttid=2012-11-14 23:20:00.0, sluttid=2012-11-15 00:00:00.0, annotation='null', originaltitel='null', kanalnavn='DR1', titel='Damages', hovedgenre='Serier', undergenre='Dramaserie', kortomtale='Amerikansk dramaserie fra 2010.', langomtale1='Patty Hewes har mistanke om, at Tessa Marchetti bliver brugt til at smugle Louis Tobins penge ud af USA. Så Tom Shayes sendes til Antigua i Caribien for at efterforske sagen og lokke oplysninger ud af Tessa. Samtidig erfarer Joe Tobin for første gang, at hans far havde en datter uden for ægteskab.', langomtale2='null', urllink='null', lydlink='null', episodetitel='null', instruktion='null', forfatter='null', produktionsland='null', medvirkende='Patty Hewes: Glenn Close, Ellen Parsons: Rose Byrne og Tom Shayes: Tate Donovan.', programlaengde=0, produktionsaar=2009, episodenr=33, antalepisoder=39, showviewcode=355397, surround=false, genudsendelse=false, ttv=false, sh=false, tekstet=false, sekstenni=true, bredformat=false, premiere=false, th=false, program_id=29121458, hovedgenre_id=4, undergenre_id=684, program_ophold=false, produktionsland_id=0, live=false, hd=false, afsnit_id=59202, saeson_id=2382, serie_id=1009}</ns3:ritzau_original>
+        <ns4:tvmeterProgram>
+            <ns4:originalEntry>00011211142323021211150004242000310044002000410010001800310031003000400020090000Damages                                                     Damages                                                     Damages                                                        33FREM      010000000000000000000Stereo    16:9      172000000000000211636800          000001</ns4:originalEntry>
+            <ns4:sourceFileName>de121114.std</ns4:sourceFileName>
+            <ns4:logFormat>FORMAT_2</ns4:logFormat>
+            <ns4:stationID>DR1</ns4:stationID>
+            <ns4:startDate>2012-11-14 23:23:02.0</ns4:startDate>
+            <ns4:endDate>2012-11-15 00:04:24.0</ns4:endDate>
+            <ns4:parsedProgramClassification>
+                <ns4:targetGroup>Voksne</ns4:targetGroup>
+                <ns4:contentsItem>Fiktion</ns4:contentsItem>
+                <ns4:form>Serie</ns4:form>
+                <ns4:frequency>Serie</ns4:frequency>
+                <ns4:origin>En el. flere TV-stationers egenproduktion</ns4:origin>
+                <ns4:sendstatus>Førstegangsudsendelse</ns4:sendstatus>
+                <ns4:productionDepartment>TV-INTERNATIONAL</ns4:productionDepartment>
+                <ns4:itemCountry>USA</ns4:itemCountry>
+                <ns4:productionCountry>USA</ns4:productionCountry>
+                <ns4:intent>.. er at underholde</ns4:intent>
+                <ns4:productionTimeAndPlace>Redigeret udsendelse udefra/ENG/EFP</ns4:productionTimeAndPlace>
+                <ns4:targetGroupProductionYear>2009</ns4:targetGroupProductionYear>
+                <ns4:targetGroupProposedPlacement>0000</ns4:targetGroupProposedPlacement>
+            </ns4:parsedProgramClassification>
+            <ns4:mainTitle>Damages</ns4:mainTitle>
+            <ns4:subTitle>Damages</ns4:subTitle>
+            <ns4:originalTitle>Damages</ns4:originalTitle>
+            <ns4:episodeNumber>33</ns4:episodeNumber>
+            <ns4:broadcastType>FREM</ns4:broadcastType>
+            <ns4:overflowFlag>0</ns4:overflowFlag>
+            <ns4:regionFlags>10000000000000000000</ns4:regionFlags>
+            <ns4:expectedGRP>Stereo</ns4:expectedGRP>
+            <ns4:additionDeductionOnPrice>16:9</ns4:additionDeductionOnPrice>
+            <ns4:commonCode>17. (7b) Udenlandsk Fiktion.</ns4:commonCode>
+            <ns4:price>0000000000</ns4:price>
+            <ns4:internalIDCode>0211636800</ns4:internalIDCode>
+            <ns4:bid>00000</ns4:bid>
+            <ns4:emmisionsLevel>1</ns4:emmisionsLevel>
+        </ns4:tvmeterProgram>
+    </originals>
+    <programBroadcast>
+        <ns5:timeStart>2012-11-14T23:23:02.000+01:00</ns5:timeStart>
+        <ns5:timeStop>2012-11-15T00:04:24.000+01:00</ns5:timeStop>
+        <ns5:channelId>dr1</ns5:channelId>
+    </programBroadcast>
+    <fileUrls>
+        <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts</fileUrl>
+        <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts</fileUrl>
+    </fileUrls>
+</program>
