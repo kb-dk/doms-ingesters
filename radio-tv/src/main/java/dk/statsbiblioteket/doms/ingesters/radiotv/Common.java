@@ -11,9 +11,13 @@ public class Common {
 
     static final String PBCORE_NAMESPACE = "http://www.pbcore.org/PBCore/PBCoreNamespace.html";
     static final String DC_NAMESPACE = "http://purl.org/dc/elements/1.1/";
+    static final String RITZAU_NAMESPACE = "http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#";
+    private static final String GALLUP_NAMESPACE = "http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#";
     static final XPathSelector XPATH_SELECTOR = DOM
             .createXPathSelector("pbc", PBCORE_NAMESPACE,
-                                 "dc", DC_NAMESPACE);
+                                 "dc", DC_NAMESPACE,
+                                 "ritzau", RITZAU_NAMESPACE,
+                                 "gallup", GALLUP_NAMESPACE);
     static final String PBCORE_DESCRIPTION_ELEMENT
                     = "//program/pbcore/pbc:PBCoreDescriptionDocument";
     static final String DC_IDENTIFIER_ELEMENT = "//dc:identifier";
@@ -22,8 +26,8 @@ public class Common {
             = "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier";
     static final String PBCORE_GALLUP_IDENTIFIER_ELEMENT
                     = "pbc:pbcoreIdentifier[pbc:identifierSource=\"tvmeter\"]/pbc:identifier";
-    static final String RITZAU_ORIGINALS_ELEMENT = "//program/originals/ritzau_original";
-    static final String GALLUP_ORIGINALS_ELEMENT = "//program/originals/gallup_original|//program/originals/tvmeterProgram";
+    static final String RITZAU_ORIGINALS_ELEMENT = "//program/originals/ritzau:ritzau_original";
+    static final String GALLUP_ORIGINALS_ELEMENT = "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram";
     static final String PROGRAM_BROADCAST_ELEMENT = "//program/programBroadcast";
     static final String RECORDING_FILES_URLS = "//program/fileUrls/fileUrl";
 
