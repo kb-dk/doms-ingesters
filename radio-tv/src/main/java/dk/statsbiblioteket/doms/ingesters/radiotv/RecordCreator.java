@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.regex.Matcher;
 
 /**
  * Code to create programs.
@@ -165,6 +166,8 @@ public class RecordCreator {
             throws XPathExpressionException, ServerOperationFailed {
         for (String oldId : oldIdentifiers) {
             try {
+                //TODO Remove this when fixed in doms central RI query
+                oldId = oldId.replaceAll("'", Matcher.quoteReplacement("\\'"));
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
                 if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
                     return pids.get(0);
