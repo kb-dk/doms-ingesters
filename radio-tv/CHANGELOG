@@ -3,9 +3,12 @@ Change log for radio/tv program ingester
 0.0.8
 2012-03-18
 
-Make sure we don't have two incompatible versions of doms client in play
+Make sure we don't have two incompatible versions of doms client in play.
+Better packaging.
 
 Git log:
+99dec84 2013-03-18 14:11:23 +0100       Kåre Fiedler Christiansen       Use .tar.gz for package format
+57637df 2013-03-18 14:06:59 +0100       Kåre Fiedler Christiansen       Added changelog
 f2fbee1 2013-03-18 12:03:04 +0100       Kåre Fiedler Christiansen       Make sure we don't have two incompatible versions of doms client in play
 
 0.0.7
