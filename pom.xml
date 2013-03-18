@@ -52,6 +52,12 @@
                 <groupId>dk.statsbiblioteket.doms.transformers</groupId>
                 <artifactId>shardmigrator</artifactId>
                 <version>0.1.4</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>dk.statsbiblioteket.doms.client</groupId>
+                        <artifactId>domsClient</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
 
