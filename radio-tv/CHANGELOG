@@ -1,0 +1,81 @@
+Change log for radio/tv program ingester
+
+0.0.8
+2012-03-18
+
+Make sure we don't have two incompatible versions of doms client in play
+
+Git log:
+f2fbee1 2013-03-18 12:03:04 +0100       Kåre Fiedler Christiansen       Make sure we don't have two incompatible versions of doms client in play
+
+0.0.7
+2013-01-25
+
+Update to new digitv exporter format.
+Only register programs, not files.
+Do not create shard objects.
+Better handling of errors during ingest.
+Minor features,
+Various bugfixes.
+
+Git log:
+c3e9904 2012-12-20 07:58:10 +0100       Kåre Fiedler Christiansen       Quote ' in looking up ids
+8780a58 2012-12-13 22:55:04 +0100       Kåre Fiedler Christiansen       Downgrade doms client dependency to latest functional version that matches server. Also add ignored test skeleton that works on real DOMS.
+2dd5668 2012-12-13 22:53:43 +0100       Kåre Fiedler Christiansen       Use namespace in program broadcast xpath query
+9eb1d75 2012-12-13 22:52:39 +0100       Kåre Fiedler Christiansen       Update schema to have namespace on programStructure
+15b0ce0 2012-12-13 22:52:00 +0100       Kåre Fiedler Christiansen       Remove obsolete ffprobe injector
+6c02793 2012-12-13 10:40:33 +0100       Kåre Fiedler Christiansen       Add skeleton test
+c5fb7b8 2012-12-13 10:40:14 +0100       Kåre Fiedler Christiansen       Use namespaced xpath queries
+57410fd 2012-12-13 10:39:48 +0100       Kåre Fiedler Christiansen       Fix bug where exception should be ignored on no previous program in DOMS
+2b90d51 2012-12-13 10:38:24 +0100       Kåre Fiedler Christiansen       Upgrade xsd schema version
+e0be8ae 2012-12-13 08:21:16 +0100       Kåre Fiedler Christiansen       Downgrade dependency
+dff2a58 2012-12-12 23:13:18 +0100       Adam Tulinius   Add missing version-information for the shardmigrator-dependency.
+e9fea6e 2012-12-12 22:58:26 +0100       Adam Tulinius   Ignore .idea/
+319ff89 2012-12-04 11:34:21 +0100       Kåre Fiedler Christiansen       Huge cleanup of doms ingester. Shorter and simplified, and supports new digitv exporter format
+7b71370 2012-12-03 07:56:06 +0100       Kåre Fiedler Christiansen       Slight cleanup of getting old IDs
+51512c9 2012-11-12 17:26:13 +0100       Asger Askov Blekinge    remember to add teh transformers to the dependency management list....
+fe14740 2012-11-12 17:25:46 +0100       Asger Askov Blekinge    updated the doms radio tv ingester to the new datamodel, and made it depend on the transformers code
+2af620e 2012-09-20 23:24:49 +0200       Kåre Fiedler Christiansen       Slightly better defaults for local testing
+daf36ee 2012-09-20 23:24:23 +0200       Kåre Fiedler Christiansen       Update dependency on doms-client to bugfixed version
+89bf244 2012-09-20 18:08:02 +0200       Kåre Fiedler Christiansen       Ignore idea files
+8a9dadb 2012-09-20 18:06:41 +0200       Kåre Fiedler Christiansen       Remove idea files
+ce49a83 2012-09-20 16:29:01 +0200       Kåre Fiedler Christiansen       Support multiple identifiers
+816c2e3 2012-09-20 16:00:52 +0200       Kåre Fiedler Christiansen       Remove redundant TODOs
+68bafe3 2012-09-20 15:59:46 +0200       Kåre Fiedler Christiansen       Remove shard object
+9286c11 2012-09-20 10:10:41 +0200       Kåre Fiedler Christiansen       Added comments and TODOs for methods that need to be updated
+7ed9583 2012-09-20 09:53:03 +0200       Kåre Fiedler Christiansen       Increased allowed number of failures during ingest
+f17ba22 2012-09-20 09:52:25 +0200       Kåre Fiedler Christiansen       Inlined use of DOMS client
+3271e9e 2012-09-20 09:40:19 +0200       Kåre Fiedler Christiansen       Code cleanup: Cleaned and documented method to move failed pid file
+4362b99 2012-09-20 09:33:40 +0200       Kåre Fiedler Christiansen       Documented and moved the main work method
+f4b22f0 2012-09-20 08:01:28 +0200       Kåre Fiedler Christiansen       Code cleanup: Documented looking up PIDs of old programs in DOMS, and slightly cleaned up code.
+88c173c 2012-09-20 07:51:20 +0200       Kåre Fiedler Christiansen       Make fileModified behave as fileAdded
+c733146 2012-09-20 07:50:04 +0200       Kåre Fiedler Christiansen       Sanitized fault barrier
+9728218 2012-09-20 07:49:30 +0200       Kåre Fiedler Christiansen       Code cleanup: Moved public methods to top, added some javadoc, sanitized constants, fields and initializations
+bf67ad3 2012-09-20 07:28:09 +0200       Kåre Fiedler Christiansen       Reindented code
+50ac4b3 2012-09-20 07:14:12 +0200       Kåre Fiedler Christiansen       Fix a few codestyle and documentation issues
+8efdbb2 2012-09-19 11:16:59 +0200       Kåre Fiedler Christiansen       Cleanup defaults to not mention specific user dirs
+e81f84b 2012-08-25 17:02:25 +0200       Kåre Fiedler Christiansen       Made code compile
+2ed8d20 2012-08-25 16:52:15 +0200       Kåre Fiedler Christiansen       Removed obsolete modules directory
+21bba64 2012-08-24 15:09:08 +0200       Adam Tulinius   Add basic .gitignore
+079498e 2012-08-24 14:15:48 +0200       Adam Tulinius   DOMS-164 - migrate projects to git: Update pom.xml to reflect the new scm paths.
+893dc9b 2012-02-20 16:53:35 +0000       Jeppe Ravn-Grove        Committing FFProbe metadata injector "as-is", to let other people work on it while jrg does work on other projects.
+28ea841 2012-02-15 14:34:04 +0000       Kåre Fiedler Christiansen       Moved handleRegistrar to more proper location in tools
+8659427 2012-02-14 16:43:38 +0000       Jeppe Ravn-Grove        BasicHandleRegistrar should be finished now. Next step will be to test it.
+8cc7f7c 2012-02-14 15:34:42 +0000       Jeppe Ravn-Grove        More handle-registering. Implementing Claus/KB's ideas. Now only one method to do.
+cd276ab 2012-02-06 14:32:35 +0000       Jeppe Ravn-Grove        More handle-registering. Better understanding now.
+af282dd 2012-02-06 13:13:30 +0000       Jeppe Ravn-Grove        More handle-registering. Trying to rebuild what was thrown away by Idea or svn or whoever.
+3e867f6 2012-02-03 15:44:27 +0000       Kåre Fiedler Christiansen       Slight updates to framework
+fb7454e 2012-01-31 15:20:39 +0000       Kåre Fiedler Christiansen       Possibly correct implementation of doms communication part. Needs testing
+bbf08fa 2012-01-25 17:08:49 +0000       Jeppe Ravn-Grove        Beginnings of handle-registering, including Maven-support for handle-lib.
+11d2f62 2012-01-20 14:24:26 +0000       Kåre Fiedler Christiansen       HandleRegistrar stub
+88809e2 2011-12-13 12:33:29 +0000       Jeppe Ravn-Grove        Refactoring FFProbeWrapper stuff
+2282dcf 2011-11-24 10:38:06 +0000       Esben Agerbaek Black    more documentation
+01bfdd2 2011-11-24 10:02:04 +0000       Esben Agerbaek Black    ffprobe tools now uses a config file and has a README
+727e493 2011-11-23 12:39:30 +0000       Esben Agerbaek Black    ffprobe tools now uses a config file and has a README
+0101162 2011-11-22 14:02:37 +0000       Esben Agerbaek Black    FFProbe ingester and initial ffprobing wrapper
+e76c509 2011-03-16 17:37:23 +0000       Asger Askov Blekinge    Should now handle comments to the doms instance
+
+0.0.6
+2011-03-16
+
+First production version of ingester.
