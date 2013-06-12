@@ -29,10 +29,11 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
-import dk.statsbiblioteket.doms.client.NoObjectFound;
-import dk.statsbiblioteket.doms.client.ServerOperationFailed;
-
+import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
+import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -164,10 +165,10 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @throws ServerOperationFailed On trouble updating DOMS.
      * @throws URISyntaxException Should never happen. Means shard URI generated is invalid.
      * @throws XPathExpressionException Should never happen. Means program is broken with wrong XPath exception.
+     * @throws XMLParseException On trouble parsing XML.
      */
     private void createRecord(Document radioTVMetadata, File addedFile, List<String> pidsInProgress)
-            throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException,
-            JAXBException, ParseException, ParserConfigurationException, NoObjectFound {
+            throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException, JAXBException, ParseException, ParserConfigurationException, NoObjectFound {
         // Create or update program object for this program
         String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata);
         pidsInProgress.add(programPID);
