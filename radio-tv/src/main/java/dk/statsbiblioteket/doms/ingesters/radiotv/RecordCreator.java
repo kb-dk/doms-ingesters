@@ -29,10 +29,12 @@ import java.util.regex.Matcher;
  */
 public class RecordCreator {
     private DomsWSClient domsClient;
+    private boolean overwrite;
     private DocumentBuilder documentBuilder;
 
-    public RecordCreator(DomsWSClient domsClient) throws ParserConfigurationException {
+    public RecordCreator(DomsWSClient domsClient, boolean overwrite) throws ParserConfigurationException {
         this.domsClient = domsClient;
+        this.overwrite = overwrite;
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilder = documentBuilderFactory.newDocumentBuilder();
     }
@@ -54,7 +56,7 @@ public class RecordCreator {
      */
     public String ingestProgram(Document radioTVMetadata)
             throws ServerOperationFailed, XMLParseException, MalformedURLException, NoObjectFound,
-            XPathExpressionException {
+            XPathExpressionException, OverwriteException {
         // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
         List<String> filePIDs = getFilePids(radioTVMetadata);
 
@@ -67,9 +69,13 @@ public class RecordCreator {
             // datastream with the PBCore metadata from the pre-ingest file.
             programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Common.COMMENT);
         } else { //Exists
-            domsClient.unpublishObjects(Common.COMMENT, existingPid);
-            addOldPids(existingPid, oldIdentifiers);
-            programObjectPID = existingPid;
+            if (overwrite){
+                domsClient.unpublishObjects(Common.COMMENT, existingPid);
+                addOldPids(existingPid, oldIdentifiers);
+                programObjectPID = existingPid;
+            } else {
+                throw new OverwriteException("Attempted to overwrite pid='"+existingPid+"");
+            }
         }
 
         // Get the program title from the PBCore metadata and use that as the

@@ -2,10 +2,18 @@
 #
 # Basic Parameters
 #
+# Normal queue
 COLDFOLDER=$BASEDIR/files/coldfolder
 LUKEFOLDER=$BASEDIR/files/lukewarm
 HOTFOLDER=$BASEDIR/files/hotfolder
-STOPFOLDER=$BASEDIR/files/stopfolder
+
+# Overwrite queue
+COLDFOLDER=$BASEDIR/forced/coldfolder
+LUKEFOLDER=$BASEDIR/forced/lukewarm
+HOTFOLDER=$BASEDIR/forced/hotfolder
+
+
+STOPFOLDER=$BASEDIR/stopfolder
 WSDL=http://localhost:7980/centralWebservice-service/central/?wsdl
 USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass

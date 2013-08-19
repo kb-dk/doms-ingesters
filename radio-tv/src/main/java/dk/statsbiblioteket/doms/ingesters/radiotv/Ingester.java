@@ -55,21 +55,20 @@ public class Ingester {
         new Ingester().mainInstance(args);
     }
 
-    public static File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
-
     private void mainInstance(String[] args) throws MalformedURLException,
-                                                    InvalidCredentialsException, MethodFailedException,
-                                                    InterruptedException, SAXException {
+            InvalidCredentialsException, MethodFailedException,
+            InterruptedException, SAXException {
 
         final Calendar rightNow = Calendar.getInstance();
         final DateFormat dateFormat = DateFormat.getDateTimeInstance(
                 DateFormat.FULL, DateFormat.FULL);
         System.out.println("Ingester start-up time: "
-                           + dateFormat.format(rightNow.getTime()));
+                + dateFormat.format(rightNow.getTime()));
 
         File HOT_FOLDER = new File("radioTVMetaData");
 
         File COLD_FOLDER = new File("processedFiles");
+        File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
         File STOP_FOLDER = new File("stopFolder");
 
         File PRE_INGEST_FILE_SCHEMA_FILE = new File(
@@ -81,12 +80,14 @@ public class Ingester {
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
 
+        boolean OVERWRITE = false;
+
         for (String arg : args) {
             if (arg.startsWith("-hotfolder=")) {
                 HOT_FOLDER = new File(arg.substring("-hotfolder=".length()));
             } else if (arg.startsWith("-lukefolder=")) {
                 LUKEWARM_FOLDER = new File(arg.substring("-lukefolder="
-                                                                 .length()));
+                        .length()));
             } else if (arg.startsWith("-coldfolder=")) {
                 COLD_FOLDER = new File(arg.substring("-coldfolder=".length()));
             } else if (arg.startsWith("-wsdl=")) {
@@ -99,44 +100,48 @@ public class Ingester {
                 password = arg.substring("-password=".length());
             } else if (arg.startsWith("-preingestschema=")) {
                 PRE_INGEST_FILE_SCHEMA_FILE = new File(arg.substring("-preingestschema=".length()));
+            } else if (arg.startsWith("-overwrite=")) {
+                OVERWRITE = Boolean.parseBoolean(arg.substring("-overwrite=".length()));
             }
+
         }
         System.out.println("Ingester started with the following configuration "
-                           + "detatils:");
+                + "detatils:");
         System.out.println("HOT_FOLDER = " + HOT_FOLDER.getAbsolutePath());
         System.out.println("LUKEWARM_FOLDER = "
-                           + LUKEWARM_FOLDER.getAbsolutePath());
+                + LUKEWARM_FOLDER.getAbsolutePath());
         System.out.println("COLD_FOLDER = " + COLD_FOLDER.getAbsolutePath());
         System.out.println("STOP_FOLDER = " + STOP_FOLDER.getAbsolutePath());
         System.out.println("PRE_INGEST_FILE_SCHEMA_FILE = "
-                           + PRE_INGEST_FILE_SCHEMA_FILE.getAbsolutePath());
+                + PRE_INGEST_FILE_SCHEMA_FILE.getAbsolutePath());
         System.out.println("domsAPIWSLocation = "
-                           + domsAPIWSLocation.toString());
+                + domsAPIWSLocation.toString());
         System.out.println("username = " + username);
         System.out.println("password = " + password);
+        System.out.println("overwrite = " + OVERWRITE);
 
         // Make sure that all the necessary folders exist.
         if (!HOT_FOLDER.exists()) {
             HOT_FOLDER.mkdirs();
             System.out.println("HOT_FOLDER: " + HOT_FOLDER.getName() + " did "
-                               + "not exist. Has been created.");
+                    + "not exist. Has been created.");
         }
 
         if (!LUKEWARM_FOLDER.exists()) {
             LUKEWARM_FOLDER.mkdirs();
             System.out.println("LUKEWARM_FOLDER: " + LUKEWARM_FOLDER.getName()
-                               + " did not exist. Has been created.");
+                    + " did not exist. Has been created.");
         }
 
         if (!COLD_FOLDER.exists()) {
             COLD_FOLDER.mkdirs();
             System.out.println("COLD_FOLDER: " + COLD_FOLDER.getName()
-                               + " did not exist. Has been created.");
+                    + " did not exist. Has been created.");
         }
         if (!STOP_FOLDER.exists()) {
             STOP_FOLDER.mkdirs();
             System.out.println("STOP_FOLDER: " + STOP_FOLDER.getName()
-                               + " did not exist. Has been created.");
+                    + " did not exist. Has been created.");
         }
 
         final HotFolderScanner hotFolderScanner = new HotFolderScanner();
@@ -151,9 +156,9 @@ public class Ingester {
 
         final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
                 domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER,
-                preIngestFileSchema);
+                preIngestFileSchema, OVERWRITE);
         hotFolderScanner.startScanning(HOT_FOLDER, STOP_FOLDER,
-                                       metadataProcessor);
+                metadataProcessor);
 
         // Hang forever....
         synchronized (this) {

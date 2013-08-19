@@ -61,6 +61,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private final File failedFilesFolder;
     /** Folder to move processed files to. */
     private final File processedFilesFolder;
+    private final boolean overwrite;
 
     /** Document builder that fails on XML files not conforming to the preingest schema. */
     private final DocumentBuilder preingestFilesBuilder;
@@ -77,11 +78,13 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param failedFilesFolder Folder to move failed files to.
      * @param processedFilesFolder Folder to move processed files to.
      * @param preIngestFileSchema Schema for Raio/TV metadata to process.
+
      */
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo, File failedFilesFolder, File processedFilesFolder,
-                                    Schema preIngestFileSchema) {
+                                    Schema preIngestFileSchema, boolean overwrite) {
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
+        this.overwrite = overwrite;
         this.domsClient = new DomsWSClientImpl();
         this.domsClient.setCredentials(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo.getLogin(),
                 domsLoginInfo.getPassword());
@@ -170,7 +173,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private void createRecord(Document radioTVMetadata, File addedFile, List<String> pidsInProgress)
             throws IOException, ServerOperationFailed, URISyntaxException, XPathExpressionException, XMLParseException, JAXBException, ParseException, ParserConfigurationException, NoObjectFound {
         // Create or update program object for this program
-        String programPID = new RecordCreator(domsClient).ingestProgram(radioTVMetadata);
+        String programPID = new RecordCreator(domsClient, overwrite).ingestProgram(radioTVMetadata);
         pidsInProgress.add(programPID);
         File allWrittenPIDs = writePIDs(failedFilesFolder, addedFile, pidsInProgress);
 
