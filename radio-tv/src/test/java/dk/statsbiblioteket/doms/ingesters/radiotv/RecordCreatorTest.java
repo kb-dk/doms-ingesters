@@ -48,7 +48,7 @@ public class RecordCreatorTest {
         documentBuilderFactory.setNamespaceAware(true);
         Document metadataDocument = documentBuilderFactory.newDocumentBuilder().parse(getClass().getResource("/2012-11-14_23-20-00_dr1.xml").getFile());
         DomsWSClient testDomsClient = new TestDomsWSClient();
-        new RecordCreator(testDomsClient).ingestProgram(metadataDocument);
+        new RecordCreator(testDomsClient,true).ingestProgram(metadataDocument);
     }
 
     @Ignore
@@ -59,7 +59,7 @@ public class RecordCreatorTest {
         Document metadataDocument = documentBuilderFactory.newDocumentBuilder().parse(getClass().getResource("/2012-11-15_09-40-00_dr1.xml").getFile());
         DomsWSClient testDomsClient = new DomsWSClientImpl();
         testDomsClient.login(new URL("http://alhena:7880/centralWebservice-service/central/?wsdl"), "fedoraAdmin", "fedoraAdminPass");
-        new RecordCreator(testDomsClient).ingestProgram(metadataDocument);
+        new RecordCreator(testDomsClient,true).ingestProgram(metadataDocument);
     }
 
 
