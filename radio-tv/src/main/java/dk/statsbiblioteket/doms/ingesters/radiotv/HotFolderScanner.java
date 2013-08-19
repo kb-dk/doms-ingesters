@@ -108,9 +108,14 @@ public class HotFolderScanner {
                            + dateFormat.format(rightNow.getTime()));
         // TODO: We could add a smart feature to let users choose between
         // different inspector types, however, that is not important right now.
-        TimerTask scannerTask = new NonRecursiveHotFolderInspector(
-                hotFolderToScan, stopFolder, client);
+        NonRecursiveHotFolderInspector scannerTask = new NonRecursiveHotFolderInspector(
+                hotFolderToScan, client);
+        StopFolderWatcher stopFolderWatcher = new StopFolderWatcher(scannerTask, stopFolder);
+
         scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
                                           scannerPeriod);
+        //TODO should this be configurable?
+        scannerDaemon.scheduleAtFixedRate(stopFolderWatcher,scannerDelay,1000);
+
     }
 }

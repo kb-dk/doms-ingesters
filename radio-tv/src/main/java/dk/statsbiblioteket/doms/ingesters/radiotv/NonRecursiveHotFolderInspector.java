@@ -49,7 +49,6 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * Full path to the hot folder to scan.
      */
     private final File folderToScan;
-    private final File stopFolder;
 
     /**
      * Map containing paths and timestamps for all files found in the hot folder
@@ -71,13 +70,11 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * <code>{@link #run()}</code> method is executed.
      *
      * @param hotFolderToScan File path to a hot folder to scan.
-     * @param sFolder         File path to the stop folder.
      * @param client          Reference to a client to notify about changes in the folder.
      */
-    public NonRecursiveHotFolderInspector(File hotFolderToScan, File sFolder,
+    public NonRecursiveHotFolderInspector(File hotFolderToScan,
                                           HotFolderScannerClient client) {
         folderToScan = hotFolderToScan;
-        stopFolder = sFolder;
         callBackClient = client;
         previousFolderContents = new HashMap<File, Long>();
     }
@@ -102,18 +99,9 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
         Arrays.sort(files);
         final List<File> currentFolderContents = Arrays.asList(files);
 
-        mainLoop:
         for (File currentFile : currentFolderContents) {
-
-            if (objectsIngested % 20 == 0) {
-                File[] stopFiles = stopFolder.listFiles();
-                List<File> stopList = Arrays.asList(stopFiles);
-                for (File stopFile : stopList) {
-                    if (stopFile.getName().toLowerCase().equals("stoprunning")) {
-                        killFlag = true;
-                        break mainLoop;
-                    }
-                }
+            if (killFlag) {
+                break;
             }
 
             if (objectsIngested % 10 == 0) {
@@ -123,11 +111,11 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
                 System.out.println(dateFormat.format(rightNow.getTime()));
 
                 System.out.println("Total Objects ingested: " + objectsIngested
-                                   + "; Total time spent ingesting: " + totalIngestTime
-                                   + " ms; Time per object is " + (totalIngestTime + 0.0)
-                                                                  / objectsIngested + " ms.");
+                        + "; Total time spent ingesting: " + totalIngestTime
+                        + " ms; Time per object is " + (totalIngestTime + 0.0)
+                        / objectsIngested + " ms.");
                 System.out.println("Time per object for the last 10 is: "
-                                   + lastTenObjects / 10 + " ms");
+                        + lastTenObjects / 10 + " ms");
                 lastTenObjects = 0;
             }
             final Long previousTimeStamp = previousFolderContents
@@ -172,5 +160,10 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
 
             System.exit(1);
         }
+    }
+
+    public void setKillFlag() {
+        killFlag = true;
+
     }
 }
