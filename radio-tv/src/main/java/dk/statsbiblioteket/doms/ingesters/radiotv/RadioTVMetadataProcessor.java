@@ -33,7 +33,6 @@ import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -53,7 +52,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** On added xml files with radio/tv metadata, add objects to DOMS describing these files. */
-public class RadioTVMetadataProcessor implements HotFolderScannerClient {
+public class RadioTVMetadataProcessor extends MultiThreadedProcessor implements HotFolderScannerClient {
+
+
     /** How many times we failed during ingest. */
     private int exceptionCount = 0;
 
@@ -61,10 +62,9 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
     private final File failedFilesFolder;
     /** Folder to move processed files to. */
     private final File processedFilesFolder;
+    private Schema preIngestFileSchema;
     private final boolean overwrite;
 
-    /** Document builder that fails on XML files not conforming to the preingest schema. */
-    private final DocumentBuilder preingestFilesBuilder;
 
     /** Client for communicating with DOMS. */
     private final DomsWSClient domsClient;
@@ -82,16 +82,22 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      */
     public RadioTVMetadataProcessor(DOMSLoginInfo domsLoginInfo, File failedFilesFolder, File processedFilesFolder,
                                     Schema preIngestFileSchema, boolean overwrite) {
+        super(5);
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
+        this.preIngestFileSchema = preIngestFileSchema;
         this.overwrite = overwrite;
         this.domsClient = new DomsWSClientImpl();
         this.domsClient.setCredentials(domsLoginInfo.getDomsWSAPIUrl(), domsLoginInfo.getLogin(),
                 domsLoginInfo.getPassword());
 
+    }
+
+    private DocumentBuilder getFileParser(Schema preIngestFileSchema) {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         documentBuilderFactory.setSchema(preIngestFileSchema);
         documentBuilderFactory.setNamespaceAware(true);
+        DocumentBuilder preingestFilesBuilder;
         try {
             preingestFilesBuilder = documentBuilderFactory.newDocumentBuilder();
         } catch (ParserConfigurationException pce) {
@@ -100,7 +106,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             throw new RuntimeException();// will never be reached, but no matter
         }
 
-        ErrorHandler documentErrorHandler = new org.xml.sax.ErrorHandler() {
+        ErrorHandler documentErrorHandler = new ErrorHandler() {
 
             @Override
             public void warning(SAXParseException exception) throws SAXException {
@@ -118,7 +124,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
             }
         };
         preingestFilesBuilder.setErrorHandler(documentErrorHandler);
-
+        return preingestFilesBuilder;
     }
 
     /**
@@ -126,18 +132,25 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param addedFile Full path to the new file.
      */
     @Override
-    public void fileAdded(File addedFile) {
-        List<String> pidsInProgress = new ArrayList<String>();
-        //This method acts as fault barrier
-        try {
-            Document radioTVMetadata = preingestFilesBuilder.parse(addedFile);
-            createRecord(radioTVMetadata, addedFile, pidsInProgress);
-        } catch (Exception e) {
-            // Handle anything unanticipated.
-            failed(addedFile, pidsInProgress);
-            e.printStackTrace();
-            incrementFailedTries();
-        }
+    public synchronized void fileAdded(final File addedFile) {
+
+        Runnable handler = new Runnable() {
+            @Override
+            public void run() {
+                List<String> pidsInProgress = new ArrayList<String>();
+                //This method acts as fault barrier
+                try {
+                    Document radioTVMetadata = getFileParser(preIngestFileSchema).parse(addedFile);
+                    createRecord(radioTVMetadata, addedFile, pidsInProgress);
+                } catch (Exception e) {
+                    // Handle anything unanticipated.
+                    failed(addedFile, pidsInProgress);
+                    e.printStackTrace();
+                    incrementFailedTries();
+                }
+            }
+        };
+        pool.submit(handler);
     }
 
     @Override
@@ -266,7 +279,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
      * @param failedMetadataFile The originating file.
      *
      */
-    private void writeFailedPIDs(File failedMetadataFile) {
+    private synchronized void writeFailedPIDs(File failedMetadataFile) {
         final File activePIDsFile = new File(failedFilesFolder, failedMetadataFile.getName() + ".InProcessPIDs");
         final File failedPIDsFile = new File(failedFilesFolder, failedMetadataFile.getName() + ".failedPIDs");
         activePIDsFile.renameTo(failedPIDsFile);
@@ -282,7 +295,7 @@ public class RadioTVMetadataProcessor implements HotFolderScannerClient {
 
     /** The number of tries is incremented by one.
      * If this exceeds the maximum number of allowed failures,  */
-    private void incrementFailedTries() {
+    private synchronized void incrementFailedTries() {
         exceptionCount += 1;
         if (exceptionCount >= Common.MAX_FAIL_COUNT) {
             System.err.println("Too many errors (" + exceptionCount + ") in ingest. Exiting.");
