@@ -24,6 +24,34 @@
         <module>radio-tv</module>
     </modules>
 
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.4.2</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <artifactId>maven-release-plugin</artifactId>
+        <dependencies>
+          <dependency>
+            <!-- Needed until release-plugin 2.5 is ready, see MRELEASE-812 "prepare" does not commit before tagging and therefore deploys snapshot instead of release -->
+            <groupId>org.apache.maven.scm</groupId>
+            <artifactId>maven-scm-provider-gitexe</artifactId>
+            <version>1.9</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <!-- Needed by multi-module projects, see http://jira.codehaus.org/browse/MJAVADOC-276 -->
+          <preparationGoals>clean verify install</preparationGoals>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
     <dependencyManagement>
 
         <dependencies>
