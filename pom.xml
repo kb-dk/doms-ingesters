@@ -8,7 +8,7 @@
 
     <groupId>dk.statsbiblioteket.doms.ingesters</groupId>
     <artifactId>ingesters</artifactId>
-    <version>0.0.8.1-SNAPSHOT</version>
+    <version>0.0.8.1</version>
     <name>Doms Ingesters package</name>
 
     <packaging>pom</packaging>
@@ -17,7 +17,8 @@
         <connection>scm:git:git://github.com/statsbiblioteket/doms-ingesters.git</connection>
         <developerConnection>scm:git:git@github.com:statsbiblioteket/doms-ingesters.git</developerConnection>
         <url>https://github.com/statsbiblioteket/doms-ingesters</url>
-    </scm>
+      <tag>ingesters-0.0.8.1</tag>
+  </scm>
 
 
     <modules>
