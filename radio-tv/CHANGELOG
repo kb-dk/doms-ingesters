@@ -1,5 +1,9 @@
 Change log for radio/tv program ingester
 
+0.0.8.1
+2014-12-18
+Hotfix: Use local cached version of PBCORE schema
+
 0.0.8
 2012-03-18
 
