@@ -3,9 +3,9 @@
 # Basic Parameters
 #
 # Normal queue
-COLDFOLDER=$BASEDIR/files/coldfolder
-LUKEFOLDER=$BASEDIR/files/lukewarm
-HOTFOLDER=$BASEDIR/files/hotfolder
+COLDFOLDER=$BASEDIR/coldfolder
+LUKEFOLDER=$BASEDIR/lukewarm
+HOTFOLDER=$BASEDIR/hotfolder
 
 # Overwrite queue
 COLDFOLDER=$BASEDIR/forced/coldfolder
@@ -14,7 +14,7 @@ HOTFOLDER=$BASEDIR/forced/hotfolder
 
 
 STOPFOLDER=$BASEDIR/stopfolder
-WSDL=http://localhost:7980/centralWebservice-service/central/?wsdl
+WSDL=http://alhena:7880/centralWebservice-service/central/?wsdl
 USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
 SCHEMA=$BASEDIR/resources/exportedRadioTVProgram.xsd

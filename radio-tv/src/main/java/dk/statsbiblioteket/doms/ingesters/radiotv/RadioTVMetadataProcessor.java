@@ -32,6 +32,7 @@ import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
 import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import org.apache.commons.io.FileUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
@@ -47,8 +48,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /** On added xml files with radio/tv metadata, add objects to DOMS describing these files. */
@@ -133,7 +137,33 @@ public class RadioTVMetadataProcessor extends MultiThreadedProcessor implements 
      */
     @Override
     public synchronized void fileAdded(final File addedFile) {
+        handleAddedOrModifiedFile(addedFile);
+    }
 
+    /**
+         * Acts exactly as fileAdded.
+         * @param modifiedFile  Full path to the modified file.
+         */
+        @Override
+        public void fileModified(File modifiedFile) {
+            handleAddedOrModifiedFile(modifiedFile);
+        }
+
+    private void handleAddedOrModifiedFile(final File addedFile) {
+        try {
+            File possibleCopy = new File(processedFilesFolder, addedFile.getName());
+            if (possibleCopy.exists()) {
+                byte[] content = FileUtils.readFileToByteArray(addedFile);
+                byte[] copyContent = FileUtils.readFileToByteArray(possibleCopy);
+                if (Arrays.equals(content, copyContent)) {
+                    addedFile.delete();
+                    return;
+                }
+            }
+        } catch (IOException e) {
+            //If we fail here, just print the stack trace and carry on as if nothing happened.
+            e.printStackTrace();
+        }
         Runnable handler = new Runnable() {
             @Override
             public void run() {
@@ -158,14 +188,7 @@ public class RadioTVMetadataProcessor extends MultiThreadedProcessor implements 
         // Not relevant.
     }
 
-    /**
-     * Acts exactly as fileAdded.
-     * @param modifiedFile  Full path to the modified file.
-     */
-    @Override
-    public void fileModified(File modifiedFile) {
-        fileAdded(modifiedFile);
-    }
+
 
     /**
      * Create objects in DOMS for given program metadata. On success, the originating file will be moved to the folder
