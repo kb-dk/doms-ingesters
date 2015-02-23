@@ -7,7 +7,7 @@
            xmlns:ritzau="http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#">
 
     <xs:import namespace="http://www.pbcore.org/PBCore/PBCoreNamespace.html"
-               schemaLocation="http://pbcore.org/wp-content/uploads/PBCoreXSD-v1.3.xsd"/>
+               schemaLocation="http://pbcore.org/xsd/pbcore-1.3.xsd"/>
     <xs:import namespace="http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#"
                schemaLocation="PROGRAM_BROADCAST_SCHEMA.xsd"/>
     <xs:import namespace="http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#"

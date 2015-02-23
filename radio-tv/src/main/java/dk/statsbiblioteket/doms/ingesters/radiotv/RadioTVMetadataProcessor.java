@@ -141,13 +141,13 @@ public class RadioTVMetadataProcessor extends MultiThreadedProcessor implements 
     }
 
     /**
-         * Acts exactly as fileAdded.
-         * @param modifiedFile  Full path to the modified file.
-         */
-        @Override
-        public void fileModified(File modifiedFile) {
-            handleAddedOrModifiedFile(modifiedFile);
-        }
+     * Acts exactly as fileAdded.
+     * @param modifiedFile  Full path to the modified file.
+     */
+    @Override
+    public void fileModified(File modifiedFile) {
+        handleAddedOrModifiedFile(modifiedFile);
+    }
 
     private void handleAddedOrModifiedFile(final File addedFile) {
         try {
