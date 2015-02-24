@@ -5,12 +5,12 @@
     <parent>
         <groupId>dk.statsbiblioteket.doms.ingesters</groupId>
         <artifactId>ingesters</artifactId>
-        <version>1.3-SNAPSHOT</version>
+        <version>1.3</version>
     </parent>
 
     <groupId>dk.statsbiblioteket.doms.ingesters</groupId>
     <artifactId>radio-tv</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.3</version>
 
     <dependencies>
         <dependency>
