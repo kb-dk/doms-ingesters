@@ -11,3 +11,6 @@ USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
 SCHEMA=$BASEDIR/resources/exportedRadioTVProgram.xsd
 
+# This setting is used only by ingest-object-mover, it should match the folder
+# used when exporting objects for ingest
+EXPORTFOLDER=$BASEDIR/files/export
