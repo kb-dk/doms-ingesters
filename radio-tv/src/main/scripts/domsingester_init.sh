@@ -16,6 +16,10 @@ fi
 
 start()
 {
+    if objectmover_running; then
+        echo "FATAL: Cannot start, ingest-object-mover is running"
+        exit 1
+    fi
     rotate_log
     [ -r $STOPFOLDER/stoprunning ] && rm -f $STOPFOLDER/stoprunning && echo "Removing stopfile $STOPFOLDER/stoprunning"
     echo "Starting ingester"
