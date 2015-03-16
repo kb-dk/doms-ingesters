@@ -11,6 +11,11 @@ USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
 SCHEMA=$BASEDIR/resources/exportedRadioTVProgram.xsd
 
+# Ingester logs here
+LOGFILE=$BASEDIR/logs/ingester.log
+# Keep 8 numbered logs
+NUMLOGS=7
+
 # This setting is used only by ingest-object-mover, it should match the folder
 # used when exporting objects for ingest
 EXPORTFOLDER=$BASEDIR/files/export

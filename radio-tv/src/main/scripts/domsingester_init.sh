@@ -3,12 +3,8 @@
 # Where are we?
 BASEDIR=$(dirname $(dirname $(readlink -f $0)))
 
-cd $BASEDIR/bin
-source ingest_config.sh
-
-# Keep 8 numbered logs by default
-NUMLOGS=7
-logfile=$BASEDIR/logs/ingester.log
+# Setup and helpers
+source $BASEDIR/bin/domsingester-lib.sh
 
 USEFILE=$(ls -1 $BASEDIR/lib/domsclient*.jar 2>&1 | tail -1)
 if [ -n "$USEFILE" ]; then
@@ -18,41 +14,31 @@ else
     exit 1
 fi
 
-rotate_log()
-{
-    for x in $(seq $NUMLOGS -1 1)
-    do
-        [ -r ${logfile}.$x ] && mv ${logfile}.$x ${logfile}.$((x+1))
-    done
-    [ -r ${logfile} ] && mv ${logfile} ${logfile}.1
-}
-
 start()
 {
     rotate_log
     [ -r $STOPFOLDER/stoprunning ] && rm -f $STOPFOLDER/stoprunning && echo "Removing stopfile $STOPFOLDER/stoprunning"
     echo "Starting ingester"
-    ./ingest.sh > $logfile 2>&1 <&- &
+    cd $BASEDIR/bin
+    ./ingest.sh > $LOGFILE 2>&1 <&- &
 }
 
 stop()
 {
-    input=$(ls $HOTFOLDER 2>/dev/null|wc -l)
     stoplimit=20
-
     if [ -n "$pid" ]; then
         if [ "$1" = "kill" ]; then
             echo "Killing ingester"
-            [ $input -gt 0 ] && echo "DANGER! Ingest is in progress, cleanup may be necessary!"
+            [ $(ingest_queue_len) -gt 0 ] && echo "DANGER! Ingest is in progress, cleanup may be necessary!"
             kill $pid
         else
-            if [ $input -eq 0 ]; then
+            if [ $(ingest_queue_len) -eq 0 ]; then
                 # Queue is empty, just kill it
                 echo "Stopping ingester (inputfolder is empty)"
                 kill $pid
                 exit 0
             fi
-            if [ $input -lt $stoplimit ]; then
+            if [ $(ingest_queue_len) -lt $stoplimit ]; then
                 echo "Ingester is working but there are too few remaining items for the stopfile to work (requires atleast $stoplimit)"
                 echo "To stop it in this state you must use kill. But please wait until there are no more items to ingest to"
                 echo "avoid corrupting the input state of the ingester."
