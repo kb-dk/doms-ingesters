@@ -16,9 +16,11 @@ fi
 
 start()
 {
-    if objectmover_running; then
-        echo "FATAL: Cannot start, ingest-object-mover is running"
-        exit 1
+    if [ -z "$ignore_object_mover" ]; then
+        if objectmover_running; then
+            echo "FATAL: Cannot start, ingest-object-mover is running"
+            exit 1
+        fi
     fi
     rotate_log
     [ -r $STOPFOLDER/stoprunning ] && rm -f $STOPFOLDER/stoprunning && echo "Removing stopfile $STOPFOLDER/stoprunning"
@@ -67,6 +69,12 @@ status()
 
 case $1 in
     start)
+        start
+        ;;
+    forcestart)
+        # We want ingest-object-mover to be able to start the ingester
+        # but of course then we need to skip checking if it is running
+        ignore_object_mover=1
         start
         ;;
     stop)
