@@ -40,7 +40,7 @@ ingest_running()
 export_running()
 {
     local pid
-    pid=$(pgrep -u fedora -f "/home/fedora/digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
+    pid=$(pgrep -u $USER -f "/home/fedora/digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
     if [ -n "$pid" ]; then
 	return 0
     else
@@ -52,7 +52,7 @@ export_running()
 objectmover_running()
 {
   local pid
-  pid=$(pgrep -u fedora -f "$BASEDIR/bin/ingest-object-mover.sh")
+  pid=$(pgrep -u $USER -f "$BASEDIR/bin/ingest-object-mover.sh")
   if [ -n "$pid" ]; then
     return 0
   else
