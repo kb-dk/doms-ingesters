@@ -29,6 +29,9 @@
             <xsd:element name="internalIDCode" type="xsd:string"/>
             <xsd:element name="bid" type="xsd:string"/>
             <xsd:element name="emmisionsLevel" type="xsd:string"/>
+            <!-- New field added by gallup/tvmeter in June 2015. It is marked as optional here so that the schema
+                        remains consistent with existing programs -->
+            <xsd:element name="contentID" type="xsd:string" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
     </xsd:complexType>
 
