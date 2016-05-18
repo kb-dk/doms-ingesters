@@ -49,7 +49,7 @@ public interface HotFolderScannerClient {
      * The <code>{@link HotFolderScanner}</code> will invoke this method each
      * time a file has been modified in the hot folder.
      *
-     * @param addedFile Full path to the modified file.
+     * @param modifiedFile Full path to the modified file.
      */
     void fileModified(File modifiedFile);
 
@@ -57,7 +57,11 @@ public interface HotFolderScannerClient {
      * The <code>{@link HotFolderScanner}</code> will invoke this method each
      * time a new file has been deleted from the hot folder.
      *
-     * @param addedFile Full path to the deleted file.
+     * @param deletedFile Full path to the deleted file.
      */
     void fileDeleted(File deletedFile);
+
+    void waitForThreads();
+
+    void startEngine();
 }

@@ -69,6 +69,16 @@ public class TestHotFolderScanner {
         }
 
         @Override
+        public void waitForThreads() {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
+
+        @Override
+        public void startEngine() {
+            //To change body of implemented methods use File | Settings | File Templates.
+        }
+
+        @Override
         public void fileModified(File modifiedFile) {
             clientFeedbackModifiedFile = modifiedFile;
         }

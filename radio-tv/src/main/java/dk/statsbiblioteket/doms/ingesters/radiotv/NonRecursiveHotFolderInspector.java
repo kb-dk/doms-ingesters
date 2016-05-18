@@ -49,7 +49,6 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * Full path to the hot folder to scan.
      */
     private final File folderToScan;
-    private final File stopFolder;
 
     /**
      * Map containing paths and timestamps for all files found in the hot folder
@@ -71,13 +70,11 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      * <code>{@link #run()}</code> method is executed.
      *
      * @param hotFolderToScan File path to a hot folder to scan.
-     * @param sFolder         File path to the stop folder.
      * @param client          Reference to a client to notify about changes in the folder.
      */
-    public NonRecursiveHotFolderInspector(File hotFolderToScan, File sFolder,
+    public NonRecursiveHotFolderInspector(File hotFolderToScan,
                                           HotFolderScannerClient client) {
         folderToScan = hotFolderToScan;
-        stopFolder = sFolder;
         callBackClient = client;
         previousFolderContents = new HashMap<File, Long>();
     }
@@ -88,89 +85,92 @@ public class NonRecursiveHotFolderInspector extends TimerTask {
      */
     @Override
     public void run() {
-        // Scan the hot folder for file addition, deletion or modification.
-        File[] files = folderToScan.listFiles(new FilenameFilter() {
-
-            @Override
-            public boolean accept(File dir, String name) {
-                if (name.trim().toLowerCase().endsWith(".xml")) {
-                    return true;
-                }
-                return false;  //To change body of implemented methods use File | Settings | File Templates.
-            }
-        });
-        Arrays.sort(files);
-        final List<File> currentFolderContents = Arrays.asList(files);
-
-        mainLoop:
-        for (File currentFile : currentFolderContents) {
-
-            if (objectsIngested % 20 == 0) {
-                File[] stopFiles = stopFolder.listFiles();
-                List<File> stopList = Arrays.asList(stopFiles);
-                for (File stopFile : stopList) {
-                    if (stopFile.getName().toLowerCase().equals("stoprunning")) {
-                        killFlag = true;
-                        break mainLoop;
+        try {
+            // Scan the hot folder for file addition, deletion or modification.
+            File[] files = folderToScan.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    if (name.trim().toLowerCase().endsWith(".xml")) {
+                        return true;
                     }
+                    return false;  //To change body of implemented methods use File | Settings | File Templates.
+                }
+            });
+            Arrays.sort(files);
+            final List<File> currentFolderContents = Arrays.asList(files);
+
+
+            //TODO make this multhreaded work
+            callBackClient.startEngine();
+            for (File currentFile : currentFolderContents) {
+                if (killFlag) {
+                    break;
+                }
+
+                if (objectsIngested % 10 == 0) {
+                    final Calendar rightNow = Calendar.getInstance();
+                    final DateFormat dateFormat = DateFormat.getDateTimeInstance(
+                            DateFormat.FULL, DateFormat.FULL);
+                    System.out.println(dateFormat.format(rightNow.getTime()));
+
+                    System.out.println("Total Objects ingested: " + objectsIngested
+                            + "; Total time spent ingesting: " + totalIngestTime
+                            + " ms; Time per object is " + (totalIngestTime + 0.0)
+                            / objectsIngested + " ms.");
+                    System.out.println("Time per object for the last 10 is: "
+                            + lastTenObjects / 10 + " ms");
+                    lastTenObjects = 0;
+                }
+                final Long previousTimeStamp = previousFolderContents
+                        .get(currentFile);
+
+                if (previousTimeStamp == null) {
+
+                    // A new file has been created.
+                    previousFolderContents.put(currentFile, currentFile
+                            .lastModified());
+                    long startTime = System.currentTimeMillis();
+                    callBackClient.fileAdded(currentFile);
+                    long endTime = System.currentTimeMillis();
+                    long ingesttime = endTime - startTime;
+                    totalIngestTime += ingesttime;
+                    lastTenObjects += ingesttime;
+                    objectsIngested++;
+                } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
+                    // The file has been modified since the previous scan. Update
+                    // the time stamps and notify the client.
+                    previousFolderContents.put(currentFile, currentFile
+                            .lastModified());
+                    callBackClient.fileModified(currentFile);
                 }
             }
 
-            if (objectsIngested % 10 == 0) {
-                final Calendar rightNow = Calendar.getInstance();
-                final DateFormat dateFormat = DateFormat.getDateTimeInstance(
-                        DateFormat.FULL, DateFormat.FULL);
-                System.out.println(dateFormat.format(rightNow.getTime()));
+            // Remove information about any deleted files and notify the client.
+            Set<File> deletedFiles = new HashSet<File>(previousFolderContents
+                    .keySet());
+            deletedFiles.removeAll(currentFolderContents);
+            for (File deletedFile : deletedFiles) {
+                previousFolderContents.remove(deletedFile);
+                callBackClient.fileDeleted(deletedFile);
+            }
 
+            if (killFlag) {
+                System.out.println("'stop file' detected. Terminating ingester.");
                 System.out.println("Total Objects ingested: " + objectsIngested
-                                   + "; Total time spent ingesting: " + totalIngestTime
-                                   + " ms; Time per object is " + (totalIngestTime + 0.0)
-                                                                  / objectsIngested + " ms.");
-                System.out.println("Time per object for the last 10 is: "
-                                   + lastTenObjects / 10 + " ms");
-                lastTenObjects = 0;
+                        + "; Total time spent ingesting: " + totalIngestTime
+                        + " ms; Time per object is " + (totalIngestTime + 0.0)
+                        / objectsIngested + " ms.");
+
+                this.cancel();
+
             }
-            final Long previousTimeStamp = previousFolderContents
-                    .get(currentFile);
-
-            if (previousTimeStamp == null) {
-
-                // A new file has been created.
-                previousFolderContents.put(currentFile, currentFile
-                        .lastModified());
-                long startTime = System.currentTimeMillis();
-                callBackClient.fileAdded(currentFile);
-                long endTime = System.currentTimeMillis();
-                long ingesttime = endTime - startTime;
-                totalIngestTime += ingesttime;
-                lastTenObjects += ingesttime;
-                objectsIngested++;
-            } else if (!previousTimeStamp.equals(currentFile.lastModified())) {
-                // The file has been modified since the previous scan. Update
-                // the time stamps and notify the client.
-                previousFolderContents.put(currentFile, currentFile
-                        .lastModified());
-                callBackClient.fileModified(currentFile);
-            }
+        } finally {
+            callBackClient.waitForThreads();
         }
+    }
 
-        // Remove information about any deleted files and notify the client.
-        Set<File> deletedFiles = new HashSet<File>(previousFolderContents
-                                                           .keySet());
-        deletedFiles.removeAll(currentFolderContents);
-        for (File deletedFile : deletedFiles) {
-            previousFolderContents.remove(deletedFile);
-            callBackClient.fileDeleted(deletedFile);
-        }
+    public void setKillFlag() {
+        killFlag = true;
 
-        if (killFlag) {
-            System.out.println("'stop file' detected. Terminating ingester.");
-            System.out.println("Total Objects ingested: " + objectsIngested
-                               + "; Total time spent ingesting: " + totalIngestTime
-                               + " ms; Time per object is " + (totalIngestTime + 0.0)
-                                                              / objectsIngested + " ms.");
-
-            System.exit(1);
-        }
     }
 }
