@@ -1,6 +1,6 @@
 Change log for radio/tv program ingester
 
-0.1
+1.5
 Updated Gallup schema to reflect new added fields
 Multiple script improvements (from tgc)
 Fixed bug that script assumes ingester runs as username "fedora"
