@@ -6,7 +6,7 @@ BASEDIR=$(dirname $(dirname $(readlink -f $0)))
 # Setup and helpers
 source $BASEDIR/bin/domsingester-lib.sh
 
-USEFILE=$(ls -1 $BASEDIR/lib/domsclient*.jar 2>&1 | tail -1)
+USEFILE=$(ls -1 $BASEDIR/lib/domsClient*.jar 2>&1 | tail -1)
 if [ -n "$USEFILE" ]; then
     pid=$(/usr/sbin/lsof -t $USEFILE)
 else
