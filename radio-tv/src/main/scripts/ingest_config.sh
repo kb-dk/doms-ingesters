@@ -8,9 +8,9 @@ LUKEFOLDER=$BASEDIR/lukewarm
 HOTFOLDER=$BASEDIR/hotfolder
 
 # Overwrite queue
-COLDFOLDER=$BASEDIR/forced/coldfolder
-LUKEFOLDER=$BASEDIR/forced/lukewarm
-HOTFOLDER=$BASEDIR/forced/hotfolder
+FORCED_COLDFOLDER=$BASEDIR/forced/coldfolder
+FORCED_LUKEFOLDER=$BASEDIR/forced/lukewarm
+FORCED_HOTFOLDER=$BASEDIR/forced/hotfolder
 
 
 STOPFOLDER=$BASEDIR/stopfolder
