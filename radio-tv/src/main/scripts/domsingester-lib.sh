@@ -40,7 +40,7 @@ ingest_running()
 export_running()
 {
     local pid
-    pid=$(pgrep -u $USER -f "/home/fedora/digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
+    pid=$(pgrep -u $USER -f "digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
     if [ -n "$pid" ]; then
 	return 0
     else
