@@ -40,7 +40,7 @@ ingest_running()
 export_running()
 {
     local pid
-    pid=$(pgrep -u $USER -f "digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
+    pid=$(pgrep -u $USER -f "$HOME/digitv/conf/template.xml ($HOTFOLDER|$EXPORTFOLDER)")
     if [ -n "$pid" ]; then
 	return 0
     else
@@ -51,13 +51,13 @@ export_running()
 # Is the object mover running? returns 0 (true) or 1 (false)
 objectmover_running()
 {
-  local pid
-  pid=$(pgrep -u $USER -f "$BASEDIR/bin/ingest-object-mover.sh")
-  if [ -n "$pid" ]; then
-    return 0
-  else
-    return 1
-  fi
+    local pid
+    pid=$(pgrep -u $USER -f "$BASEDIR/bin/ingest-object-mover.sh")
+    if [ -n "$pid" ]; then
+	return 0
+    else
+	return 1
+    fi
 }
 
 # Rotate $LOGFILE, keep $NUMLOGS generations
