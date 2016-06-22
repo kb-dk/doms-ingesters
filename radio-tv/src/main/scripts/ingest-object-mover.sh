@@ -138,7 +138,7 @@ main()
     echo "Hot objects added:    $hotobjectcounter"
     echo "Cold objects updated: $coldobjectcounter"
     # Start the ingester
-    $DOMSINGEST_INIT start
+    $DOMSINGEST_INIT forcestart
 }
 
 # Go to export folder
