@@ -4,6 +4,9 @@ Change log for radio/tv program ingester
 Updated Gallup schema to reflect new added fields
 Multiple script improvements (from tgc)
 Fixed bug that script assumes ingester runs as username "fedora"
+Rationalised version numbering.
+Added default values for forced-ingest queue.
+Multiple patches from tgc fixing various scripting issues.
 
 0.0.8.1
 2014-12-18

@@ -30,8 +30,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -42,45 +43,42 @@ import static org.junit.Assert.assertTrue;
  */
 public class TestHotFolderScanner {
 
-    private HotFolderScanner hotFolderScanner;
-    private File clientFeedbackAddedFile;
+    private HotFolderScanner folderScanner;
+    private Path clientFeedbackAddedFile;
 
-    private File tempTestDir;
-    private File tempTestFile;
-    private File stopFolder;
+    private Path tempTestDir;
+    private Path tempTestFile;
+    private Path stopFolder;
 
     // TODO: Add tests for the detection of modified and deleted files.
     @SuppressWarnings("unused")
-    private File clientFeedbackModifiedFile;
+    private Path clientFeedbackModifiedFile;
     @SuppressWarnings("unused")
-    private File clientFeedbackDeletedFile;
+    private Path clientFeedbackDeletedFile;
 
     // TODO: Also test file modification and deletion.
 
-    private final HotFolderScannerClient hotFolderScannerClient = new HotFolderScannerClient() {
+    private final FolderWatcherClient folderScannerClient = new FolderWatcherClient() {
+
         @Override
-        public void fileAdded(File addedFile) {
+        public void fileAdded(Path addedFile) throws IOException {
+            System.out.println("File " + addedFile + " was added");
             clientFeedbackAddedFile = addedFile;
+            Files.deleteIfExists(clientFeedbackAddedFile);
         }
 
         @Override
-        public void fileDeleted(File deletedFile) {
+        public void fileDeleted(Path deletedFile) throws IOException {
+            System.out.println("File " + deletedFile + " was deleted");
             clientFeedbackDeletedFile = deletedFile;
+            Files.deleteIfExists(clientFeedbackAddedFile);
         }
 
         @Override
-        public void waitForThreads() {
-            //To change body of implemented methods use File | Settings | File Templates.
-        }
-
-        @Override
-        public void startEngine() {
-            //To change body of implemented methods use File | Settings | File Templates.
-        }
-
-        @Override
-        public void fileModified(File modifiedFile) {
+        public void fileModified(Path modifiedFile) throws IOException {
+            System.out.println("File " + modifiedFile + " was modified");
             clientFeedbackModifiedFile = modifiedFile;
+            Files.deleteIfExists(clientFeedbackAddedFile);
         }
     };
 
@@ -89,63 +87,53 @@ public class TestHotFolderScanner {
      */
     @Before
     public void setUp() throws Exception {
-        hotFolderScanner = new HotFolderScanner();
+        folderScanner = new HotFolderScanner();
         clientFeedbackAddedFile = null;
     }
 
     @After
     public void tearDown() throws Exception {
         if (tempTestFile != null) {
-            tempTestFile.delete();
+            Files.deleteIfExists(tempTestFile);
         }
 
         if (tempTestDir != null) {
-            tempTestDir.delete();
+            Files.deleteIfExists(tempTestDir);
         }
         if (stopFolder != null) {
-            stopFolder.delete();
+            Files.deleteIfExists(stopFolder);
         }
     }
 
-    /**
-     * Test method for
-     * {@link dk.statsbiblioteket.doms.ingesters.radiotv.HotFolderScanner#startScanning(java.io.File, java.io.File, HotFolderScannerClient)}
-     * .
-     */
     @Test
-    public void testStartScanning() throws IOException {
-        // Create a private temp. dir in the system temp. dir.
-        tempTestDir = new File(System.getProperty("java.io.tmpdir")
-                               + File.separator + UUID.randomUUID());
-        stopFolder = new File(System.getProperty("java.io.tmpdir")
-                              + File.separator + UUID.randomUUID());
-
-        assertTrue("Failed creating temp. test hotfolder dir: "
-                   + tempTestDir.toString(), tempTestDir.mkdirs());
-
-        assertTrue("Failed creating temp. test stopfolder dir: "
-                   + stopFolder.toString(), stopFolder.mkdirs());
-
-        // Start scanning.
-        final long scanDelay = 5000;
-        hotFolderScanner.setInitialScannerDelay(scanDelay);
-        hotFolderScanner.setScannerPeriod(scanDelay);
-        hotFolderScanner.startScanning(tempTestDir, stopFolder,
-                                       hotFolderScannerClient);
+    public void testStartScanning() throws IOException, InterruptedException {
+        tempTestDir = Files.createTempDirectory(null);
+        stopFolder = Files.createTempDirectory(null);
 
         // Create a test file. It must be an XML file as the folder scanner
         // filters out XML files.
-        tempTestFile = new File(tempTestDir, UUID.randomUUID().toString()
-                                             + ".xml");
-        assertTrue("Failed creating test file: " + tempTestFile.toString(),
-                   tempTestFile.createNewFile());
+        Path tempTestFile2 = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
+        Files.createFile(tempTestFile2);
+
+        //TODO mock folderScannerClient
+        folderScanner.startScanning(tempTestDir, stopFolder,
+                                    folderScannerClient);
+
+        System.out.println("The file "+tempTestFile2+" should be found first");
+
+        // Create a test file. It must be an XML file as the folder scanner
+        // filters out XML files.
+        tempTestFile = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
+        Files.createFile(tempTestFile);
 
         // Wait for the scanner to detect the change.
         try {
-            Thread.sleep(scanDelay * 2);
+            Thread.sleep(1000);
         } catch (InterruptedException ir) {
             // Never mind that....
         }
+        folderScanner.setStopFlagSet(true);
+        folderScanner.waitForStop();
 
         assertEquals(
                 "The created test file was not detected by the hot folder scanner.",

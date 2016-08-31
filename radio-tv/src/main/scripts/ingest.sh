@@ -42,4 +42,4 @@ shift `expr $OPTIND - 1`
 java -cp .:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
    -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
-   -preingestschema=$SCHEMA -overwrite=$OVERWRITE
+   -preingestschema=$SCHEMA -overwrite=$OVERWRITE -numthreads=$NUMTHREADS

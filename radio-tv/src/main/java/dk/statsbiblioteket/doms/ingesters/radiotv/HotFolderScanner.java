@@ -1,121 +1,117 @@
-/*
- * $Id$
- * $Revision$
- * $Date$
- * $Author$
- *
- * The DOMS project.
- * Copyright (C) 2007-2010  The State and University Library
- *
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import java.io.File;
-import java.text.DateFormat;
-import java.util.Calendar;
-import java.util.Timer;
-import java.util.TimerTask;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.BitSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * The <code>{@link HotFolderScanner}</code> provides continous scanning and
- * reporting of file creations, modifications and deletions in a hot folder.
- *
- * @author &lt;tsh@statsbiblioteket.dk&gt;
+ * Created by abr on 26-08-16.
  */
 public class HotFolderScanner {
 
-    /**
-     * The <code>Timer</code> which invokes the scanning at regular intervals.
-     */
-    private final Timer scannerDaemon;
 
     /**
-     * The initial delay before the first scanning, in milliseconds.
+     * This flag is the bridge that allows the stopFolderWatcher to communicate "stop" to the primaryFolderWatcher
      */
-    private long scannerDelay;
+    private boolean stopFlagSet = false;
 
-    /**
-     * The delay between each subsequent scanning, in milliseconds.
-     */
-    private long scannerPeriod;
+    private final ExecutorService watchersPool;
+    private final int timeout;
+    private Future<Void> stopFolderStopped;
+    private Future<Void> primaryFolderStopped;
 
-    /**
-     * Create a hot folder scanner instance which by default scans a specified
-     * folder every 5 seconds. This interval can be changed by calling
-     * {@link #setInitialScannerDelay(long)} and {@link #setScannerPeriod(long)}
-     * .
-     *
-     * @see #setInitialScannerDelay(long)
-     * @see #setScannerPeriod(long)
-     */
+
     public HotFolderScanner() {
-        scannerDaemon = new Timer(true);
-        scannerDelay = 5000;
-        scannerPeriod = 5000;
-        System.out.println("HotFolderScanner has been created");
-    }
+        timeout = 1000;
+        watchersPool = Executors.newCachedThreadPool(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        });
 
-    /**
-     * Set the initial delay before the first execution of the hot folder
-     * scanner.
-     *
-     * @param delayMillis Delay in milliseconds.
-     */
-    public void setInitialScannerDelay(long delayMillis) {
-        scannerDelay = delayMillis;
-    }
-
-    /**
-     * Set the delay before each subsequent execution of the hot folder scanner.
-     *
-     * @param periodMillis Delay in milliseconds.
-     */
-    public void setScannerPeriod(long periodMillis) {
-        scannerPeriod = periodMillis;
     }
 
     /**
      * Start a continuous scanning of the hot folder specified by
-     * <code>hotFolderToScan</code> and report any file creations, modifications
+     * <code>folderToScan</code> and report any file creations, modifications
      * and deletions to the <code>client</code>.
      *
-     * @param hotFolderToScan Full file path to the directory to scan.
+     * @param folderToScan Full file path to the directory to scan.
      * @param client          Reference to the client to report changes to.
      * @param stopFolder      Full file path to the stop directory.
      */
-    public void startScanning(File hotFolderToScan, File stopFolder,
-                              HotFolderScannerClient client) {
-        final Calendar rightNow = Calendar.getInstance();
-        final DateFormat dateFormat = DateFormat
-                .getDateTimeInstance(DateFormat.FULL, DateFormat.FULL);
-        System.out.println("HotFolderScanner has started scanning at "
-                           + dateFormat.format(rightNow.getTime()));
-        // TODO: We could add a smart feature to let users choose between
-        // different inspector types, however, that is not important right now.
-        NonRecursiveHotFolderInspector scannerTask = new NonRecursiveHotFolderInspector(
-                hotFolderToScan, client);
-        StopFolderWatcher stopFolderWatcher = new StopFolderWatcher(scannerTask, stopFolder);
+    public void startScanning(Path folderToScan, Path stopFolder,
+                              FolderWatcherClient client) throws IOException {
 
-        scannerDaemon.scheduleAtFixedRate(scannerTask, scannerDelay,
-                                          scannerPeriod);
-        //TODO should this be configurable?
-        scannerDaemon.scheduleAtFixedRate(stopFolderWatcher,scannerDelay,1000);
 
+        //Now the watchers have been made
+        FolderWatcher primaryFolderWatcher = setupPrimaryFolderWatcher(folderToScan, client, timeout
+        );
+        FolderWatcher stopFolderWatcher = setupStopFolderWatcher(stopFolder, timeout);
+
+
+        stopFolderStopped = watchersPool.submit(stopFolderWatcher);
+
+        primaryFolderStopped = watchersPool.submit(primaryFolderWatcher);
+
+        watchersPool.shutdown();//This just marks the pool as closed for further submission
+    }
+
+    public void waitForStop() throws InterruptedException {
+        try { //Wait for the two threads to complete
+            stopFolderStopped.get();
+            primaryFolderStopped.get();
+        } catch (ExecutionException e) {
+            throw new RuntimeException();
+        }
+    }
+
+
+    private FolderWatcher setupPrimaryFolderWatcher(final Path folderToScan, final FolderWatcherClient client, final long timeout) {
+        return new FolderWatcher(folderToScan, timeout, client) {
+                @Override
+                protected boolean shouldStop() {
+                    return isStopFlagSet();
+                }
+            };
+    }
+
+    private FolderWatcher setupStopFolderWatcher(final Path folderToScan, final long timeout) {
+        FolderWatcherClient stopFolderWacherClient = new FolderWatcherClient() {
+            @Override
+            public void fileAdded(Path addedFile) {
+                if (Files.isRegularFile(addedFile)) {
+                    if (addedFile.getFileName().endsWith("stoprunning")) {
+                        setStopFlagSet(true);
+                    }
+                }
+            }
+        };
+        return new FolderWatcher(folderToScan, timeout, stopFolderWacherClient){
+            @Override
+            protected boolean shouldStop() {
+                return isStopFlagSet();
+            }
+        };
+    }
+
+    public synchronized boolean isStopFlagSet() {
+        return stopFlagSet;
+    }
+
+    public void setStopFlagSet(boolean stopFlagSet) {
+        this.stopFlagSet = stopFlagSet;
     }
 }

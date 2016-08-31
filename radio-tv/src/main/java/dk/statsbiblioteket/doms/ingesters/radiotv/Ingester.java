@@ -28,22 +28,25 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import dk.statsbiblioteket.doms.central.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.central.MethodFailedException;
+import dk.statsbiblioteket.doms.client.DomsWSClient;
+import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
-import java.io.File;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.text.DateFormat;
-import java.util.Calendar;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-
-/**
- * @author &lt;tsh@statsbiblioteket.dk&gt;
- */
 public class Ingester {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     /**
      * @param args
@@ -55,23 +58,20 @@ public class Ingester {
         new Ingester().mainInstance(args);
     }
 
-    private void mainInstance(String[] args) throws MalformedURLException,
+    //TODO better arg parsing than this...
+    private void mainInstance(String[] args) throws IOException,
             InvalidCredentialsException, MethodFailedException,
             InterruptedException, SAXException {
 
-        final Calendar rightNow = Calendar.getInstance();
-        final DateFormat dateFormat = DateFormat.getDateTimeInstance(
-                DateFormat.FULL, DateFormat.FULL);
-        System.out.println("Ingester start-up time: "
-                + dateFormat.format(rightNow.getTime()));
+        log.info("Ingester starting up ");
 
-        File HOT_FOLDER = new File("radioTVMetaData");
+        Path hotFolder = Paths.get("radioTVMetaData");
 
-        File COLD_FOLDER = new File("processedFiles");
-        File LUKEWARM_FOLDER = new File("/tmp/failedFiles");
-        File STOP_FOLDER = new File("stopFolder");
+        Path coldFolder = Paths.get("processedFiles");
+        Path lukewarmFolder = Paths.get("/tmp/failedFiles");
+        Path stopFolder = Paths.get("stopFolder");
 
-        File PRE_INGEST_FILE_SCHEMA_FILE = new File(
+        Path preIngestFileSchemaFile = Paths.get(
                 "src/main/resources/exportedRadioTVProgram.xsd");
 
         URL domsAPIWSLocation = new URL(
@@ -80,89 +80,83 @@ public class Ingester {
         String username = "fedoraAdmin";
         String password = "fedoraAdminPass";
 
-        boolean OVERWRITE = false;
+        boolean overwrite = false;
 
         for (String arg : args) {
             if (arg.startsWith("-hotfolder=")) {
-                HOT_FOLDER = new File(arg.substring("-hotfolder=".length()));
+                hotFolder = Paths.get(arg.substring("-hotfolder=".length()));
             } else if (arg.startsWith("-lukefolder=")) {
-                LUKEWARM_FOLDER = new File(arg.substring("-lukefolder="
+                lukewarmFolder = Paths.get(arg.substring("-lukefolder="
                         .length()));
             } else if (arg.startsWith("-coldfolder=")) {
-                COLD_FOLDER = new File(arg.substring("-coldfolder=".length()));
+                coldFolder = Paths.get(arg.substring("-coldfolder=".length()));
             } else if (arg.startsWith("-wsdl=")) {
                 domsAPIWSLocation = new URL(arg.substring("-wsdl=".length()));
             } else if (arg.startsWith("-username=")) {
                 username = arg.substring("-username=".length());
             } else if (arg.startsWith("-stopfolder=")) {
-                STOP_FOLDER = new File(arg.substring("-stopfolder=".length()));
+                stopFolder = Paths.get(arg.substring("-stopfolder=".length()));
             } else if (arg.startsWith("-password=")) {
                 password = arg.substring("-password=".length());
             } else if (arg.startsWith("-preingestschema=")) {
-                PRE_INGEST_FILE_SCHEMA_FILE = new File(arg.substring("-preingestschema=".length()));
+                preIngestFileSchemaFile = Paths.get(arg.substring("-preingestschema=".length()));
             } else if (arg.startsWith("-overwrite=")) {
-                OVERWRITE = Boolean.parseBoolean(arg.substring("-overwrite=".length()));
+                overwrite = Boolean.parseBoolean(arg.substring("-overwrite=".length()));
             }
-
         }
-        System.out.println("Ingester started with the following configuration "
+        log.info("Ingester started with the following configuration "
                 + "detatils:");
-        System.out.println("HOT_FOLDER = " + HOT_FOLDER.getAbsolutePath());
-        System.out.println("LUKEWARM_FOLDER = "
-                + LUKEWARM_FOLDER.getAbsolutePath());
-        System.out.println("COLD_FOLDER = " + COLD_FOLDER.getAbsolutePath());
-        System.out.println("STOP_FOLDER = " + STOP_FOLDER.getAbsolutePath());
-        System.out.println("PRE_INGEST_FILE_SCHEMA_FILE = "
-                + PRE_INGEST_FILE_SCHEMA_FILE.getAbsolutePath());
-        System.out.println("domsAPIWSLocation = "
+        log.info("hotFolder = " + hotFolder);
+        log.info("lukewarmFolder = "
+                + lukewarmFolder);
+        log.info("coldFolder = " + coldFolder);
+        log.info("stopFolder = " + stopFolder);
+        log.info("preIngestFileSchemaFile = "
+                + preIngestFileSchemaFile);
+        log.info("domsAPIWSLocation = "
                 + domsAPIWSLocation.toString());
-        System.out.println("username = " + username);
-        System.out.println("password = " + password);
-        System.out.println("overwrite = " + OVERWRITE);
+        log.info("username = " + username);
+        log.info("password = " + password);
+        log.info("overwrite = " + overwrite);
 
         // Make sure that all the necessary folders exist.
-        if (!HOT_FOLDER.exists()) {
-            HOT_FOLDER.mkdirs();
-            System.out.println("HOT_FOLDER: " + HOT_FOLDER.getName() + " did "
-                    + "not exist. Has been created.");
-        }
+        Files.createDirectories(hotFolder);
 
-        if (!LUKEWARM_FOLDER.exists()) {
-            LUKEWARM_FOLDER.mkdirs();
-            System.out.println("LUKEWARM_FOLDER: " + LUKEWARM_FOLDER.getName()
-                    + " did not exist. Has been created.");
-        }
+        Files.createDirectories(lukewarmFolder);
 
-        if (!COLD_FOLDER.exists()) {
-            COLD_FOLDER.mkdirs();
-            System.out.println("COLD_FOLDER: " + COLD_FOLDER.getName()
-                    + " did not exist. Has been created.");
-        }
-        if (!STOP_FOLDER.exists()) {
-            STOP_FOLDER.mkdirs();
-            System.out.println("STOP_FOLDER: " + STOP_FOLDER.getName()
-                    + " did not exist. Has been created.");
-        }
+        Files.createDirectories(coldFolder);
 
-        final HotFolderScanner hotFolderScanner = new HotFolderScanner();
+        Files.createDirectories(stopFolder);
 
-        final DOMSLoginInfo domsLoginInfo = new DOMSLoginInfo(
-                domsAPIWSLocation, username, password);
+        startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
+                     domsAPIWSLocation,
+                     username, password, overwrite);
+    }
 
-        final SchemaFactory schemaFactory = SchemaFactory
-                .newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-        final Schema preIngestFileSchema = schemaFactory
-                .newSchema(PRE_INGEST_FILE_SCHEMA_FILE);
+    private void startScanner(Path hotFolder,
+                              Path coldFolder,
+                              Path lukewarmFolder,
+                              Path stopFolder,
+                              Path preIngestFileSchemaFile,
+                              URL domsAPIWSLocation,
+                              String username,
+                              String password,
+                              boolean overwrite)
+            throws SAXException, IOException, InterruptedException {
 
-        final RadioTVMetadataProcessor metadataProcessor = new RadioTVMetadataProcessor(
-                domsLoginInfo, LUKEWARM_FOLDER, COLD_FOLDER,
-                preIngestFileSchema, OVERWRITE);
-        hotFolderScanner.startScanning(HOT_FOLDER, STOP_FOLDER,
-                metadataProcessor);
 
-        // Hang forever....
-        synchronized (this) {
-            wait();
-        }
+        final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        final Schema preIngestFileSchema = schemaFactory.newSchema(preIngestFileSchemaFile.toFile());
+
+        DomsWSClient domsClient = new DomsWSClientImpl();
+        domsClient.setCredentials(domsAPIWSLocation,username,password);
+
+        final RadioTVFolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
+                domsClient, lukewarmFolder, coldFolder,
+                preIngestFileSchema, overwrite);
+
+        final HotFolderScanner folderScanner = new HotFolderScanner();
+        folderScanner.startScanning(hotFolder, stopFolder, radioTVHotFolderClient);
+        folderScanner.waitForStop();
     }
 }

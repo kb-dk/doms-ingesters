@@ -6,7 +6,8 @@ import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
 import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
 import dk.statsbiblioteket.doms.client.relations.Relation;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -15,7 +16,6 @@ import org.w3c.dom.NodeList;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPathExpressionException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -28,15 +28,22 @@ import java.util.regex.Matcher;
  * Code to create programs.
  */
 public class RecordCreator {
+
+    private final Logger log = LoggerFactory.getLogger(getClass());
+
     private DomsWSClient domsClient;
     private boolean overwrite;
     private DocumentBuilder documentBuilder;
 
-    public RecordCreator(DomsWSClient domsClient, boolean overwrite) throws ParserConfigurationException {
+    public RecordCreator(DomsWSClient domsClient, boolean overwrite) {
         this.domsClient = domsClient;
         this.overwrite = overwrite;
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        try {
+            documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException("Failed to understand xml...",e);
+        }
     }
 
     /**
@@ -50,13 +57,10 @@ public class RecordCreator {
      * @throws ServerOperationFailed    if creation or manipulation of the program object fails.
      * @throws XMLParseException        if any errors were encountered while processing the
      *                                  <code>radioTVMetadata</code> XML document.
-     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
      * @throws MalformedURLException if a file element contains an invalid URL.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    public String ingestProgram(Document radioTVMetadata)
-            throws ServerOperationFailed, XMLParseException, MalformedURLException, NoObjectFound,
-            XPathExpressionException, OverwriteException {
+    public String ingestProgram(Document radioTVMetadata) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
         // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
         List<String> filePIDs = getFilePids(radioTVMetadata);
 
@@ -163,8 +167,7 @@ public class RecordCreator {
      * @throws ServerOperationFailed Could not communicate with DOMS.
      * @param oldIdentifiers List of old identifiers to look up.
      */
-    private String alreadyExistsInRepo(List<String> oldIdentifiers)
-            throws XPathExpressionException, ServerOperationFailed {
+    private String alreadyExistsInRepo(List<String> oldIdentifiers) throws ServerOperationFailed {
         for (String oldId : oldIdentifiers) {
             try {
                 //TODO Remove this when fixed in doms central RI query
@@ -185,21 +188,20 @@ public class RecordCreator {
      *
      * @param radioTVMetadata The document containing the program metadata.
      * @return Old indentifiers found.
-     * @throws XPathExpressionException Should never happen. Means program is broken with faulty XPath.
      */
-    private List<String> getOldIdentifiers(Document radioTVMetadata) throws XPathExpressionException {
+    private List<String> getOldIdentifiers(Document radioTVMetadata)  {
         List<String> result = new ArrayList<String>();
-        Node radioTVPBCoreElement = Common.XPATH_SELECTOR
-                .selectNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
 
-        Node oldRitzauPIDNode = Common.XPATH_SELECTOR
-                .selectNode(radioTVPBCoreElement, Common.PBCORE_RITZAU_IDENTIFIER_ELEMENT);
+        Node radioTVPBCoreElement = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
+
+        Node oldRitzauPIDNode = Common.XPATH_SELECTOR.selectNode(radioTVPBCoreElement, Common.PBCORE_RITZAU_IDENTIFIER_ELEMENT);
+
         if (oldRitzauPIDNode != null && !oldRitzauPIDNode.getTextContent().isEmpty()) {
             result.add(oldRitzauPIDNode.getTextContent());
         }
 
-        Node oldGallupPIDNode = Common.XPATH_SELECTOR
-                .selectNode(radioTVPBCoreElement, Common.PBCORE_GALLUP_IDENTIFIER_ELEMENT);
+        Node oldGallupPIDNode = Common.XPATH_SELECTOR.selectNode(radioTVPBCoreElement, Common.PBCORE_GALLUP_IDENTIFIER_ELEMENT);
+
         if (oldGallupPIDNode != null && !oldGallupPIDNode.getTextContent().isEmpty()) {
             result.add(oldGallupPIDNode.getTextContent());
         }
@@ -216,8 +218,7 @@ public class RecordCreator {
      * @throws ServerOperationFailed if looking up file URL failed.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    private List<String> getFilePids(Document radioTVMetadata)
-            throws MalformedURLException, ServerOperationFailed, NoObjectFound {
+    private List<String> getFilePids(Document radioTVMetadata) throws MalformedURLException, NoObjectFound, ServerOperationFailed {
         // Get the recording files XML element and process the file information.
         NodeList recordingFileURLs = Common.XPATH_SELECTOR.selectNodeList(radioTVMetadata, Common.RECORDING_FILES_URLS);
 
@@ -225,7 +226,10 @@ public class RecordCreator {
         List<String> fileObjectPIDs = new ArrayList<String>();
         for (int nodeIndex = 0; nodeIndex < recordingFileURLs.getLength(); nodeIndex++) {
             // Lookup file object.
-            fileObjectPIDs.add(domsClient.getFileObjectPID(new URL(recordingFileURLs.item(nodeIndex).getTextContent())));
+            Node item = recordingFileURLs.item(nodeIndex);
+            String itemTextContent = item.getTextContent();
+            URL fileURL = new URL(itemTextContent);
+            fileObjectPIDs.add(domsClient.getFileObjectPID(fileURL));
         }
         return fileObjectPIDs;
     }
