@@ -30,6 +30,12 @@ import dk.statsbiblioteket.doms.central.InvalidCredentialsException;
 import dk.statsbiblioteket.doms.central.MethodFailedException;
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -37,6 +43,7 @@ import org.xml.sax.SAXException;
 import javax.xml.XMLConstants;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -58,66 +65,58 @@ public class Ingester {
         new Ingester().mainInstance(args);
     }
 
-    //TODO better arg parsing than this...
     private void mainInstance(String[] args) throws IOException,
             InvalidCredentialsException, MethodFailedException,
-            InterruptedException, SAXException {
+            InterruptedException, SAXException, ParseException {
 
         log.info("Ingester starting up ");
 
-        Path hotFolder = Paths.get("radioTVMetaData");
+        // create Options object
+        Options options = new Options();
 
-        Path coldFolder = Paths.get("processedFiles");
-        Path lukewarmFolder = Paths.get("/tmp/failedFiles");
-        Path stopFolder = Paths.get("stopFolder");
+        options.addOption(Option.builder().argName("hotfolder").longOpt("hotfolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().argName("lukefolder").longOpt("lukefolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().argName("coldfolder").longOpt("coldfolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().argName("stopfolder").longOpt("stopfolder").hasArg().valueSeparator().build());
+
+        options.addOption(Option.builder().argName("wsdl").longOpt("wsdl").hasArg().type(URL.class).valueSeparator().required().build());
+        options.addOption(Option.builder().argName("username").longOpt("username").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().argName("password").longOpt("password").hasArg().valueSeparator().build());
+
+        options.addOption(Option.builder().argName("preingestschema").longOpt("preingestscheme").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().argName("overwrite").longOpt("overwrite").hasArg().valueSeparator().build());
+
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = parser.parse(options, args);
+
+        Path hotFolder = Paths.get(cmd.getOptionValue("hotfolder", "radioTVMetaData"));
+        Path lukewarmFolder = Paths.get(cmd.getOptionValue("lukefolder","/tmp/failedFiles"));
+        Path coldFolder = Paths.get(cmd.getOptionValue("coldfolder","processedFiles"));
+        Path stopFolder = Paths.get(cmd.getOptionValue("stopfolder","stopFolder"));
 
         Path preIngestFileSchemaFile = Paths.get(
-                "src/main/resources/exportedRadioTVProgram.xsd");
+                cmd.getOptionValue("preingestschema",
+                                   new File(Thread.currentThread().getContextClassLoader().getResource("exportedRadioTVProgram.xsd").getFile()).getAbsolutePath()));
 
-        URL domsAPIWSLocation = new URL(
-                "http://localhost:7880/centralWebservice-service/central/?wsdl");
+        URL domsAPIWSLocation = (URL) cmd.getParsedOptionValue("wsdl");
 
-        String username = "fedoraAdmin";
-        String password = "fedoraAdminPass";
+        String username = cmd.getOptionValue("username", "fedoraAdmin");
+        String password = cmd.getOptionValue("password", "fedoraAdminPass");
 
-        boolean overwrite = false;
+        boolean overwrite = Boolean.parseBoolean(cmd.getOptionValue("overwrite",Boolean.FALSE.toString()));
 
-        for (String arg : args) {
-            if (arg.startsWith("-hotfolder=")) {
-                hotFolder = Paths.get(arg.substring("-hotfolder=".length()));
-            } else if (arg.startsWith("-lukefolder=")) {
-                lukewarmFolder = Paths.get(arg.substring("-lukefolder="
-                        .length()));
-            } else if (arg.startsWith("-coldfolder=")) {
-                coldFolder = Paths.get(arg.substring("-coldfolder=".length()));
-            } else if (arg.startsWith("-wsdl=")) {
-                domsAPIWSLocation = new URL(arg.substring("-wsdl=".length()));
-            } else if (arg.startsWith("-username=")) {
-                username = arg.substring("-username=".length());
-            } else if (arg.startsWith("-stopfolder=")) {
-                stopFolder = Paths.get(arg.substring("-stopfolder=".length()));
-            } else if (arg.startsWith("-password=")) {
-                password = arg.substring("-password=".length());
-            } else if (arg.startsWith("-preingestschema=")) {
-                preIngestFileSchemaFile = Paths.get(arg.substring("-preingestschema=".length()));
-            } else if (arg.startsWith("-overwrite=")) {
-                overwrite = Boolean.parseBoolean(arg.substring("-overwrite=".length()));
-            }
-        }
+
         log.info("Ingester started with the following configuration "
                 + "detatils:");
-        log.info("hotFolder = " + hotFolder);
-        log.info("lukewarmFolder = "
-                + lukewarmFolder);
-        log.info("coldFolder = " + coldFolder);
-        log.info("stopFolder = " + stopFolder);
-        log.info("preIngestFileSchemaFile = "
-                + preIngestFileSchemaFile);
-        log.info("domsAPIWSLocation = "
-                + domsAPIWSLocation.toString());
-        log.info("username = " + username);
-        log.info("password = " + password);
-        log.info("overwrite = " + overwrite);
+        log.info("hotFolder = {}", hotFolder);
+        log.info("lukewarmFolder = {}", lukewarmFolder);
+        log.info("coldFolder = {}", coldFolder);
+        log.info("stopFolder = {}", stopFolder);
+        log.info("preIngestFileSchemaFile = {}", preIngestFileSchemaFile);
+        log.info("domsAPIWSLocation = {}", domsAPIWSLocation.toString());
+        log.info("username = {}", username);
+        log.info("password = {}", password);
+        log.info("overwrite = {}", overwrite);
 
         // Make sure that all the necessary folders exist.
         Files.createDirectories(hotFolder);
