@@ -6,8 +6,6 @@ import dk.statsbiblioteket.util.xml.XPathSelector;
 /** Constants used while building document. */
 public class Common {
 
-    public static final String COMMENT = "Ingest of Radio/TV data";
-    public static final String FAILED_COMMENT = COMMENT + ": Something failed, rolling back";
     public static final int MAX_FAIL_COUNT = 10;
 
     static final String PBCORE_NAMESPACE = "http://www.pbcore.org/PBCore/PBCoreNamespace.html";
@@ -45,4 +43,8 @@ public class Common {
     public static final String DC_DS_ID = "DC";
     public static final String HAS_FILE_RELATION_TYPE
             = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasFile";
+
+    public static String domsCommenter(String filename, String action){
+        return "RadioTV Digitv Ingester "+action+" as part of ingest of "+filename;
+    }
 }

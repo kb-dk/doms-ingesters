@@ -19,6 +19,7 @@ import javax.xml.parsers.ParserConfigurationException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,9 +50,8 @@ public class RecordCreator {
     /**
      * Ingests or updates a program object
      *
-     *
-     *
      * @param radioTVMetadata Bibliographical metadata about the program.
+     * @param filename
      * @return PID of the newly created program object, created by the DOMS.
      *
      * @throws ServerOperationFailed    if creation or manipulation of the program object fails.
@@ -60,22 +60,29 @@ public class RecordCreator {
      * @throws MalformedURLException if a file element contains an invalid URL.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    public String ingestProgram(Document radioTVMetadata) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
+    public String ingestProgram(Document radioTVMetadata, String filename) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
         // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
         List<String> filePIDs = getFilePids(radioTVMetadata);
+        log.debug("Found pids {} of referenced files",filePIDs);
 
         // Find or create program object.
         List<String> oldIdentifiers = getOldIdentifiers(radioTVMetadata);
+        log.debug("Found these old identifiers {} in the program to ingest",oldIdentifiers);
         String existingPid = alreadyExistsInRepo(oldIdentifiers);
         String programObjectPID;
         if (existingPid == null) {//not Exist
+            log.debug("Old identifiers {} did not find a program object in doms",oldIdentifiers);
             // Create a program object in the DOMS and update the PBCore metadata
             // datastream with the PBCore metadata from the pre-ingest file.
-            programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Common.COMMENT);
+            programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Common.domsCommenter(filename, "creating Program Object"));
+            log.debug("Creating new program object with pid {}",programObjectPID);
         } else { //Exists
             if (overwrite){
-                domsClient.unpublishObjects(Common.COMMENT, existingPid);
-                addOldPids(existingPid, oldIdentifiers);
+                log.debug("Found existing object {}, to be overwritten",existingPid);
+                domsClient.unpublishObjects(Common.domsCommenter(filename,"unpublished object to allow for changes"), existingPid);
+                log.debug("Existing object {} unpublished",existingPid);
+                addOldPids(existingPid, oldIdentifiers, filename);
+                log.debug("Old identifiers added to program object {}",existingPid);
                 programObjectPID = existingPid;
             } else {
                 throw new OverwriteException("Attempted to overwrite pid='"+existingPid+"");
@@ -86,60 +93,73 @@ public class RecordCreator {
         // object label for this program object.
         Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
         String programTitle = titleNode.getTextContent();
-        domsClient.setObjectLabel(programObjectPID, programTitle, Common.COMMENT);
+        log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
+        domsClient.setObjectLabel(programObjectPID, programTitle, Common.domsCommenter(filename, "added program title '" +programTitle+ "'object label"));
 
         // Add PBCore datastream
+        log.debug("Adding/Updating {} datastream", Common.PROGRAM_PBCORE_DS_ID);
         Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, Common.COMMENT);
+        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, Common.domsCommenter(filename, "updated datastream"));
 
         // Add Ritzau datastream
+        log.debug("Adding/Updating {} datastream", Common.RITZAU_ORIGINAL_DS_ID);
         Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.RITZAU_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, Common.COMMENT);
+        domsClient.updateDataStream(programObjectPID, Common.RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, Common.domsCommenter(filename, "updated datastream"));
 
         // Add the Gallup datastream
+        log.debug("Adding/Updating {} datastream", Common.GALLUP_ORIGINAL_DS_ID);
         Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.GALLUP_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, Common.COMMENT);
+        domsClient.updateDataStream(programObjectPID, Common.GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, Common.domsCommenter(filename, "updated datastream"));
 
         // Add the program broadcast datastream
+        log.debug("Adding/Updating {} datastream", Common.PROGRAM_BROADCAST_DS_ID);
         Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, Common.PROGRAM_BROADCAST_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_BROADCAST_DS_ID, programBroadcastDocument, Common.COMMENT);
+        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_BROADCAST_DS_ID, programBroadcastDocument, Common.domsCommenter(filename, "updated datastream"));
 
         // Update file relations
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, Common.HAS_FILE_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
+            log.debug("Found relation {},'{}',{}",programObjectPID,relation.getPredicate(),relation.getSubjectPid());
             if (!filePIDs.contains(relation.getSubjectPid())) {
-                domsClient.removeObjectRelation((LiteralRelation) relation, Common.COMMENT);
+                log.debug("Removing relation relation {},'{}',{}",programObjectPID,relation.getPredicate(),relation.getSubjectPid());
+                domsClient.removeObjectRelation((LiteralRelation) relation,
+                                                Common.domsCommenter(filename, "removed relation '"+relation.getPredicate()+"' to '"+relation.getSubjectPid()+"'"));
             } else {
                 existingRels.add(relation.getSubjectPid());
             }
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
-                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Common.COMMENT);
+                log.debug("Adding relation {},'{}',{}",programObjectPID,Common.HAS_FILE_RELATION_TYPE,filePID);
+                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Common.domsCommenter(filename, "added relation '"+Common.HAS_FILE_RELATION_TYPE+"' to '"+filePID+"'") );
 
             }
         }
         return programObjectPID;
     }
 
-    private void addOldPids(String existingPid, List<String> oldIdentifiers) throws ServerOperationFailed {
+    private void addOldPids(String existingPid, List<String> oldIdentifiers, String filename) throws ServerOperationFailed {
         Document dcDataStream = domsClient.getDataStream(existingPid, Common.DC_DS_ID);
         NodeList existingIDNodes = Common.XPATH_SELECTOR.selectNodeList(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
         Set<String> idsToAdd = new HashSet<String>(oldIdentifiers);
         for (int i = 0; i < existingIDNodes.getLength(); i++) {
             idsToAdd.remove(existingIDNodes.item(i).getTextContent());
         }
+        log.debug("Object {} is missing these {} old identifiers",existingPid, idsToAdd);
         if (idsToAdd.isEmpty()) {
             return;
         }
+
         Node identifier = Common.XPATH_SELECTOR.selectNode(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
         for (String id : idsToAdd) {
             Element newIdentifier = dcDataStream.createElementNS(Common.DC_NAMESPACE, "identifier");
             dcDataStream.setTextContent(id);
             identifier.getParentNode().insertBefore(newIdentifier, identifier);
+            log.debug("Adding {} to dc identifiers for object {}", id, existingPid);
         }
-        domsClient.updateDataStream(existingPid, Common.DC_DS_ID, dcDataStream, Common.COMMENT);
+        log.debug("Updating {} datastream with new old identifiers {}",Common.DC_DS_ID,oldIdentifiers);
+        domsClient.updateDataStream(existingPid, Common.DC_DS_ID, dcDataStream, Common.domsCommenter(filename, "added old identifiers " + oldIdentifiers));
     }
 
     /**
@@ -174,6 +194,9 @@ public class RecordCreator {
                 oldId = oldId.replaceAll("'", Matcher.quoteReplacement("\\'"));
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
                 if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
+                    if (pids.size() > 1){
+                        log.warn("Found {} pids for old identifiers {}, returning the first", pids,oldId);
+                    }
                     return pids.get(0);
                 }
             } catch (NoObjectFound e) {
@@ -209,7 +232,7 @@ public class RecordCreator {
     }
 
     /**
-     * Git the PIDs for all the file URLs.
+     * Get the PIDs for all the file URLs.
      *
      * @param radioTVMetadata Metadata XML document containing the file information.
      * @return A <code>List</code> of PIDs of the radio-tv file objects found in DOMS.
@@ -228,8 +251,11 @@ public class RecordCreator {
             // Lookup file object.
             Node item = recordingFileURLs.item(nodeIndex);
             String itemTextContent = item.getTextContent();
+            log.debug("Found file url {} from metadata", itemTextContent);
             URL fileURL = new URL(itemTextContent);
-            fileObjectPIDs.add(domsClient.getFileObjectPID(fileURL));
+            String fileObjectPID = domsClient.getFileObjectPID(fileURL);
+            fileObjectPIDs.add(fileObjectPID);
+            log.debug("Found file object pid {} for file url {}",fileObjectPID,fileURL);
         }
         return fileObjectPIDs;
     }

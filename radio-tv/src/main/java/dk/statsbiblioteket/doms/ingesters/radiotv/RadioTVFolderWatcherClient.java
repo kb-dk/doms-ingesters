@@ -93,13 +93,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
                                       Schema preIngestFileSchema, boolean overwrite) {
         this.domsClient = domsClient;
-        log.debug(
-                "Creating {} with params domsClient={}, failedFilesFolder={}, processedFilesFolder={}, preIngestSchema={}, overwrite={}",
-                getClass().getName(),
-                domsClient,
-                failedFilesFolder,
-                processedFilesFolder,
-                preIngestFileSchema, overwrite);
+        log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, preIngestSchema, overwrite={}",
+                getClass().getName(), failedFilesFolder,  processedFilesFolder, overwrite);
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
         this.overwrite = overwrite;
@@ -109,7 +104,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         documentBuilderFactory.setNamespaceAware(true);
     }
 
-    private DocumentBuilder getFileParser() {
+    private synchronized DocumentBuilder getFileParser() {
         DocumentBuilder preingestFilesBuilder;
         try {
             preingestFilesBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -203,7 +198,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     private void handleFile(Path addedFile) {
         List<String> pidsInProgress = new ArrayList<>();
 
-        try (AutoCloseable ignored = namedThread(addedFile.getFileName().toString())) { //Trick to rename the thread and name it back
+        String filename = addedFile.getFileName().toString();
+        try (AutoCloseable ignored = namedThread(filename)) { //Trick to rename the thread and name it back
             log.debug("Creating xml parser");
             DocumentBuilder fileParser = getFileParser();
 
@@ -249,13 +245,15 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     private void createRecord(Document radioTVMetadata,
                               Path addedFile,
                               List<String> pidsInProgress) throws IOException, ServerOperationFailed, XMLParseException, NoObjectFound {
+        String filename = addedFile.getFileName().toString();
         // Create or update program object for this program
-        log.debug("Starting to create doms record");
+        log.debug("Starting to create doms record for file");
 
         log.trace("Creating record creator");
         RecordCreator recordCreator = new RecordCreator(domsClient, overwrite);
+
         log.trace("Ingesting program");
-        String programPID = recordCreator.ingestProgram(radioTVMetadata);
+        String programPID = recordCreator.ingestProgram(radioTVMetadata, filename);
         log.trace("Program ingested with pid={}", programPID);
 
         pidsInProgress.add(programPID);
@@ -264,7 +262,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         // Publish the objects created in the process
         log.trace("Publishing objects {}", pidsInProgress);
 
-        domsClient.publishObjects(Common.COMMENT, pidsInProgress.toArray(new String[pidsInProgress.size()]));
+        domsClient.publishObjects("Publishing objects "+ pidsInProgress + " as part of ingest of program "+addedFile.getFileName(), pidsInProgress.toArray(new String[pidsInProgress.size()]));
 
         log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", addedFile, processedFilesFolder);
         // The ingest was successful, if we make it here...
@@ -308,6 +306,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      */
     private void failed(Path addedFile, List<String> pidsToPublish, Exception exception) {
         try {
+            String filename = addedFile.getFileName().toString();
+
             log.error("Ingest failed with exception, attempting cleanup for file={} and pids={}", addedFile,
                       pidsToPublish, exception);
 
@@ -318,7 +318,9 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             renamePidLists(addedFile);
 
             log.trace("Attempting to delete objects {} from doms", pidsToPublish);
-            domsClient.deleteObjects(Common.FAILED_COMMENT, pidsToPublish.toArray(new String[pidsToPublish.size()]));
+            String deleteComment = Common.domsCommenter(filename, " deleted objects " + pidsToPublish +
+                                                            " due to ingest failure");
+            domsClient.deleteObjects(deleteComment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
 
             log.error("Cleanup succeeded for file={} and pids={}", addedFile, pidsToPublish);
 
