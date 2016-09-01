@@ -26,9 +26,11 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.InOrder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -37,6 +39,9 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 /**
  * @author tsh
@@ -44,43 +49,11 @@ import static org.junit.Assert.assertTrue;
 public class TestHotFolderScanner {
 
     private HotFolderScanner folderScanner;
-    private Path clientFeedbackAddedFile;
 
     private Path tempTestDir;
-    private Path tempTestFile;
     private Path stopFolder;
 
-    // TODO: Add tests for the detection of modified and deleted files.
-    @SuppressWarnings("unused")
-    private Path clientFeedbackModifiedFile;
-    @SuppressWarnings("unused")
-    private Path clientFeedbackDeletedFile;
 
-    // TODO: Also test file modification and deletion.
-
-    private final FolderWatcherClient folderScannerClient = new FolderWatcherClient() {
-
-        @Override
-        public void fileAdded(Path addedFile) throws IOException {
-            System.out.println("File " + addedFile + " was added");
-            clientFeedbackAddedFile = addedFile;
-            Files.deleteIfExists(clientFeedbackAddedFile);
-        }
-
-        @Override
-        public void fileDeleted(Path deletedFile) throws IOException {
-            System.out.println("File " + deletedFile + " was deleted");
-            clientFeedbackDeletedFile = deletedFile;
-            Files.deleteIfExists(clientFeedbackAddedFile);
-        }
-
-        @Override
-        public void fileModified(Path modifiedFile) throws IOException {
-            System.out.println("File " + modifiedFile + " was modified");
-            clientFeedbackModifiedFile = modifiedFile;
-            Files.deleteIfExists(clientFeedbackAddedFile);
-        }
-    };
 
     /**
      * @throws java.lang.Exception
@@ -88,20 +61,15 @@ public class TestHotFolderScanner {
     @Before
     public void setUp() throws Exception {
         folderScanner = new HotFolderScanner();
-        clientFeedbackAddedFile = null;
     }
 
     @After
     public void tearDown() throws Exception {
-        if (tempTestFile != null) {
-            Files.deleteIfExists(tempTestFile);
-        }
-
         if (tempTestDir != null) {
-            Files.deleteIfExists(tempTestDir);
+            FileUtils.deleteDirectory(tempTestDir.toFile());
         }
         if (stopFolder != null) {
-            Files.deleteIfExists(stopFolder);
+            FileUtils.deleteDirectory(stopFolder.toFile());
         }
     }
 
@@ -112,19 +80,24 @@ public class TestHotFolderScanner {
 
         // Create a test file. It must be an XML file as the folder scanner
         // filters out XML files.
-        Path tempTestFile2 = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
-        Files.createFile(tempTestFile2);
+        Path tempTestFile = createTempFile();
+
+        FolderWatcherClient folderScannerClient = mock(FolderWatcherClient.class);
 
         //TODO mock folderScannerClient
         folderScanner.startScanning(tempTestDir, stopFolder,
                                     folderScannerClient);
 
-        System.out.println("The file "+tempTestFile2+" should be found first");
+        // Wait for the scanner to start up
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException ir) {
+            // Never mind that....
+        }
 
         // Create a test file. It must be an XML file as the folder scanner
         // filters out XML files.
-        tempTestFile = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
-        Files.createFile(tempTestFile);
+        Path tempTestFile2 = createTempFile();
 
         // Wait for the scanner to detect the change.
         try {
@@ -135,10 +108,16 @@ public class TestHotFolderScanner {
         folderScanner.setStopFlagSet(true);
         folderScanner.waitForStop();
 
-        assertEquals(
-                "The created test file was not detected by the hot folder scanner.",
-                tempTestFile, clientFeedbackAddedFile);
+        InOrder order = inOrder(folderScannerClient);
+        order.verify(folderScannerClient).fileAdded(tempTestFile);
+        order.verify(folderScannerClient).fileAdded(tempTestFile2);
+        order.verify(folderScannerClient).close();
+        order.verifyNoMoreInteractions();
+    }
 
-        // TODO: It wouldn't hurt testing the scanner with more than one file...
+    private Path createTempFile() throws IOException {
+        Path tempTestFile = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
+        Files.createFile(tempTestFile);
+        return tempTestFile;
     }
 }
