@@ -28,7 +28,6 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 
@@ -36,6 +35,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -46,22 +48,13 @@ import static org.mockito.Mockito.verify;
 /**
  * @author tsh
  */
-public class TestHotFolderScanner {
-
-    private HotFolderScanner folderScanner;
+public class TestFolderScanner {
 
     private Path tempTestDir;
     private Path stopFolder;
 
 
 
-    /**
-     * @throws java.lang.Exception
-     */
-    @Before
-    public void setUp() throws Exception {
-        folderScanner = new HotFolderScanner();
-    }
 
     @After
     public void tearDown() throws Exception {
@@ -74,9 +67,10 @@ public class TestHotFolderScanner {
     }
 
     @Test
-    public void testStartScanning() throws IOException, InterruptedException {
-        tempTestDir = Files.createTempDirectory(null);
-        stopFolder = Files.createTempDirectory(null);
+    public void testStartScanning() throws Exception {
+
+        tempTestDir = Files.createTempDirectory("hotFolder");
+        stopFolder = Files.createTempDirectory("stopFolder");
 
         // Create a test file. It must be an XML file as the folder scanner
         // filters out XML files.
@@ -84,29 +78,28 @@ public class TestHotFolderScanner {
 
         FolderWatcherClient folderScannerClient = mock(FolderWatcherClient.class);
 
-        //TODO mock folderScannerClient
-        folderScanner.startScanning(tempTestDir, stopFolder,
-                                    folderScannerClient);
+        FolderScanner folderScanner = new FolderScanner(tempTestDir, stopFolder,
+                                                        folderScannerClient);
+
+
+        ExecutorService background = Executors.newSingleThreadExecutor();
+
+        background.submit(folderScanner);
+        background.shutdown();
 
         // Wait for the scanner to start up
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ir) {
-            // Never mind that....
-        }
+        Thread.sleep(1000);
 
         // Create a test file. It must be an XML file as the folder scanner
-        // filters out XML files.
+        // filters out non-XML files.
         Path tempTestFile2 = createTempFile();
 
         // Wait for the scanner to detect the change.
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ir) {
-            // Never mind that....
-        }
+        Thread.sleep(1000);
+
+        //Stop the scanner
         folderScanner.setStopFlagSet(true);
-        folderScanner.waitForStop();
+        assertTrue(background.awaitTermination(10, TimeUnit.SECONDS));
 
         InOrder order = inOrder(folderScannerClient);
         order.verify(folderScannerClient).fileAdded(tempTestFile);

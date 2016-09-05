@@ -10,7 +10,7 @@
 DOMSINGEST_INIT=$BASEDIR/bin/domsingester_init.sh
 
 # Get folder configuration
-source $BASEDIR/bin/ingest_config.sh
+source $BASEDIR/config/ingest_config.sh
 
 #### Helper functions ####
 # Return number of items currently waiting in the hotfolder

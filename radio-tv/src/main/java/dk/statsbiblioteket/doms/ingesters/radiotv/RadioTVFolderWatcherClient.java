@@ -43,7 +43,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.validation.Schema;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -58,7 +57,6 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentBuilderFactory documentBuilderFactory;
-
 
     /**
      * How many times we failed during ingest.
@@ -89,6 +87,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param failedFilesFolder    Folder to move failed files to.
      * @param processedFilesFolder Folder to move processed files to.
      * @param preIngestFileSchema  Schema for Raio/TV metadata to process.
+     * @param overwrite            if true, will overwrite existing programs. If false, will throw OverwriteExceptions instead
      */
     public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
                                       Schema preIngestFileSchema, boolean overwrite) {
@@ -104,6 +103,10 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         documentBuilderFactory.setNamespaceAware(true);
     }
 
+    /**
+     * Create the xml file parser
+     * @return a document builder
+     */
     private synchronized DocumentBuilder getFileParser() {
         DocumentBuilder preingestFilesBuilder;
         try {
@@ -112,7 +115,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             throw new RuntimeException(pce);// will never be reached, but no matter
         }
 
-        ErrorHandler documentErrorHandler = new ErrorHandler() {
+        ErrorHandler documentErrorHandler = new ErrorHandler() { //Any errors are rethrown for max breakage
 
             @Override
             public void warning(SAXParseException exception) throws SAXException {
@@ -139,13 +142,18 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param addedFile Full path to the new file.
      */
     @Override
-    public synchronized void fileAdded(Path addedFile) {
+    public synchronized void fileAdded(Path addedFile)  {
         if (isXmlFile(addedFile)) {
             log.debug("File {} added, start processing", addedFile);
             handleAddedOrModifiedFile(addedFile);
         }
     }
 
+    /**
+     * Checks if the path is a regular file with the extension .xml
+     * @param file the file to check
+     * @return true if an xml file
+     */
     private boolean isXmlFile(Path file) {
         return file != null && Files.isRegularFile(file) && file.getFileName().toString().endsWith(".xml");
     }
@@ -156,76 +164,81 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param modifiedFile Full path to the modified file.
      */
     @Override
-    public void fileModified(Path modifiedFile) {
+    public void fileModified(Path modifiedFile)  {
         if (isXmlFile(modifiedFile)) {
             log.debug("File {} modified, start processing", modifiedFile);
             handleAddedOrModifiedFile(modifiedFile);
         }
     }
 
-    private void handleAddedOrModifiedFile(Path addedFile) {
-        if (!isAlreadyHandled(addedFile)) {
-            handleFile(addedFile);
+    /**
+     * Handle a file that is added or modified, as this is the same for this client
+     * @param file the file to handle
+     */
+    private void handleAddedOrModifiedFile(Path file) {
+        if (!isAlreadyHandled(file)) {
+            handleFile(file);
         }
     }
 
-    private boolean isAlreadyHandled(Path addedFile) {
+    /**
+     * Checks if the file is already handled, by looking in the processedFilesFolder
+     * @param file the file to examine
+     * @return true if we already handled the file
+     */
+    private boolean isAlreadyHandled(Path file) {
         try {
-
-            Path possibleCopy = processedFilesFolder.resolve(addedFile.getFileName());
+            Path possibleCopy = processedFilesFolder.resolve(file.getFileName());
             if (Files.isRegularFile(possibleCopy)) {
-                log.debug("Found possible copy of file {} in {}", addedFile,
-                          processedFilesFolder);
-                long originalSum = FileUtils.checksumCRC32(addedFile.toFile());
+                log.debug("Found possible copy of file {} in {}", file,  processedFilesFolder);
+
+                long originalSum = FileUtils.checksumCRC32(file.toFile());
                 long copySum = FileUtils.checksumCRC32(possibleCopy.toFile());
+
                 if (originalSum == copySum) {
                     log.info("Found exact duplicate of file={} in processedFolder={}, so deleting file={}",
-                             addedFile,
-                             processedFilesFolder,
-                             addedFile);
-                    Files.deleteIfExists(addedFile);
+                             file, processedFilesFolder, file);
+                    Files.deleteIfExists(file);
                     return true;
                 }
             }
         } catch (IOException e) {
             log.warn("IOException while trying to find duplicate of file={} in processedFilesFolder={}",
-                     addedFile, processedFilesFolder, e);
+                     file, processedFilesFolder, e);
             incrementFailedTries();
+            //Note, we return false in this case and tries to ingest the file
         }
         return false;
     }
 
-    private void handleFile(Path addedFile) {
+    /**
+     * Handles the file, by ingesting it in DOMS as a Program object
+     * @param file the xml file to ingest
+     */
+    private void handleFile(Path file) {
         List<String> pidsInProgress = new ArrayList<>();
 
-        String filename = addedFile.getFileName().toString();
-        try (AutoCloseable ignored = namedThread(filename)) { //Trick to rename the thread and name it back
+        try  { //Trick to rename the thread and name it back
             log.debug("Creating xml parser");
             DocumentBuilder fileParser = getFileParser();
 
             log.debug("Parsing xml file");
-            Document radioTVMetadata = fileParser.parse(addedFile.toFile());
+            Document radioTVMetadata = fileParser.parse(file.toFile());
 
             log.debug("Creating doms record");
-            createRecord(radioTVMetadata, addedFile, pidsInProgress);
+            createRecord(radioTVMetadata, file, pidsInProgress);
 
             log.debug("Ingest complete");
         } catch (Exception e) {
             // Handle anything unanticipated.
-            failed(addedFile, pidsInProgress, e);
+            failed(file, pidsInProgress, e);
         }
-    }
-
-    private Closeable namedThread(String name) {
-        String oldName = Thread.currentThread().getName();
-        Thread.currentThread().setName(name);
-        return () -> Thread.currentThread().setName(oldName);
     }
 
     @Override
     public void fileDeleted(Path deletedFile) {
         log.debug("File was deleted and I do not care");
-        // Not relevant.
+        //Note, this will be invoked with this client moves the files out of the hotFolder....
     }
 
     /**
@@ -329,7 +342,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             // If this bail-out error handling fails, then nothing can save
             // us...
             log.error("Unrecoverable error during ingesting", exception2);
-            throw new Error("Unrecoverable error during ingesting", exception2);
+            throw new RuntimeException("Unrecoverable error during ingesting", exception2);
         }
     }
 
@@ -350,8 +363,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     }
 
     private Path inProcessPids(Path failedMetadataFile) {
-        return failedFilesFolder.resolve(
-                    failedMetadataFile.getFileName().toString() + ".InProcessPIDs");
+        return failedFilesFolder.resolve(failedMetadataFile.getFileName().toString() + ".InProcessPIDs");
     }
 
 
@@ -362,8 +374,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     private synchronized void incrementFailedTries() {
         exceptionCount += 1;
         if (exceptionCount >= Common.MAX_FAIL_COUNT) {
-            log.error("Too many errors (" + exceptionCount + ") in ingest. Exiting.");
-            throw new Error("TODO"); //TODO stop better
+            throw new RuntimeException("Too many errors (" + exceptionCount + ") in ingest. Exiting.");
         }
     }
 

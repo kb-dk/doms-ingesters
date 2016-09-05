@@ -9,7 +9,7 @@ SCRIPT_DIR=$(pwd)
 popd > /dev/null
 BASEDIR=$SCRIPT_DIR/..
 
-source $SCRIPT_DIR/ingest_config.sh
+source $BASEDIR/config/ingest_config.sh
 
 
 touch $STOPFOLDER/stoprunning

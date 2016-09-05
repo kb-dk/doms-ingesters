@@ -17,8 +17,12 @@
             </includes>
 	</fileSet>
         <fileSet>
-            <outputDirectory>resources</outputDirectory>
+            <outputDirectory>config</outputDirectory>
             <directory>src/main/resources</directory>
+        </fileSet>
+        <fileSet>
+            <outputDirectory>config</outputDirectory>
+            <directory>src/main/config</directory>
         </fileSet>
         <fileSet>
             <outputDirectory>bin</outputDirectory>

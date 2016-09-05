@@ -9,7 +9,7 @@ SCRIPT_DIR=$(pwd)
 popd > /dev/null
 BASEDIR=$SCRIPT_DIR/..
 
-source $SCRIPT_DIR/ingest_config.sh
+source $BASEDIR/config/ingest_config.sh
 
 #
 # Parse command line arguments.
@@ -39,7 +39,7 @@ do
 done
 shift `expr $OPTIND - 1`
 
-java -cp .:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
+java -cp .:$BASEDIR/config/*;$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
    -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
-   -preingestschema=$SCHEMA -overwrite=$OVERWRITE -numthreads=$NUMTHREADS
+   -preingestschema=$SCHEMA -overwrite=$OVERWRITE

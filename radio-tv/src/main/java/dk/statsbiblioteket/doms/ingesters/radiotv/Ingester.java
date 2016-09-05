@@ -53,7 +53,7 @@ import java.nio.file.Paths;
 
 public class Ingester {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LoggerFactory.getLogger(Ingester.class);
 
     /**
      * @param args
@@ -62,77 +62,125 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws Exception {
-        new Ingester().mainInstance(args);
+            mainMethod(args);
     }
 
-    private void mainInstance(String[] args) throws IOException,
+    private static void mainMethod(String[] args) throws IOException,
             InvalidCredentialsException, MethodFailedException,
             InterruptedException, SAXException, ParseException {
 
         log.info("Ingester starting up ");
 
-        // create Options object
-        Options options = new Options();
+        CommandLine cmd = setupCommandLine(args);
 
-        options.addOption(Option.builder().argName("hotfolder").longOpt("hotfolder").hasArg().valueSeparator().build());
-        options.addOption(Option.builder().argName("lukefolder").longOpt("lukefolder").hasArg().valueSeparator().build());
-        options.addOption(Option.builder().argName("coldfolder").longOpt("coldfolder").hasArg().valueSeparator().build());
-        options.addOption(Option.builder().argName("stopfolder").longOpt("stopfolder").hasArg().valueSeparator().build());
+        log.info("Ingester started with the following configuration details:");
 
-        options.addOption(Option.builder().argName("wsdl").longOpt("wsdl").hasArg().type(URL.class).valueSeparator().required().build());
-        options.addOption(Option.builder().argName("username").longOpt("username").hasArg().valueSeparator().build());
-        options.addOption(Option.builder().argName("password").longOpt("password").hasArg().valueSeparator().build());
+        Path hotFolder = parseHotfolder(cmd);
 
-        options.addOption(Option.builder().argName("preingestschema").longOpt("preingestscheme").hasArg().valueSeparator().build());
-        options.addOption(Option.builder().argName("overwrite").longOpt("overwrite").hasArg().valueSeparator().build());
+        Path lukewarmFolder = parseLukefolder(cmd);
 
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = parser.parse(options, args);
+        Path coldFolder = parseColdfolder(cmd);
 
-        Path hotFolder = Paths.get(cmd.getOptionValue("hotfolder", "radioTVMetaData"));
-        Path lukewarmFolder = Paths.get(cmd.getOptionValue("lukefolder","/tmp/failedFiles"));
-        Path coldFolder = Paths.get(cmd.getOptionValue("coldfolder","processedFiles"));
-        Path stopFolder = Paths.get(cmd.getOptionValue("stopfolder","stopFolder"));
+        Path stopFolder = parseStopfolder(cmd);
 
-        Path preIngestFileSchemaFile = Paths.get(
-                cmd.getOptionValue("preingestschema",
-                                   new File(Thread.currentThread().getContextClassLoader().getResource("exportedRadioTVProgram.xsd").getFile()).getAbsolutePath()));
+        Path preIngestFileSchemaFile = parseSchema(cmd);
 
-        URL domsAPIWSLocation = (URL) cmd.getParsedOptionValue("wsdl");
+        URL domsAPIWSLocation = parseWSDL(cmd);
 
-        String username = cmd.getOptionValue("username", "fedoraAdmin");
-        String password = cmd.getOptionValue("password", "fedoraAdminPass");
+        String username = parseUsername(cmd);
 
-        boolean overwrite = Boolean.parseBoolean(cmd.getOptionValue("overwrite",Boolean.FALSE.toString()));
+        String password = parsePassword(cmd);
 
+        boolean overwrite = parseOverwrite(cmd);
 
-        log.info("Ingester started with the following configuration "
-                + "detatils:");
-        log.info("hotFolder = {}", hotFolder);
-        log.info("lukewarmFolder = {}", lukewarmFolder);
-        log.info("coldFolder = {}", coldFolder);
-        log.info("stopFolder = {}", stopFolder);
-        log.info("preIngestFileSchemaFile = {}", preIngestFileSchemaFile);
-        log.info("domsAPIWSLocation = {}", domsAPIWSLocation.toString());
-        log.info("username = {}", username);
-        log.info("password = {}", password);
-        log.info("overwrite = {}", overwrite);
-
-        // Make sure that all the necessary folders exist.
-        Files.createDirectories(hotFolder);
-
-        Files.createDirectories(lukewarmFolder);
-
-        Files.createDirectories(coldFolder);
-
-        Files.createDirectories(stopFolder);
 
         startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
                      domsAPIWSLocation,
                      username, password, overwrite);
     }
 
-    private void startScanner(Path hotFolder,
+    static String parseUsername(CommandLine cmd) {
+        String username = cmd.getOptionValue("username", "fedoraAdmin");
+        log.info("username = {}", username);
+        return username;
+    }
+
+    static String parsePassword(CommandLine cmd) {
+        String password = cmd.getOptionValue("password", "fedoraAdminPass");
+        log.info("password = {}", password);
+        return password;
+    }
+
+    static Path parseStopfolder(CommandLine cmd) throws IOException {
+        Path stopFolder = Paths.get(cmd.getOptionValue("stopfolder", "stopFolder"));
+        log.info("stopFolder = {}", stopFolder);
+        Files.createDirectories(stopFolder);
+        return stopFolder;
+    }
+
+    static Path parseColdfolder(CommandLine cmd) throws IOException {
+        Path coldFolder = Paths.get(cmd.getOptionValue("coldfolder", "processedFiles"));
+        log.info("coldFolder = {}", coldFolder);
+        Files.createDirectories(coldFolder);
+        return coldFolder;
+    }
+
+    static Path parseLukefolder(CommandLine cmd) throws IOException {
+        Path lukewarmFolder = Paths.get(cmd.getOptionValue("lukefolder", "/tmp/failedFiles"));
+        log.info("lukewarmFolder = {}", lukewarmFolder);
+        Files.createDirectories(lukewarmFolder);
+        return lukewarmFolder;
+    }
+
+    static Path parseHotfolder(CommandLine cmd) throws IOException {
+        Path hotFolder = Paths.get(cmd.getOptionValue("hotfolder", "radioTVMetaData"));
+        log.info("hotFolder = {}", hotFolder);
+        Files.createDirectories(hotFolder);
+        return hotFolder;
+    }
+
+    static Path parseSchema(CommandLine cmd) {
+        Path preIngestFileSchemaFile = Paths.get(
+                cmd.getOptionValue("preingestschema",
+                                   new File(Thread.currentThread().getContextClassLoader().getResource("exportedRadioTVProgram.xsd").getFile()).getAbsolutePath()));
+        log.info("preIngestFileSchemaFile = {}", preIngestFileSchemaFile);
+        return preIngestFileSchemaFile;
+    }
+
+    static URL parseWSDL(CommandLine cmd) throws ParseException {
+        URL domsAPIWSLocation = (URL) cmd.getParsedOptionValue("wsdl");
+        log.info("domsAPIWSLocation = {}", domsAPIWSLocation.toString());
+        return domsAPIWSLocation;
+    }
+
+
+    static boolean parseOverwrite(CommandLine cmd) {
+        boolean overwrite = Boolean.parseBoolean(cmd.getOptionValue("overwrite",Boolean.FALSE.toString()));
+        log.info("overwrite = {}", overwrite);
+        return overwrite;
+    }
+
+    public static CommandLine setupCommandLine(String[] args) throws ParseException {
+        // create Options object
+        Options options = new Options();
+
+        options.addOption(Option.builder().longOpt("hotfolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("lukefolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("coldfolder").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("stopfolder").hasArg().valueSeparator().build());
+
+        options.addOption(Option.builder().longOpt("wsdl").hasArg().type(URL.class).valueSeparator().required().build());
+        options.addOption(Option.builder().longOpt("username").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("password").hasArg().valueSeparator().build());
+
+        options.addOption(Option.builder().longOpt("preingestschema").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("overwrite").hasArg().valueSeparator().build());
+
+        CommandLineParser parser = new DefaultParser();
+        return parser.parse(options, args);
+    }
+
+    private static void startScanner(Path hotFolder,
                               Path coldFolder,
                               Path lukewarmFolder,
                               Path stopFolder,
@@ -154,8 +202,7 @@ public class Ingester {
                 domsClient, lukewarmFolder, coldFolder,
                 preIngestFileSchema, overwrite);
 
-        final HotFolderScanner folderScanner = new HotFolderScanner();
-        folderScanner.startScanning(hotFolder, stopFolder, radioTVHotFolderClient);
-        folderScanner.waitForStop();
+        final FolderScanner folderScanner = new FolderScanner(hotFolder, stopFolder, radioTVHotFolderClient);
+        folderScanner.call();
     }
 }

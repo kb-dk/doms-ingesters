@@ -3,11 +3,7 @@ package dk.statsbiblioteket.doms.ingesters.radiotv;
 import java.io.IOException;
 
 /**
- * Created with IntelliJ IDEA.
- * User: abr
- * Date: 8/19/13
- * Time: 3:16 PM
- * To change this template use File | Settings | File Templates.
+ * This exception is thrown when we need to overwrite an object and the overwrite flag is false
  */
 public class OverwriteException extends IOException {
     public OverwriteException() {

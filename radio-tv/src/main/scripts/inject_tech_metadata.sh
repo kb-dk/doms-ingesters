@@ -9,7 +9,7 @@ SCRIPT_DIR=$(pwd)
 popd > /dev/null
 BASEDIR=$SCRIPT_DIR/..
 
-source $SCRIPT_DIR/inject_tech_metadata_config.sh
+source $BASEDIR/config/inject_tech_metadata_config.sh
 
 #
 # Parse command line arguments.
