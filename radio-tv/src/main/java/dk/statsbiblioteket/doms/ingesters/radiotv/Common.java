@@ -15,11 +15,11 @@ public class Common {
 
     public static final int MAX_FAIL_COUNT = 10;
 
-    static final String PBCORE_NAMESPACE = "http://www.pbcore.org/PBCore/PBCoreNamespace.html";
+    public static final String PBCORE_NAMESPACE = "http://www.pbcore.org/PBCore/PBCoreNamespace.html";
     public static final String DC_NAMESPACE = "http://purl.org/dc/elements/1.1/";
-    static final String RITZAU_NAMESPACE = "http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#";
-    static final String GALLUP_NAMESPACE = "http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#";
-    static final String PROGRAM_BROADCAST_NAMESPACE = "http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#";
+    public static final String RITZAU_NAMESPACE = "http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#";
+    public static final String GALLUP_NAMESPACE = "http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#";
+    public static final String PROGRAM_BROADCAST_NAMESPACE = "http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#";
     public static final XPathSelector XPATH_SELECTOR = DOM.createXPathSelector("pbc", PBCORE_NAMESPACE,
                                                                                "dc", DC_NAMESPACE,
                                                                                "ritzau", RITZAU_NAMESPACE,
@@ -46,7 +46,4 @@ public class Common {
     public static final String DC_DS_ID = "DC";
     public static final String HAS_FILE_RELATION_TYPE = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasFile";
 
-    public static String domsCommenter(String filename, String action) {
-        return "RadioTV Digitv Ingester " + action + " as part of ingest of " + filename;
-    }
 }

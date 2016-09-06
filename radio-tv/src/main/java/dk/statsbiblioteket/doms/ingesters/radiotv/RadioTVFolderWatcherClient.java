@@ -331,8 +331,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             renamePidLists(addedFile);
 
             log.trace("Attempting to delete objects {} from doms", pidsToPublish);
-            String deleteComment = Common.domsCommenter(filename, " deleted objects " + pidsToPublish +
-                                                            " due to ingest failure");
+            String deleteComment = Util.domsCommenter(filename, " deleted objects " + pidsToPublish +
+                                                                " due to ingest failure");
             domsClient.deleteObjects(deleteComment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
 
             log.error("Cleanup succeeded for file={} and pids={}", addedFile, pidsToPublish);

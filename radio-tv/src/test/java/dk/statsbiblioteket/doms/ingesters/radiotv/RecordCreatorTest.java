@@ -1,11 +1,9 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
-import org.mockito.Matchers;
 import org.w3c.dom.Document;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
@@ -20,9 +18,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -69,14 +65,14 @@ public class RecordCreatorTest {
 
         String ritzauOldID = ritzauOrigID + "RitzauProgram";
 
-        String programObjectCreationComment = Common.domsCommenter(filename, "creating Program Object");
+        String programObjectCreationComment = Util.domsCommenter(filename, "creating Program Object");
 
         String programTitle = "Damages";
 
 
 
-        String setObjectLabelComment = Common.domsCommenter(filename, "added program title '" + programTitle + "'object label");
-        String updatedDatastreamComment = Common.domsCommenter(filename, "updated datastream");
+        String setObjectLabelComment = Util.domsCommenter(filename, "added program title '" + programTitle + "'object label");
+        String updatedDatastreamComment = Util.domsCommenter(filename, "updated datastream");
 
 
         String pbCoreString = getPBCore(ritzauOldID, tvMeterOldID, programTitle);
@@ -143,8 +139,8 @@ public class RecordCreatorTest {
         ordered.verify(testDomsClient).listObjectRelations(programPid, Common.HAS_FILE_RELATION_TYPE);
 
         //As it is not linked, add two relations
-        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid1, Common.domsCommenter(filename, "added relation '"+Common.HAS_FILE_RELATION_TYPE+"' to '"+filePid1+"'") );
-        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid2, Common.domsCommenter(filename, "added relation '"+Common.HAS_FILE_RELATION_TYPE+"' to '"+filePid2+"'") );
+        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid1, Util.domsCommenter(filename, "added relation '" + Common.HAS_FILE_RELATION_TYPE + "' to '" + filePid1 + "'") );
+        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid2, Util.domsCommenter(filename, "added relation '" + Common.HAS_FILE_RELATION_TYPE + "' to '" + filePid2 + "'") );
 
         //That's all, folks
         ordered.verifyNoMoreInteractions();

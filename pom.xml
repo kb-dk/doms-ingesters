@@ -37,6 +37,22 @@
                     <target>1.8</target>
                 </configuration>
             </plugin>
+
+            <plugin> <!--This sets the version number in the jar file, so we can get it programmatically-->
+                <artifactId>maven-jar-plugin</artifactId>
+                <inherited>true</inherited>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <key>value</key>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 
