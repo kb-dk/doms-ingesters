@@ -19,7 +19,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import static dk.statsbiblioteket.doms.ingesters.radiotv.Named.namedThread;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.Named.nameThread;
 
 
 public abstract class FolderWatcher implements Callable<Void> {
@@ -38,7 +38,7 @@ public abstract class FolderWatcher implements Callable<Void> {
 
 
     public Void call() throws Exception {
-        try (Named ignored = namedThread("FolderWatcher-" + folderToWatch.getFileName());
+        try (Named threadNamer = nameThread("FolderWatcher-" + folderToWatch.getFileName());
              FolderWatcherClient client = this.client; //Trick to autoclose the client when done
              WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
@@ -75,7 +75,7 @@ public abstract class FolderWatcher implements Callable<Void> {
                     } else {
 
                         Path file = folderToWatch.resolve((Path) event.context());
-                        try (Named ignored2 = namedThread(file)) {
+                        try (Named ignored2 = nameThread(file)) {
 
                             if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                                 log.debug("File was added");
@@ -113,12 +113,11 @@ public abstract class FolderWatcher implements Callable<Void> {
 
         for (Path preFile : preFiles) {
             shouldStopNow();
-            try (Named ignored = namedThread(preFile)) { //Trick to rename the thread and name it back
+            try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
                 log.debug("file was found");
                 client.fileAdded(preFile);
             }
         }
-        //TODO signal the user that the folder is now free?
         log.info("All files in {} have been handled, so proceeding to listen for changes",
                  folderToWatch);
     }

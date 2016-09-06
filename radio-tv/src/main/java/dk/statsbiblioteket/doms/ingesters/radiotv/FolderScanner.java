@@ -56,7 +56,7 @@ public class FolderScanner implements Callable<Void>{
      */
     @Override
     public Void call() throws RuntimeException {
-        ExecutorService watchersPool = Executors.newCachedThreadPool(
+        ExecutorService watchersPool = Executors.newCachedThreadPool( //TODO make fixed....
                 r -> { //Why cant these threads be configured as daemons????
                     Thread t = new Thread(r);
                     t.setDaemon(true);
@@ -78,7 +78,7 @@ public class FolderScanner implements Callable<Void>{
         while (true) {
             try {
                 primaryFolderStopped.get(timeout, TimeUnit.MILLISECONDS);
-                stopFolderStopped.get(timeout, TimeUnit.MILLISECONDS);
+                stopFolderStopped.get(timeout, TimeUnit.MILLISECONDS); //TODO Why do we wait for this? If the primary stopped, why not just shut the whole thing down?
                 break;  //if both gets complete, we can break
             } catch (TimeoutException | InterruptedException e) {
                 continue;//ignore, try again
