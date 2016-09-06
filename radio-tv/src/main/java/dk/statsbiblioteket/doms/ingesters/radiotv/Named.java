@@ -10,11 +10,11 @@ import java.nio.file.Path;
  * blocks
  * @see #nameThread(String)
  */
-public abstract class Named implements AutoCloseable {
-    private static final Logger log = LoggerFactory.getLogger(Named.class);
+public interface Named extends AutoCloseable {
+    //private static final Logger log = LoggerFactory.getLogger(Named.class);
 
     @Override
-    public abstract void close();
+    void close();
 
     /**
      * A Trick to rename the thread for the duration of a try statement and get it automatically named back when closed
@@ -31,17 +31,14 @@ public abstract class Named implements AutoCloseable {
      * @param name the name to apped to the thread name
      * @return an autoclosable instance for resetting the thread name
      */
-    public static Named nameThread(String name) { //Trick to rename the thread and name it back
+    static Named nameThread(String name) { //Trick to rename the thread and name it back
         String oldName = Thread.currentThread().getName();
         String newName = oldName + "-" + name;
-        log.debug("Starting work on {} so adapting thread name", name);
+        //log.debug("Starting work on {} so adapting thread name", name);
         Thread.currentThread().setName(newName);
-        return new Named() {
-            @Override
-            public void close() {
-                log.debug("Finished work on {} so resetting thread name to {}", name, oldName);
-                Thread.currentThread().setName(oldName);
-            }
+        return () -> {
+            ///log.debug("Finished work on {} so resetting thread name to {}", name, oldName);
+            Thread.currentThread().setName(oldName);
         };
     }
 
@@ -52,7 +49,7 @@ public abstract class Named implements AutoCloseable {
      * @return a Named
      * @see #nameThread(String)
      */
-    public static Named nameThread(Path path) {
+    static Named nameThread(Path path) {
         return nameThread(path.toFile().getName());
     }
 }
