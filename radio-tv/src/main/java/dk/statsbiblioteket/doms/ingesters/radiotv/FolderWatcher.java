@@ -52,6 +52,7 @@ public abstract class FolderWatcher implements Callable<Void> {
             syncWithFolderContents(client);
 
             //Then watch for changes
+            watcherLoop:
             while (true) {
                 //We run until this throws stoppedException
                 shouldStopNow();
@@ -66,8 +67,11 @@ public abstract class FolderWatcher implements Callable<Void> {
                     shouldStopNow(); //Check stop for each event, as there can be quite a lot of events in the queue
 
                     if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
-                        log.warn("Watch overflow {}", event);
-                        //What to do here??
+                        log.warn("Watch overflow {}, so resyncing contents of folder {} and restarting watches", event,
+                                 folderToWatch);
+                        syncWithFolderContents(client);
+                        wk.reset(); //When we get an Overflow, the rest of the pollEvents should not be meaningful, so reset the key and listen again
+                        continue watcherLoop;
                     } else {
 
                         Path file = folderToWatch.resolve((Path) event.context());
