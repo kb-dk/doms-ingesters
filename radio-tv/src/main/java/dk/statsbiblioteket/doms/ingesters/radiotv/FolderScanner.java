@@ -56,7 +56,7 @@ public class FolderScanner implements Callable<Void>{
      */
     @Override
     public Void call() throws RuntimeException {
-        ExecutorService watchersPool = Executors.newCachedThreadPool( //TODO make fixed....
+        ExecutorService watchersPool = Executors.newFixedThreadPool(2, //Exactly 2 threads
                 r -> { //Why cant these threads be configured as daemons????
                     Thread t = new Thread(r);
                     t.setDaemon(true);
