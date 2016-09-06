@@ -1,7 +1,6 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 
-import org.mockito.internal.matchers.StartsWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,77 +19,66 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import static dk.statsbiblioteket.doms.ingesters.radiotv.Named.namedThread;
+
 
 public abstract class FolderWatcher implements Callable<Void> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private Path hotFolderToScan;
+    private final Path folderToWatch;
     private final long timeoutInMS;
-    private FolderWatcherClient client;
+    private final FolderWatcherClient client;
 
-    public FolderWatcher(Path hotFolderToScan, long timeoutInMS, FolderWatcherClient client) {
-        this.hotFolderToScan = hotFolderToScan;
+    public FolderWatcher(Path folderToWatch, long timeoutInMS, FolderWatcherClient client) {
+        this.folderToWatch = folderToWatch;
         this.timeoutInMS = timeoutInMS;
         this.client = client;
     }
 
 
     public Void call() throws Exception {
-        String threadName = "FolderWatcher-" + hotFolderToScan.getFileName();
-        try (AutoCloseable ignored = Common.namedThread(threadName);
-             final WatchService hotFolderWatcher = FileSystems.getDefault().newWatchService()) {
+        try (Named ignored = namedThread("FolderWatcher-" + folderToWatch.getFileName());
+             FolderWatcherClient client = this.client; //Trick to autoclose the client when done
+             WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
-            log.debug("Registering a watcher for folder '{}' ",hotFolderToScan);
-            hotFolderToScan.register(hotFolderWatcher, StandardWatchEventKinds.ENTRY_MODIFY,
-                                     StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_DELETE);
+            log.debug("Registering a watcher for folder '{}' ", folderToWatch);
+            folderToWatch.register(watchService,
+                                   StandardWatchEventKinds.ENTRY_MODIFY,
+                                   StandardWatchEventKinds.ENTRY_CREATE,
+                                   StandardWatchEventKinds.ENTRY_DELETE);
 
             //Handle existing files first
-            //TODO signal the user that the folder is now free?
-            List<Path> preFiles = Files.list(hotFolderToScan).sorted(sortOnLastModified()).collect(
-                    Collectors.toList());
-
-            if (!preFiles.isEmpty()){
-                log.info("Found {} files in {}, handling these first",preFiles.size(),hotFolderToScan);
-            }
-
-            for (Path preFile : preFiles) {
-                if (!shouldStop()) {
-                    log.debug("Preexisting file {} was found",preFile);
-                    try (AutoCloseable ignored2 = Common.namedThread(preFile.toFile().getName())) { //Trick to rename the thread and name it back
-                        client.fileAdded(preFile);
-                    }
-                } else {
-                    return null;
-                }
-            }
-            log.info("All preexisting files in {} have been handled, so proceeding to listen for changes",hotFolderToScan);
+            syncWithFolderContents(client);
 
             //Then watch for changes
-            while (!shouldStop()) {  //We run until this is true or we except
+            while (true) {
+                //We run until this throws stoppedException
+                shouldStopNow();
+
                 //Handle the hotfolder watcher
-                final WatchKey wk = hotFolderWatcher.poll(timeoutInMS, TimeUnit.MILLISECONDS);
+                final WatchKey wk = watchService.poll(timeoutInMS, TimeUnit.MILLISECONDS);
                 if (wk == null) { //If we reached the timeout, the key is null, so go again
                     continue;
                 }
 
                 for (WatchEvent<?> event : wk.pollEvents()) {
+                    shouldStopNow(); //Check stop for each event, as there can be quite a lot of events in the queue
+
                     if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
                         log.warn("Watch overflow {}", event);
                         //What to do here??
                     } else {
 
-                        Path file = hotFolderToScan.resolve((Path) event.context());
-                        try (AutoCloseable ignored2 = Common.namedThread(file.toFile().getName())) {
+                        Path file = folderToWatch.resolve((Path) event.context());
+                        try (Named ignored2 = namedThread(file)) {
 
                             if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                                 log.debug("File was added");
                                 client.fileAdded(file);
-
                             } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
                                 log.debug("File was modified");
                                 client.fileModified(file);
-
                             } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
                                 log.debug("File was deleted");
                                 client.fileDeleted(file);
@@ -101,19 +89,34 @@ public abstract class FolderWatcher implements Callable<Void> {
                 // reset the key
                 boolean valid = wk.reset();
                 if (!valid) {
-                    throw new RuntimeException("Key "+wk+" have been invalidated, so no more watching of folder "+hotFolderToScan);
+                    throw new RuntimeException(
+                            "Key " + wk + " have been invalidated, so no more watching of folder " +
+                            folderToWatch);
                 }
             }
-        } finally {
-            if (shouldStop()){
-                log.debug("Stop flag set, so shutting down");
-            } else {
-                log.warn("Stop flag not set, but shutting down");
-            }
-            client.close();
+
+        } catch (StoppedException e) { //Stopped exception stops here
+            log.debug("Stop flag set, so shutting down");
+            return null;
+        }
+    }
+
+    private void syncWithFolderContents(FolderWatcherClient client) throws Exception {
+        List<Path> preFiles = Files.list(folderToWatch).sorted(sortOnLastModified()).collect(Collectors.toList());
+        if (!preFiles.isEmpty()){
+            log.info("Found {} files in {}, handling these", preFiles.size(), folderToWatch);
         }
 
-        return null;//To make Void returntype happy
+        for (Path preFile : preFiles) {
+            shouldStopNow();
+            try (Named ignored = namedThread(preFile)) { //Trick to rename the thread and name it back
+                log.debug("file was found");
+                client.fileAdded(preFile);
+            }
+        }
+        //TODO signal the user that the folder is now free?
+        log.info("All files in {} have been handled, so proceeding to listen for changes",
+                 folderToWatch);
     }
 
 
@@ -127,5 +130,14 @@ public abstract class FolderWatcher implements Callable<Void> {
         };
     }
 
-    protected abstract boolean shouldStop();
+    protected abstract void shouldStopNow() throws StoppedException;
+
+
+
+    /**
+     * Throwing this method signals that an overly shutdown have been requested
+     */
+    protected class StoppedException extends RuntimeException {
+    }
+
 }

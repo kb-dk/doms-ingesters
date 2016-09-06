@@ -6,14 +6,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.io.IOException;
 
 /**
  * Constants used while building document.
  */
 public class Common {
-
-    private static final Logger log = LoggerFactory.getLogger(Common.class);
-
 
     public static final int MAX_FAIL_COUNT = 10;
 
@@ -50,16 +48,5 @@ public class Common {
 
     public static String domsCommenter(String filename, String action) {
         return "RadioTV Digitv Ingester " + action + " as part of ingest of " + filename;
-    }
-
-    public static Closeable namedThread(String name) { //Trick to rename the thread and name it back
-        String oldName = Thread.currentThread().getName();
-        String newName = oldName + "-" + name;
-        log.debug("Starting work on {} so adapting thread name", name);
-        Thread.currentThread().setName(newName);
-        return () -> {
-            log.debug("Finished work on {} so resetting thread name to {}",name, oldName);
-            Thread.currentThread().setName(oldName);
-        };
     }
 }

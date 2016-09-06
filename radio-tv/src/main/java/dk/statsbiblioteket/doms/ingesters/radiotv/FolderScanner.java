@@ -102,8 +102,10 @@ public class FolderScanner implements Callable<Void>{
     private FolderWatcher setupPrimaryFolderWatcher(final Path folderToScan, final FolderWatcherClient client, final long timeout) {
         return new FolderWatcher(folderToScan, timeout, client) {
                 @Override
-                protected boolean shouldStop() {
-                    return isStopFlagSet();
+                protected void shouldStopNow() throws StoppedException {
+                    if (isStopFlagSet()){
+                        throw new StoppedException();
+                    }
                 }
             };
     }
@@ -121,8 +123,10 @@ public class FolderScanner implements Callable<Void>{
         };
         return new FolderWatcher(folderToScan, timeout, stopFolderWacherClient){
             @Override
-            protected boolean shouldStop() {
-                return isStopFlagSet();
+            protected void shouldStopNow() throws StoppedException {
+                if (isStopFlagSet()){
+                    throw new StoppedException();
+                }
             }
         };
     }
