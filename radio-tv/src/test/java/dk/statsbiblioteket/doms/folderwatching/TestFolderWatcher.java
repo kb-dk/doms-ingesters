@@ -205,16 +205,31 @@ public class TestFolderWatcher {
 
         long handlingTime = 100;
 
-        Set<Long> threadIDs = new HashSet<>();
         List<Path> handlingOrder = new ArrayList<>();
 
+        final int[] maxconcurrent = {0}; //Maximum number of concurrent processes that actually runs
+
         FolderWatcherClient FolderWatcherClient = new FolderWatcherClient() {
+            private int concurrent = 0;
+
             @Override
             public void fileAdded(Path addedFile) throws Exception {
+                increment();
                 super.fileAdded(addedFile);
                 handlingOrder.add(addedFile);
                 Thread.sleep(handlingTime);
-                threadIDs.add(Thread.currentThread().getId());
+                decrement();
+            }
+
+            private synchronized void increment(){
+                concurrent++;
+            }
+
+            private synchronized void decrement(){
+                if (concurrent > maxconcurrent[0]){
+                    maxconcurrent[0] = concurrent;
+                }
+                concurrent--;
             }
         };
 
@@ -226,6 +241,9 @@ public class TestFolderWatcher {
 
         background.submit(FolderWatcher);
         background.shutdown();
+
+        // Wait for the scanner to start up
+        Thread.sleep(1000);
 
         // Create a test file. It must be an XML file as the folder scanner
         // filters out non-XML files.
@@ -241,6 +259,7 @@ public class TestFolderWatcher {
         System.out.println("Handled files: "+handlingOrder.size());
 
 
+        Thread.sleep(2000);
         //Stop the scanner
         FolderWatcher.setClosed(true);
         assertTrue(background.awaitTermination(1, TimeUnit.SECONDS));
@@ -248,7 +267,7 @@ public class TestFolderWatcher {
         creationOrder.removeAll(handlingOrder);
         assertEquals("All created files should have been handled", Arrays.asList(), creationOrder);
 
-        assertEquals(threadIDs.size(), numThreads);
+        assertEquals(numThreads,maxconcurrent[0]);
 
     }
 
@@ -293,6 +312,7 @@ public class TestFolderWatcher {
             Thread.sleep(handlingTime);
         } while (handlingOrder.size() < 2);
         System.out.println("Handled files: "+handlingOrder.size());
+
 
 
         //Stop the scanner
