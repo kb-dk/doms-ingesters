@@ -67,55 +67,37 @@ public class RecordCreator {
         // Find or create program object.
         List<String> oldIdentifiers = getOldIdentifiers(radioTVMetadata);
         log.debug("Found these old identifiers {} in the program to ingest",oldIdentifiers);
-        String existingPid = alreadyExistsInRepo(oldIdentifiers);
-        String programObjectPID;
-        if (existingPid == null) {//not Exist
-            log.debug("Old identifiers {} did not find a program object in doms",oldIdentifiers);
-            // Create a program object in the DOMS and update the PBCore metadata
-            // datastream with the PBCore metadata from the pre-ingest file.
-            programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Util.domsCommenter(filename, "creating Program Object"));
-            log.debug("Creating new program object with pid {}",programObjectPID);
-        } else { //Exists
+
+        String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
+        if (programObjectPID != null){
             if (overwrite){
-                log.debug("Found existing object {}, to be overwritten",existingPid);
-                domsClient.unpublishObjects(Util.domsCommenter(filename, "unpublished object to allow for changes"), existingPid);
-                log.debug("Existing object {} unpublished",existingPid);
-                addOldPids(existingPid, oldIdentifiers, filename);
-                log.debug("Old identifiers added to program object {}",existingPid);
-                programObjectPID = existingPid;
+                prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
             } else {
-                throw new OverwriteException("Attempted to overwrite pid='"+existingPid+"");
+                throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
             }
+        } else {
+            log.debug("Old identifiers {} did not find a program object in doms",oldIdentifiers);
+            programObjectPID = createNewProgramObject(filename, oldIdentifiers);
         }
 
-        // Get the program title from the PBCore metadata and use that as the
-        // object label for this program object.
-        Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
-        String programTitle = titleNode.getTextContent();
-        log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
-        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '" + programTitle + "' object label"));
+        //Set label as title
+        setTitle(radioTVMetadata, filename, programObjectPID);
 
-        // Add PBCore datastream
-        log.debug("Adding/Updating {} datastream", Common.PROGRAM_PBCORE_DS_ID);
-        Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, Util.domsCommenter(filename, "updated datastream"));
+        //Add/update the datastreams
+        String datastreamComment = Util.domsCommenter(filename, "updated datastream");
+        addPBCore(radioTVMetadata, programObjectPID, datastreamComment);
+        addRitzau(radioTVMetadata, programObjectPID, datastreamComment);
+        addGallup(radioTVMetadata, programObjectPID, datastreamComment);
+        addBroadcast(radioTVMetadata, programObjectPID, datastreamComment);
 
-        // Add Ritzau datastream
-        log.debug("Adding/Updating {} datastream", Common.RITZAU_ORIGINAL_DS_ID);
-        Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.RITZAU_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, Util.domsCommenter(filename, "updated datastream"));
+        //Set the relations to the data files
+        setFileRelations(programObjectPID, filePIDs, filename);
 
-        // Add the Gallup datastream
-        log.debug("Adding/Updating {} datastream", Common.GALLUP_ORIGINAL_DS_ID);
-        Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.GALLUP_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, Util.domsCommenter(filename, "updated datastream"));
+        return programObjectPID;
+    }
 
-        // Add the program broadcast datastream
-        log.debug("Adding/Updating {} datastream", Common.PROGRAM_BROADCAST_DS_ID);
-        Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, Common.PROGRAM_BROADCAST_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_BROADCAST_DS_ID, programBroadcastDocument, Util.domsCommenter(filename, "updated datastream"));
 
-        // Update file relations
+    private void setFileRelations(String programObjectPID, List<String> filePIDs, String filename) throws ServerOperationFailed, XMLParseException {
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, Common.HAS_FILE_RELATION_TYPE);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
@@ -135,6 +117,64 @@ public class RecordCreator {
 
             }
         }
+    }
+
+    private void addBroadcast(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+        // Add the program broadcast datastream
+        log.debug("Adding/Updating {} datastream", Common.PROGRAM_BROADCAST_DS_ID);
+        Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, Common.PROGRAM_BROADCAST_ELEMENT);
+        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_BROADCAST_DS_ID, programBroadcastDocument,
+                                    comment);
+    }
+
+    private void addGallup(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+        // Add the Gallup datastream
+        log.debug("Adding/Updating {} datastream", Common.GALLUP_ORIGINAL_DS_ID);
+        Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.GALLUP_ORIGINALS_ELEMENT);
+        domsClient.updateDataStream(programObjectPID, Common.GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument,
+                                    comment);
+    }
+
+    private void addRitzau(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+        // Add Ritzau datastream
+        log.debug("Adding/Updating {} datastream", Common.RITZAU_ORIGINAL_DS_ID);
+        Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.RITZAU_ORIGINALS_ELEMENT);
+        domsClient.updateDataStream(programObjectPID, Common.RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument,
+                                    comment);
+    }
+
+    private void addPBCore(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+        // Add PBCore datastream
+        log.debug("Adding/Updating {} datastream", Common.PROGRAM_PBCORE_DS_ID);
+        Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
+        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument,
+                                    comment);
+    }
+
+    private void setTitle(Document radioTVMetadata, String filename, String programObjectPID) throws ServerOperationFailed {
+        // Get the program title from the PBCore metadata and use that as the
+        // object label for this program object.
+        Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
+        String programTitle = titleNode.getTextContent();
+        log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
+        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '" +
+                                                                                               programTitle +
+                                                                                               "' object label"));
+    }
+
+    private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
+        log.debug("Found existing object {}, to be overwritten", existingPid);
+        domsClient.unpublishObjects(Util.domsCommenter(filename, "unpublished object to allow for changes"), existingPid);
+        log.debug("Existing object {} unpublished",existingPid);
+        addOldPids(existingPid, oldIdentifiers, filename);
+        log.debug("Old identifiers added to program object {}",existingPid);
+    }
+
+    private String createNewProgramObject(String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
+        String programObjectPID;// Create a program object in the DOMS and update the PBCore metadata
+        // datastream with the PBCore metadata from the pre-ingest file.
+        programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Util.domsCommenter(filename, "creating Program Object"));
+        log.debug("Creating new program object with pid {}",programObjectPID);
         return programObjectPID;
     }
 
