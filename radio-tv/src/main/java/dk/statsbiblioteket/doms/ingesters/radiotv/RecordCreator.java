@@ -93,7 +93,7 @@ public class RecordCreator {
         Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
         String programTitle = titleNode.getTextContent();
         log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
-        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '" + programTitle + "'object label"));
+        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '" + programTitle + "' object label"));
 
         // Add PBCore datastream
         log.debug("Adding/Updating {} datastream", Common.PROGRAM_PBCORE_DS_ID);

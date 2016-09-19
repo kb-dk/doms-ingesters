@@ -94,7 +94,7 @@ public abstract class FolderWatcher implements Callable<Void> {
                 boolean valid = wk.reset();
                 if (!valid) {
                     throw new RuntimeException(
-                            "Key " + wk + " have been invalidated, so no more watching of folder " +
+                            "Key " + wk + " has been invalidated, so no more watching of folder " +
                             folderToWatch);
                 }
             }
