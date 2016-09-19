@@ -198,11 +198,10 @@ public class Ingester {
         DomsWSClient domsClient = new DomsWSClientImpl();
         domsClient.setCredentials(domsAPIWSLocation,username,password);
 
-        final RadioTVFolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
-                domsClient, lukewarmFolder, coldFolder,
-                preIngestFileSchema, overwrite);
+        final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
+                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite);
 
-        final FolderScanner folderScanner = new FolderScanner(hotFolder, stopFolder, radioTVHotFolderClient);
-        folderScanner.call();
+        final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, 1000, radioTVHotFolderClient, 4, stopFolder);
+        folderWatcher.call();
     }
 }
