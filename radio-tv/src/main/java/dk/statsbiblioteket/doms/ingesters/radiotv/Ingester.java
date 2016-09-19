@@ -203,7 +203,15 @@ public class Ingester {
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
                 domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite);
 
+
+        //TODO numthreads and timeout should be configurable
         final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, 1000, radioTVHotFolderClient, 4, stopFolder);
+        Runtime.getRuntime().addShutdownHook(new Thread(){
+            @Override
+            public void run() {
+                folderWatcher.setClosed(true);//Hopefully this will cause the watchers to shut down in time
+            }
+        });
         folderWatcher.call();
     }
 }
