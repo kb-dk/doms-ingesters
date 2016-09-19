@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.radiotv;
+package dk.statsbiblioteket.doms.folderwatching;
 
 
 import org.slf4j.Logger;
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import static dk.statsbiblioteket.doms.ingesters.radiotv.Named.nameThread;
+import static dk.statsbiblioteket.doms.folderwatching.Named.nameThread;
 
 
 public class FolderWatcher implements Callable<Void> {
@@ -184,7 +184,7 @@ public class FolderWatcher implements Callable<Void> {
         Map<Path,Callable<Path>> scheduledEvents = new HashMap<>();
         for (Path preFile : preFiles) {
             Callable<Path> handler = () -> {
-                try (Named ignored = Named.nameThread(preFile)) { //Trick to rename the thread and name it back
+                try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
                     log.debug("file was found");
                     client.fileAdded(preFile);
                 }

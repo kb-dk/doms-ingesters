@@ -24,8 +24,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package dk.statsbiblioteket.doms.ingesters.radiotv;
+package dk.statsbiblioteket.doms.folderwatching;
 
+import dk.statsbiblioteket.doms.folderwatching.FolderWatcher;
+import dk.statsbiblioteket.doms.folderwatching.FolderWatcherClient;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Test;

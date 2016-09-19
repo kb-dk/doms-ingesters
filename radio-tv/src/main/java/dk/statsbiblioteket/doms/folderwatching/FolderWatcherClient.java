@@ -1,4 +1,4 @@
-package dk.statsbiblioteket.doms.ingesters.radiotv;
+package dk.statsbiblioteket.doms.folderwatching;
 
 import java.io.Closeable;
 import java.nio.file.Path;
