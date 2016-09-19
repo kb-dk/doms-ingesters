@@ -18,13 +18,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static dk.statsbiblioteket.doms.folderwatching.Named.nameThread;
@@ -38,8 +41,17 @@ public class FolderWatcher implements Callable<Void> {
     private final long timeoutInMS;
     private final FolderWatcherClient client;
     private final int threadPoolSize;
-    private Path stopFolder;
+    private final Path stopFolder;
+    private final ThreadFactory threadFactory;
+
+
     private boolean closed = false;
+
+    private int filesAdded = 0;
+    private int filesModified = 0;
+    private int filesDeleted = 0;
+
+
 
     public FolderWatcher(Path folderToWatch, long timeoutInMS, FolderWatcherClient client, int threadPoolSize, Path stopFolder) {
         this.folderToWatch = folderToWatch;
@@ -47,21 +59,21 @@ public class FolderWatcher implements Callable<Void> {
         this.client = client;
         this.threadPoolSize = threadPoolSize;
         this.stopFolder = stopFolder;
+
+        final AtomicInteger threadNumber = new AtomicInteger(1);
+        final ThreadGroup threadGroup = new ThreadGroup("Worker");
+        threadFactory = runnable -> {
+            Thread thread = new Thread(threadGroup, runnable, threadGroup.getName()+threadNumber.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        };
     }
 
-    public static ExecutorService daemonPool(int threads){
-        ExecutorService executorService = Executors.newFixedThreadPool(threads,
-                                                                    r -> { //Why cant these threads be configured as daemons????
-                                                                        Thread t = new Thread(r);
-                                                                        t.setDaemon(true);
-                                                                        return t;
-                                                                    });
-        return executorService;
-    }
 
 
-    public Void call() throws IOException, InterruptedException {
-        try (Named threadNamer = nameThread("FolderWatcher-" + folderToWatch.getFileName());
+
+    public Void call() throws IOException {
+        try (Named threadNamer = nameThread("Watcher-" + folderToWatch.getFileName());
              FolderWatcherClient client = this.client; //Trick to autoclose the client when done
              WatchService watchService = FileSystems.getDefault().newWatchService()) {
 
@@ -83,12 +95,16 @@ public class FolderWatcher implements Callable<Void> {
                 //Handle the hotfolder watcher
                 final WatchKey wk = watchService.poll(timeoutInMS, TimeUnit.MILLISECONDS);
                 if (wk == null) { //If we reached the timeout, the key is null, so go again
+                    log.trace("Timeout while waiting for new events, so restarting");
                     continue;
                 }
 
-                Map<Path,Callable<Path>> scheduledEvents = new HashMap<>();
+                Map<Path,Callable<Path>> scheduledEvents = new TreeMap<>(); //Treemap as to keep ordering
 
-                for (WatchEvent<?> event : wk.pollEvents()) {
+
+                List<WatchEvent<?>> watchEvents = wk.pollEvents();
+                log.debug("Found {} watch events",watchEvents.size());
+                for (WatchEvent<?> event : watchEvents) {
                     shouldStopNow(); //Check stop for each event, as there can be quite a lot of events in the queue
 
                     if (event.kind() == StandardWatchEventKinds.OVERFLOW) {
@@ -101,25 +117,50 @@ public class FolderWatcher implements Callable<Void> {
                     } else {
                         //Collect the events in a list, for eventual submission to a thread pool
                         Path file = folderToWatch.resolve((Path) event.context());
-                        Callable<Path> handler = () -> {
-                            try (Named ignored2 = nameThread(file)) {
+                        Callable<Path> handler = null;
 
-                                if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
-                                    log.debug("File was added");
+                        if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
+                            log.debug("File {} was added. Scheduling work",file.getFileName());
+                            handler = () -> {
+                                try (Named threadNamer2 = nameThread(file)) {
+                                    log.debug("Starting work on added file");
                                     client.fileAdded(file);
-                                } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
-                                    log.debug("File was modified");
-                                    client.fileModified(file);
-                                } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
-                                    log.debug("File was deleted");
-                                    client.fileDeleted(file);
+                                    incrementFilesAdded(file);
+                                    log.debug("Finished work on added file");
                                 }
-                            }
-                            return file;
-                        };
+                                return file;
+                            };
+
+                        } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                            log.debug("File {} was modified. Scheduling work",file.getFileName());
+                            handler = () -> {
+                                try (Named threadNamer2 = nameThread(file)) {
+                                    log.debug("Starting work on modified file");
+                                    client.fileModified(file);
+                                    incrementFilesModified(file);
+                                    log.debug("Finished work on modified file");
+                                }
+                                return file;
+                            };
+
+                        } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                            log.debug("File {} was deleted. Scheduling work",file.getFileName());
+                            handler = () -> {
+                                try (Named threadNamer2 = nameThread(file)) {
+                                    log.debug("Starting work on deleted file");
+                                    client.fileDeleted(file);
+                                    incrementFilesDeleted(file);
+                                    log.debug("Finished work on deleted file");
+                                }
+                                return file;
+                            };
+                        }
+
                         //Scheduled events is a map, so if several events consern the same file, we overwrite the value
                         //This way, we only get the latest. This is relevant as the multithreading does not guarantee order
-                        scheduledEvents.put(file,handler);
+                        if (handler != null) {
+                            scheduledEvents.put(file, handler);
+                        }
                     }
                 }
 
@@ -132,25 +173,57 @@ public class FolderWatcher implements Callable<Void> {
                     throw new RuntimeException(
                             "Key " + wk + " has been invalidated, so no more watching of folder " +
                             folderToWatch);
+                } else {
+                    log.debug("Requeueing any events that have accumulated while working on this batch");
                 }
             }
 
         } catch (StoppedException e) { //Stopped exception stops here
-            log.debug("Stop flag set, so shutting down");
+            log.info("Stop flag set, so attempting orderly shutdown");
+            return null;
+        } catch (InterruptedException e){
+            log.info("Interrupted so attempting orderly shutdown");
             return null;
         }
     }
 
-    protected void resolveEvents(Collection<Callable<Path>> scheduledEvents) throws StoppedException{
+    private void incrementFilesDeleted(Path file) {
+        filesAdded++;
+        if (filesAdded % 100 == 0){
+            log.info("{} files have now been added ({})",filesAdded,file);
+        }
+
+    }
+
+    private void incrementFilesModified(Path file) {
+        filesModified++;
+        if (filesModified % 100 == 0){
+            log.info("{} files have now been modified ({})",filesModified,file);
+        }
+
+    }
+
+    private void incrementFilesAdded(Path file) {
+        filesDeleted++;
+        if (filesDeleted % 100 == 0){
+            log.info("File nr {} have been deleted ({})",filesDeleted,file);
+        }
+
+    }
+
+    protected void resolveEvents(Collection<Callable<Path>> scheduledEvents) throws StoppedException, InterruptedException {
         if (scheduledEvents.isEmpty()){//Short circuit to avoid unnessesary pool creation
             return;
         }
-        ExecutorService pool = daemonPool(threadPoolSize); //Why can this not be autoclosable??
+        log.debug("Preparing to resolve a batch of {} events with {} threads",scheduledEvents.size(),threadPoolSize);
+        ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize,
+                                                                       threadFactory);
+        ExecutorService pool = executorService; //Why can this not be autoclosable??
         try {
             //Submit all events to the pool
             List<Future<Path>> futures = scheduledEvents.stream().map(pool::submit).collect(Collectors.toList());
 
-            //Funky construct. The point is to check stop flag periodically, while waiting for results
+            //Funky construct. The point is to check stop flag periodically, while blocking for results
             //For each scheduled event (file added)
             for (Future<Path> future : futures) {
                 Path result = null;
@@ -162,31 +235,34 @@ public class FolderWatcher implements Callable<Void> {
                         shouldStopNow(); //Check after timeout ran out.
                     } catch (ExecutionException e) { //New runtime exception to stop all the original exception
                         throw new RuntimeException(e.getCause());
-                    } catch (InterruptedException e) { //Just die here
-                        throw new RuntimeException(e);
                     }
                 } while (result == null); //This do while runs until we except or get a result
             }
         } finally {
-            pool.shutdownNow();
-            //TODO better shutdown?
+            List<Runnable> leftOvers = pool.shutdownNow();
+            if (!leftOvers.isEmpty()) {
+                log.warn("Shutting down execution pool. Some tasks were never started: {}", leftOvers);
+            }
+            pool.awaitTermination(timeoutInMS*10,TimeUnit.MILLISECONDS);
         }
-
-
     }
 
-    private void syncWithFolderContents(FolderWatcherClient client) throws IOException {
+    private int syncWithFolderContents(FolderWatcherClient client) throws IOException, InterruptedException {
         List<Path> preFiles = Files.list(folderToWatch).sorted(sortOnLastModified()).collect(Collectors.toList());
-        if (!preFiles.isEmpty()){
-            log.info("Found {} files in {}, handling these", preFiles.size(), folderToWatch);
+        if (preFiles.isEmpty()){
+            return 0;
         }
 
-        Map<Path,Callable<Path>> scheduledEvents = new HashMap<>();
+        log.info("Found {} preexisting files in {}, handling these", preFiles.size(), folderToWatch);
+        Map<Path,Callable<Path>> scheduledEvents = new TreeMap<>();
         for (Path preFile : preFiles) {
+            shouldStopNow(); //Check for each file, as this can take a while
             Callable<Path> handler = () -> {
                 try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
-                    log.debug("file was found");
+                    log.debug("Starting work on preexisting file");
                     client.fileAdded(preFile);
+                    incrementFilesAdded(preFile);
+                    log.debug("Finishing work on preexisting file");
                 }
                 return preFile;
             };
@@ -194,8 +270,9 @@ public class FolderWatcher implements Callable<Void> {
         }
         resolveEvents(scheduledEvents.values());
 
-        log.info("All files in {} have been handled, so proceeding to listen for changes",
+        log.info("All preexisting files in {} have been handled, so proceeding to listen for changes",
                  folderToWatch);
+        return scheduledEvents.size();
     }
 
 
