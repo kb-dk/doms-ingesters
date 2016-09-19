@@ -70,7 +70,7 @@ public class RecordCreatorTest {
 
         String programTitle = "Damages";
 
-        String setObjectLabelComment = Util.domsCommenter(filename, "added program title '" + programTitle + "'object label");
+        String setObjectLabelComment = Util.domsCommenter(filename, "added program title '" + programTitle + "' object label");
         String updatedDatastreamComment = Util.domsCommenter(filename, "updated datastream");
 
         String pbCoreString = getPBCore(ritzauOldID, tvMeterOldID, programTitle);

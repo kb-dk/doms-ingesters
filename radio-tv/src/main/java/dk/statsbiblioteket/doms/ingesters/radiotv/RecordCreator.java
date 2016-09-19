@@ -66,7 +66,7 @@ public class RecordCreator {
 
         // Find or create program object.
         List<String> oldIdentifiers = getOldIdentifiers(radioTVMetadata);
-        log.debug("Found these old identifiers {} in the program to ingest",oldIdentifiers);
+        log.debug("Found these old identifiers {} in the program to ingest", oldIdentifiers);
 
         String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
         if (programObjectPID != null){
@@ -76,7 +76,7 @@ public class RecordCreator {
                 throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
             }
         } else {
-            log.debug("Old identifiers {} did not find a program object in doms",oldIdentifiers);
+            log.debug("Old identifiers {} did not find a program object in doms", oldIdentifiers);
             programObjectPID = createNewProgramObject(filename, oldIdentifiers);
         }
 
