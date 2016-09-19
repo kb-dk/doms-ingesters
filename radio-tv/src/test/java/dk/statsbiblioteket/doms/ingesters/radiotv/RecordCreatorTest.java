@@ -49,6 +49,7 @@ public class RecordCreatorTest {
 
 
 
+        /*Setup constants*/
         String programPid = "uuid:"+UUID.randomUUID().toString();
 
         URL fileURL1 = new URL(
@@ -69,11 +70,8 @@ public class RecordCreatorTest {
 
         String programTitle = "Damages";
 
-
-
         String setObjectLabelComment = Util.domsCommenter(filename, "added program title '" + programTitle + "'object label");
         String updatedDatastreamComment = Util.domsCommenter(filename, "updated datastream");
-
 
         String pbCoreString = getPBCore(ritzauOldID, tvMeterOldID, programTitle);
 
@@ -89,10 +87,12 @@ public class RecordCreatorTest {
         String fileContents = getExportedObject(pbCoreString, fileURL1.toString(), fileURL2.toString(), ritzauOrig,
                                                 tvmeterOrig, programBroadcast);
 
-
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document metadataDocument = documentBuilder.parse(stream(fileContents), filename);
 
+
+
+        /*Setup mocks*/
         DomsWSClient testDomsClient = mock(DomsWSClient.class);
 
         //Return the two filepids when searching for their URLs
@@ -109,8 +109,13 @@ public class RecordCreatorTest {
 
 
 
+        /*Invoke method*/
+
         new RecordCreator(testDomsClient,true).ingestProgram(metadataDocument, filename);
 
+
+
+        /*Verify order of invocations*/
 
         InOrder ordered = inOrder(testDomsClient);
 
