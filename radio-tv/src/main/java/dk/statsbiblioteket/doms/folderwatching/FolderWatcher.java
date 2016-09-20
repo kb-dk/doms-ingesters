@@ -33,6 +33,25 @@ import java.util.stream.Collectors;
 import static dk.statsbiblioteket.doms.folderwatching.Named.nameThread;
 
 
+/**
+ * The FolderWatcher system. Use this class to register an FolderWatcherClient, which will then be called whenever
+ * changes happen to the files in a folder.
+ * <p/>
+ * Provide the FolderWatcherClient when instantiating this class
+ * <p/>
+ * There are two ways to stop the FolderWatcher. Programmatically, just call the {@link #setClosed(boolean)} method to close
+ * it. The various thread pools will shutdown and the call method will return.
+ * <br/>
+ * The other ways involves the StopFolder. When instantiating this class, you must provide a path to the stop folder. This folder is
+ * periodically checked for a file called "stoprunning". If this file is found, the folderWatcher is closed
+ * <p/>
+ * The folder watcher is multithreaded, in that it branches off new threads when invoking the FolderWatcherClient. When
+ * constructing a FolderWatcher, specify the number of concurrent threads in this thread pool.
+ * <p/>
+ * You must specify a timeout for the threads. This is the interval between checks for closed or stoprunning as detailed above.
+ *
+ * @see FolderWatcherClient
+ */
 public class FolderWatcher implements Callable<Void> {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -52,7 +71,14 @@ public class FolderWatcher implements Callable<Void> {
     private int filesDeleted = 0;
 
 
-
+    /**
+     * Create a new folder watcher
+     * @param folderToWatch the folder to watch for changes
+     * @param timeoutInMS the interval between which the stop folder is checked
+     * @param client the client to invoke when events take place
+     * @param threadPoolSize the size of the thread pool for client invocations
+     * @param stopFolder the folder to check for the file "stoprunning"
+     */
     public FolderWatcher(Path folderToWatch, long timeoutInMS, FolderWatcherClient client, int threadPoolSize, Path stopFolder) {
         this.folderToWatch = folderToWatch;
         this.timeoutInMS = timeoutInMS;
@@ -70,9 +96,14 @@ public class FolderWatcher implements Callable<Void> {
     }
 
 
-
-
-    public Void call() throws IOException {
+    /**
+     * Call, ie. start listing for modifications of files in the folder. Beforehand, it will notify the client of
+     * all preexisting files.
+     * The client will be closed afterwards
+     * @return null
+     * @throws IOException
+     */
+    public synchronized Void call() throws IOException {
         try (Named threadNamer = nameThread("Watcher-" + folderToWatch.getFileName());
              FolderWatcherClient client = this.client; //Trick to autoclose the client when done
              WatchService watchService = FileSystems.getDefault().newWatchService()) {
@@ -165,7 +196,7 @@ public class FolderWatcher implements Callable<Void> {
                 }
 
                 //Submit all the events to the executor
-                resolveEvents(scheduledEvents.values());
+                resolveEvents(scheduledEvents.values()); //TODO should this actually block? If not, how do we get the exceptions?
 
                 // reset the key
                 boolean valid = wk.reset();
@@ -187,7 +218,11 @@ public class FolderWatcher implements Callable<Void> {
         }
     }
 
-    private void incrementFilesDeleted(Path file) {
+    /**
+     * Utility method to log number of handled delete events
+     * @param file the file that was handled
+     */
+    private synchronized void incrementFilesDeleted(Path file) {
         filesAdded++;
         if (filesAdded % 100 == 0){
             log.info("{} files have now been added ({})",filesAdded,file);
@@ -195,7 +230,11 @@ public class FolderWatcher implements Callable<Void> {
 
     }
 
-    private void incrementFilesModified(Path file) {
+    /**
+     * Utility method to log number of handled modify events
+     * @param file the file that was handled
+     */
+    private synchronized void incrementFilesModified(Path file) {
         filesModified++;
         if (filesModified % 100 == 0){
             log.info("{} files have now been modified ({})",filesModified,file);
@@ -203,7 +242,12 @@ public class FolderWatcher implements Callable<Void> {
 
     }
 
-    private void incrementFilesAdded(Path file) {
+
+    /**
+     * Utility method to log number of handled add events
+     * @param file the file that was handled
+     */
+    private synchronized void incrementFilesAdded(Path file) {
         filesDeleted++;
         if (filesDeleted % 100 == 0){
             log.info("File nr {} have been deleted ({})",filesDeleted,file);
@@ -211,6 +255,14 @@ public class FolderWatcher implements Callable<Void> {
 
     }
 
+    /**
+     * This method creates a new thread pool for handling the events and submits all events to this pool.
+     * It then waits for all the events to finish before returning
+     * It shoulds down the pool after all the events have been handled.
+     * @param scheduledEvents the collection of events to handle
+     * @throws StoppedException If the FolderWatcher became closed
+     * @throws InterruptedException If the waiting process was Interrupted
+     */
     protected void resolveEvents(Collection<Callable<Path>> scheduledEvents) throws StoppedException, InterruptedException {
         if (scheduledEvents.isEmpty()){//Short circuit to avoid unnessesary pool creation
             return;
@@ -233,7 +285,7 @@ public class FolderWatcher implements Callable<Void> {
                         result = future.get(timeoutInMS, TimeUnit.MILLISECONDS);
                     } catch (TimeoutException e) { //If we timeout while waiting for the result, check stop
                         shouldStopNow(); //Check after timeout ran out.
-                    } catch (ExecutionException e) { //New runtime exception to stop all the original exception
+                    } catch (ExecutionException e) { //New runtime exception to stop all
                         throw new RuntimeException(e.getCause());
                     }
                 } while (result == null); //This do while runs until we except or get a result
@@ -243,10 +295,19 @@ public class FolderWatcher implements Callable<Void> {
             if (!leftOvers.isEmpty()) {
                 log.warn("Shutting down execution pool. Some tasks were never started: {}", leftOvers);
             }
-            pool.awaitTermination(timeoutInMS*10,TimeUnit.MILLISECONDS);
+            do {
+                pool.awaitTermination(timeoutInMS, TimeUnit.MILLISECONDS);
+            } while (pool.isTerminated());
         }
     }
 
+    /**
+     * Sync preexisting files, i.e. files that the folder watcher will not see (as it only sees changes)
+     * @param client the client to use
+     * @return number of preexisting files handled
+     * @throws IOException If some IO operation failed
+     * @throws InterruptedException if the process was Interrupted
+     */
     private int syncWithFolderContents(FolderWatcherClient client) throws IOException, InterruptedException {
         List<Path> preFiles = Files.list(folderToWatch).sorted(sortOnLastModified()).collect(Collectors.toList());
         if (preFiles.isEmpty()){
@@ -256,7 +317,7 @@ public class FolderWatcher implements Callable<Void> {
         log.info("Found {} preexisting files in {}, handling these", preFiles.size(), folderToWatch);
         Map<Path,Callable<Path>> scheduledEvents = new TreeMap<>();
         for (Path preFile : preFiles) {
-            shouldStopNow(); //Check for each file, as this can take a while
+            shouldStopNow(); //Check for each file, as this can take a while //TODO is this to much?
             Callable<Path> handler = () -> {
                 try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
                     log.debug("Starting work on preexisting file");
@@ -286,6 +347,10 @@ public class FolderWatcher implements Callable<Void> {
         };
     }
 
+    /**
+     * Throws StoppedException if the closed property is true or if the stopfolder contains a file "stoprunning"
+     * @throws StoppedException as above
+     */
     protected void shouldStopNow() throws StoppedException {
         if (isClosed() || Files.exists(stopFolder.resolve("stoprunning"))) {
             throw new StoppedException();

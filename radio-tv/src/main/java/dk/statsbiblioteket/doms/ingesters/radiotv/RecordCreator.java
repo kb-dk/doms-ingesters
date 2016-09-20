@@ -50,7 +50,7 @@ public class RecordCreator {
      * Ingests or updates a program object
      *
      * @param radioTVMetadata Bibliographical metadata about the program.
-     * @param filename
+     * @param filename the name of the source file. Is only used for logging and doms audit comments
      * @return PID of the newly created program object, created by the DOMS.
      *
      * @throws ServerOperationFailed    if creation or manipulation of the program object fails.
