@@ -30,10 +30,12 @@ do
       p)  PASSWORD="$OPTARG";;
       s)  SCHEMA="$OPTARG";;
       o)  OVERWRITE="$OPTARG";;
+      n)  THREADS="$OPTARG";;
+      t)  WAIT="$OPTARG";;
       \?)		# unknown flag
       	  echo >&2 \
 	  "usage: $0 [-c coldfolder] [-l lukefolder] [-h hotfolder] [-w wsdl] \
-	  [-u username] [-p password] [-s preingestschema] [-o true|false]"
+	  [-u username] [-p password] [-s preingestschema] [-o true|false] [-n numThreads] [-t threadPollInterval]"
 	  exit 1;;
     esac
 done
@@ -42,4 +44,4 @@ shift `expr $OPTIND - 1`
 java -cp .:$BASEDIR/config/*;$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
    -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
-   -preingestschema=$SCHEMA -overwrite=$OVERWRITE
+   -preingestschema=$SCHEMA -overwrite=$OVERWRITE -numthreads=$THREADS -threadwaittime=$WAIT

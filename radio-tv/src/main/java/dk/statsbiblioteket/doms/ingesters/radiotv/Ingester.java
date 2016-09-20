@@ -95,10 +95,25 @@ public class Ingester {
 
         boolean overwrite = parseOverwrite(cmd);
 
+        long threadWaitTime = parseThreadWaitTime(cmd);
+
+        int numThreads = parseNumThreads(cmd);
 
         startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
                      domsAPIWSLocation,
-                     username, password, overwrite);
+                     username, password, overwrite, numThreads, threadWaitTime);
+    }
+
+     static long parseThreadWaitTime(CommandLine cmd) {
+        long threadWaitTime = Long.parseLong(cmd.getOptionValue("threadwaittime", "1000"));
+        log.info("threadwaittime = {}", threadWaitTime);
+        return threadWaitTime;
+    }
+
+    static int parseNumThreads(CommandLine cmd) {
+        int numThreads = Integer.parseInt(cmd.getOptionValue("numthreads", "4"));
+        log.info("numthreads = {}", numThreads);
+        return numThreads;
     }
 
     static String parseUsername(CommandLine cmd) {
@@ -178,19 +193,25 @@ public class Ingester {
         options.addOption(Option.builder().longOpt("preingestschema").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("overwrite").hasArg().valueSeparator().build());
 
+        options.addOption(Option.builder().longOpt("numthreads").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("threadwaittime").hasArg().valueSeparator().build());
+
+
         CommandLineParser parser = new DefaultParser();
         return parser.parse(options, args);
     }
 
     private static void startScanner(Path hotFolder,
-                              Path coldFolder,
-                              Path lukewarmFolder,
-                              Path stopFolder,
-                              Path preIngestFileSchemaFile,
-                              URL domsAPIWSLocation,
-                              String username,
-                              String password,
-                              boolean overwrite)
+                                     Path coldFolder,
+                                     Path lukewarmFolder,
+                                     Path stopFolder,
+                                     Path preIngestFileSchemaFile,
+                                     URL domsAPIWSLocation,
+                                     String username,
+                                     String password,
+                                     boolean overwrite,
+                                     int numthreads,
+                                     long threadWaitTime)
             throws SAXException, IOException, InterruptedException {
 
 
@@ -203,15 +224,15 @@ public class Ingester {
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
                 domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite);
 
+        final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient, numthreads, stopFolder);
 
-        //TODO numthreads and timeout should be configurable
-        final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, 1000, radioTVHotFolderClient, 4, stopFolder);
         Runtime.getRuntime().addShutdownHook(new Thread(){
             @Override
             public void run() {
                 folderWatcher.setClosed(true);//Hopefully this will cause the watchers to shut down in time
             }
         });
+
         folderWatcher.call();
     }
 }

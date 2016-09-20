@@ -30,7 +30,7 @@ public class IngesterTest {
         $COLDFOLDER.toFile().deleteOnExit();
         $STOPFOLDER.toFile().deleteOnExit();
 
-        String commandLine = "-hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER -stopfolder=$STOPFOLDER -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false";
+        String commandLine = "-hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER -stopfolder=$STOPFOLDER -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200";
         CommandLine parsedArgs = Ingester.setupCommandLine(commandLine.split(" +"));
 
         assertEquals(Ingester.parseHotfolder(parsedArgs), $HOTFOLDER);
@@ -44,6 +44,9 @@ public class IngesterTest {
 
         assertEquals(Ingester.parseSchema(parsedArgs),Paths.get("$SCHEMA"));
         assertEquals(Ingester.parseOverwrite(parsedArgs),false);
+
+        assertEquals(Ingester.parseNumThreads(parsedArgs),5);
+        assertEquals(Ingester.parseThreadWaitTime(parsedArgs),1200);
     }
 
     @Test
@@ -77,6 +80,9 @@ public class IngesterTest {
         assertTrue(Files.isReadable(defaultSchema));
 
         assertEquals(Ingester.parseOverwrite(parsedArgs),false);
+
+        assertEquals(Ingester.parseNumThreads(parsedArgs),4);
+        assertEquals(Ingester.parseThreadWaitTime(parsedArgs),1000);
     }
 
 }
