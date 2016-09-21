@@ -105,7 +105,7 @@ public class RecordCreator {
             if (!filePIDs.contains(relation.getSubjectPid())) {
                 log.debug("Removing relation relation {},'{}',{}",programObjectPID,relation.getPredicate(),relation.getSubjectPid());
                 domsClient.removeObjectRelation((LiteralRelation) relation,
-                                                Util.domsCommenter(filename, "removed relation '" + relation.getPredicate() + "' to '" + relation.getSubjectPid() + "'"));
+                                                Util.domsCommenter(filename, "removed relation '{0}' to '{1}'", relation.getPredicate(),relation.getSubjectPid()));
             } else {
                 existingRels.add(relation.getSubjectPid());
             }
@@ -113,7 +113,8 @@ public class RecordCreator {
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
                 log.debug("Adding relation {},'{}',{}",programObjectPID,Common.HAS_FILE_RELATION_TYPE,filePID);
-                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Util.domsCommenter(filename, "added relation '" + Common.HAS_FILE_RELATION_TYPE + "' to '" + filePID + "'") );
+                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Util.domsCommenter(
+                        filename, "added relation '{0}' to '{1}'", Common.HAS_FILE_RELATION_TYPE, filePID) );
 
             }
         }
@@ -157,9 +158,7 @@ public class RecordCreator {
         Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
         String programTitle = titleNode.getTextContent();
         log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
-        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '" +
-                                                                                               programTitle +
-                                                                                               "' object label"));
+        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '{0}' object label", programTitle));
     }
 
     private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
@@ -198,7 +197,7 @@ public class RecordCreator {
             log.debug("Adding {} to dc identifiers for object {}", id, existingPid);
         }
         log.debug("Updating {} datastream with new old identifiers {}",Common.DC_DS_ID,oldIdentifiers);
-        domsClient.updateDataStream(existingPid, Common.DC_DS_ID, dcDataStream, Util.domsCommenter(filename, "added old identifiers " + oldIdentifiers));
+        domsClient.updateDataStream(existingPid, Common.DC_DS_ID, dcDataStream, Util.domsCommenter(filename, "added old identifiers {0}",oldIdentifiers));
     }
 
     /**

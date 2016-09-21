@@ -1,11 +1,26 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import java.text.MessageFormat;
+
 /**
- * Created by abr on 06-09-16.
+ * Utility methods created for the Radio TV doms ingester
  */
 public class Util {
-    public static String domsCommenter(String filename, String action) {
+
+    /**
+     * Format a string for a more useful doms AUDIT trail comment.
+     * The message includes the version of this doms ingester, taken from the pom.xml file jar plugin
+     *
+     * @param filename the name of the preingest file that drove this change
+     * @param action the thing done
+     * @return the formatted comment
+     */
+    public static String domsCommenter(String filename, String action, Object... args) {
         String version = Util.class.getPackage().getImplementationVersion();
-        return "RadioTV Digitv Ingester ("+version+") " + action + " as part of ingest of " + filename;
+        //String escapedAction = action.replaceAll("'\\{", "''{").replaceAll("}'","}''"); //Add a level of pings due to message formatting....
+        String escapedAction = action.replaceAll("'", "''");
+        MessageFormat form = new MessageFormat(escapedAction);
+        String formattedAction = form.format(args);
+        return "RadioTV Digitv Ingester (" + version + ") " + formattedAction + " as part of ingest of " + filename;
     }
 }
