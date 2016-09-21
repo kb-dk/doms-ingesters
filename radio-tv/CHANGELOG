@@ -1,5 +1,14 @@
 Change log for radio/tv program ingester
 
+1.6
+Total redesign
+ - Based on java 8 folder watchin features
+ - Multithreaded
+ - Shutdown hook, will hopefully kill the process nicely on SIGINT
+ - Better logging and fedora comments (output is logback controlled now)
+ - Better arg parsing with commons-cli
+thread wait time and numthreads are configurable, see new ingest_config.sh
+
 1.5
 Updated Gallup schema to reflect new added fields
 Multiple script improvements (from tgc)
