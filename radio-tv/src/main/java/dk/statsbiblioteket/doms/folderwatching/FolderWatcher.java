@@ -36,19 +36,15 @@ import static dk.statsbiblioteket.doms.folderwatching.Named.nameThread;
 /**
  * The FolderWatcher system. Use this class to register an FolderWatcherClient, which will then be called whenever
  * changes happen to the files in a folder.
- * <p/>
- * Provide the FolderWatcherClient when instantiating this class
- * <p/>
- * There are two ways to stop the FolderWatcher. Programmatically, just call the {@link #setClosed(boolean)} method to close
- * it. The various thread pools will shutdown and the call method will return.
- * <br/>
+ * <p>Provide the FolderWatcherClient when instantiating this class</p>
+ * <p>There are two ways to stop the FolderWatcher. Programmatically, just call the {@link #setClosed(boolean)} method to close
+ * it. The various thread pools will shutdown and the call method will return.</p>
+ * <br>
  * The other ways involves the StopFolder. When instantiating this class, you must provide a path to the stop folder. This folder is
  * periodically checked for a file called "stoprunning". If this file is found, the folderWatcher is closed
- * <p/>
- * The folder watcher is multithreaded, in that it branches off new threads when invoking the FolderWatcherClient. When
- * constructing a FolderWatcher, specify the number of concurrent threads in this thread pool.
- * <p/>
- * You must specify a timeout for the threads. This is the interval between checks for closed or stoprunning as detailed above.
+ * <p>The folder watcher is multithreaded, in that it branches off new threads when invoking the FolderWatcherClient. When
+ * constructing a FolderWatcher, specify the number of concurrent threads in this thread pool.</p>
+ * <p>You must specify a timeout for the threads. This is the interval between checks for closed or stoprunning as detailed above.</p>
  *
  * @see FolderWatcherClient
  */
@@ -66,6 +62,7 @@ public class FolderWatcher implements Callable<Void> {
 
     private boolean closed = false;
 
+    private final Object counterLock = new Object();
     private int filesAdded = 0;
     private int filesModified = 0;
     private int filesDeleted = 0;
@@ -219,13 +216,15 @@ public class FolderWatcher implements Callable<Void> {
     }
 
     /**
-     * Utility method to log number of handled delete events
+     * Utility method to log number of handled added events
      * @param file the file that was handled
      */
-    private synchronized void incrementFilesDeleted(Path file) {
-        filesAdded++;
-        if (filesAdded % 100 == 0){
-            log.info("{} files have now been added ({})",filesAdded,file);
+    private void incrementFilesAdded(Path file) { //Rhese increment methods cannot be synchronized on the same thing as the call method (ie the class)
+        synchronized (counterLock) {
+            filesAdded++;
+            if (filesAdded % 100 == 0) {
+                log.info("{} files have now been added ({})", filesAdded, file);
+            }
         }
 
     }
@@ -234,25 +233,28 @@ public class FolderWatcher implements Callable<Void> {
      * Utility method to log number of handled modify events
      * @param file the file that was handled
      */
-    private synchronized void incrementFilesModified(Path file) {
-        filesModified++;
-        if (filesModified % 100 == 0){
-            log.info("{} files have now been modified ({})",filesModified,file);
+    private void incrementFilesModified(Path file) {
+        synchronized (counterLock) {
+            filesModified++;
+            if (filesModified % 100 == 0) {
+                log.info("{} files have now been modified ({})", filesModified, file);
+            }
         }
 
     }
 
 
     /**
-     * Utility method to log number of handled add events
+     * Utility method to log number of handled deleted events
      * @param file the file that was handled
      */
-    private synchronized void incrementFilesAdded(Path file) {
-        filesDeleted++;
-        if (filesDeleted % 100 == 0){
-            log.info("File nr {} have been deleted ({})",filesDeleted,file);
+    private void incrementFilesDeleted(Path file) {
+        synchronized (counterLock) {
+            filesDeleted++;
+            if (filesDeleted % 100 == 0) {
+                log.info("File nr {} have been deleted ({})", filesDeleted, file);
+            }
         }
-
     }
 
     /**
@@ -297,7 +299,7 @@ public class FolderWatcher implements Callable<Void> {
             }
             do {
                 pool.awaitTermination(timeoutInMS, TimeUnit.MILLISECONDS);
-            } while (pool.isTerminated());
+            } while (!pool.isTerminated());
         }
     }
 

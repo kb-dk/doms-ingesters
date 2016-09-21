@@ -55,8 +55,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 /**
- * @author tsh
- */
+ * Test the running and stopping of the FolderWatcher
+  */
 public class TestFolderWatcher {
 
     private Path tempTestDir;
@@ -186,11 +186,11 @@ public class TestFolderWatcher {
         assertTrue(Files.exists(tempTestFile2));
 
         // Wait for the scanner to detect the change.
-        Thread.sleep(1000);
+        Thread.sleep(2000);
 
         //Stop the scanner
         FolderWatcher.setClosed(true);
-        assertTrue(background.awaitTermination(10, TimeUnit.SECONDS));
+        assertTrue(background.awaitTermination(2, TimeUnit.SECONDS));
 
         assertFalse(Files.exists(tempTestFile2));
 
@@ -318,7 +318,7 @@ public class TestFolderWatcher {
         //Stop the scanner
         Path stoprunning = stopFolder.resolve("stoprunning");
         Files.createFile(stoprunning);
-        assertTrue(background.awaitTermination(1, TimeUnit.SECONDS));
+        assertTrue(background.awaitTermination(2, TimeUnit.SECONDS));
 
         creationOrder.removeAll(handlingOrder);
         assertEquals("All created files should have been handled", Arrays.asList(), creationOrder);

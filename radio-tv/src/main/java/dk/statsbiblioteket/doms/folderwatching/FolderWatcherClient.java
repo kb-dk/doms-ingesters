@@ -6,9 +6,9 @@ import java.nio.file.Path;
 /**
  * Clients extending this class can be registered to receive events when files in a given folder are created, modified
  * or deleted.
- *
+ * <br>
  * Important: Implementations must be thread safe
- * <br/>
+ * <br>
  * Important. When the system shuts down, it interrupts all currently working clients. It then waits a indefinately
  * for the threads to shutdown. You implementation should not use interruptable methods, if you want to
  * be sure to run to the end. Beware that indefinately might not be so very long in practice, so be done quickly.
