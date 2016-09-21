@@ -15,7 +15,6 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -153,7 +152,7 @@ public class FolderWatcher implements Callable<Void> {
                                 try (Named threadNamer2 = nameThread(file)) {
                                     log.debug("Starting work on added file");
                                     client.fileAdded(file);
-                                    incrementFilesAdded(file);
+                                    incrementFilesAdded();
                                     log.debug("Finished work on added file");
                                 }
                                 return file;
@@ -165,7 +164,7 @@ public class FolderWatcher implements Callable<Void> {
                                 try (Named threadNamer2 = nameThread(file)) {
                                     log.debug("Starting work on modified file");
                                     client.fileModified(file);
-                                    incrementFilesModified(file);
+                                    incrementFilesModified();
                                     log.debug("Finished work on modified file");
                                 }
                                 return file;
@@ -177,7 +176,7 @@ public class FolderWatcher implements Callable<Void> {
                                 try (Named threadNamer2 = nameThread(file)) {
                                     log.debug("Starting work on deleted file");
                                     client.fileDeleted(file);
-                                    incrementFilesDeleted(file);
+                                    incrementFilesDeleted();
                                     log.debug("Finished work on deleted file");
                                 }
                                 return file;
@@ -217,28 +216,26 @@ public class FolderWatcher implements Callable<Void> {
 
     /**
      * Utility method to log number of handled added events
-     * @param file the file that was handled
      */
-    private void incrementFilesAdded(Path file) { //Rhese increment methods cannot be synchronized on the same thing as the call method (ie the class)
+    private void incrementFilesAdded() { //Rhese increment methods cannot be synchronized on the same thing as the call method (ie the class)
         synchronized (counterLock) {
-            filesAdded++;
             if (filesAdded % 100 == 0) {
-                log.info("{} files have now been added ({})", filesAdded, file);
+                log.info("File nr {} have been added", filesAdded);
             }
+            filesAdded++;
         }
 
     }
 
     /**
      * Utility method to log number of handled modify events
-     * @param file the file that was handled
      */
-    private void incrementFilesModified(Path file) {
+    private void incrementFilesModified() {
         synchronized (counterLock) {
-            filesModified++;
             if (filesModified % 100 == 0) {
-                log.info("{} files have now been modified ({})", filesModified, file);
+                log.info("File nr {} have been modified", filesModified);
             }
+            filesModified++;
         }
 
     }
@@ -246,14 +243,13 @@ public class FolderWatcher implements Callable<Void> {
 
     /**
      * Utility method to log number of handled deleted events
-     * @param file the file that was handled
      */
-    private void incrementFilesDeleted(Path file) {
+    private void incrementFilesDeleted() {
         synchronized (counterLock) {
-            filesDeleted++;
             if (filesDeleted % 100 == 0) {
-                log.info("File nr {} have been deleted ({})", filesDeleted, file);
+                log.info("File nr {} have been deleted", filesDeleted);
             }
+            filesDeleted++;
         }
     }
 
@@ -324,7 +320,7 @@ public class FolderWatcher implements Callable<Void> {
                 try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
                     log.debug("Starting work on preexisting file");
                     client.fileAdded(preFile);
-                    incrementFilesAdded(preFile);
+                    incrementFilesAdded();
                     log.debug("Finishing work on preexisting file");
                 }
                 return preFile;
