@@ -266,9 +266,8 @@ public class FolderWatcher implements Callable<Void> {
             return;
         }
         log.debug("Preparing to resolve a batch of {} events with {} threads",scheduledEvents.size(),threadPoolSize);
-        ExecutorService executorService = Executors.newFixedThreadPool(threadPoolSize,
-                                                                       threadFactory);
-        ExecutorService pool = executorService; //Why can this not be autoclosable??
+        ExecutorService pool = Executors.newFixedThreadPool(threadPoolSize,
+                                                            threadFactory); //Why can this not be autoclosable??
         try {
             //Submit all events to the pool
             List<Future<Path>> futures = scheduledEvents.stream().map(pool::submit).collect(Collectors.toList());

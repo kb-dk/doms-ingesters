@@ -6,10 +6,10 @@ COLDFOLDER=$BASEDIR/coldfolder
 LUKEFOLDER=$BASEDIR/lukewarm
 HOTFOLDER=$BASEDIR/hotfolder
 STOPFOLDER=$BASEDIR/stopfolder
-WSDL=http://alhena:7880/centralWebservice-service/central/?wsdl
+WSDL=http://alhena:7980/centralWebservice-service/central/?wsdl
 USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
-SCHEMA=$BASEDIR/resources/exportedRadioTVProgram.xsd
+SCHEMA=$BASEDIR/config/exportedRadioTVProgram.xsd
 
 # Should the ingester overwrite existing objects?
 OVERWRITE=false

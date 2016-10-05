@@ -281,7 +281,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", addedFile, processedFilesFolder);
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
-        Files.move(addedFile, processedFilesFolder);
+        Files.move(addedFile, processedFilesFolder.resolve(addedFile.getFileName()));
 
         // And it is now safe to delete the "in progress" PID file.
         Files.deleteIfExists(allWrittenPIDs);
@@ -325,7 +325,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             log.error("Ingest failed with exception, attempting cleanup for file={} and pids={}", addedFile,
                       pidsToPublish, exception);
 
-            Files.move(addedFile,failedFilesFolder);
+            Files.move(addedFile,failedFilesFolder.resolve(addedFile.getFileName()));
             log.trace("Moved file {} to failedFilesFolder={}", addedFile, failedFilesFolder);
 
             // Rename the in-progress PIDs to failed PIDs.
@@ -339,8 +339,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
             incrementFailedTries();
         } catch (Exception exception2) {
-            // If this bail-out error handling fails, then nothing can save
-            // us...
+            // If this bail-out error handling fails, then nothing can save us...
             log.error("Unrecoverable error during ingesting", exception2);
             throw new RuntimeException("Unrecoverable error during ingesting", exception2);
         }
@@ -355,7 +354,9 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     private synchronized void renamePidLists(Path failedMetadataFile) throws IOException {
         Path activePIDsFile = inProcessPids(failedMetadataFile);
         Path failedPIDsFile = failedPids(failedMetadataFile);
-        Files.move(activePIDsFile,failedPIDsFile);
+        if (Files.exists(activePIDsFile)) {
+            Files.move(activePIDsFile, failedPIDsFile);
+        }
     }
 
     private Path failedPids(Path failedMetadataFile) {
