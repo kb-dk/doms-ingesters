@@ -58,12 +58,6 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DocumentBuilderFactory documentBuilderFactory;
-
-    /**
-     * How many times we failed during ingest.
-     */
-    private int exceptionCount = 0;
-
     /**
      * Folder to move failed files to.
      */
@@ -73,12 +67,14 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      */
     private final Path processedFilesFolder;
     private final boolean overwrite;
-
-
     /**
      * Client for communicating with DOMS.
      */
     private final DomsWSClient domsClient;
+    /**
+     * How many times we failed during ingest.
+     */
+    private int exceptionCount = 0;
 
 
     /**
@@ -93,8 +89,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
                                       Schema preIngestFileSchema, boolean overwrite) {
         this.domsClient = domsClient;
-        log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, preIngestSchema, overwrite={}",
-                getClass().getName(), failedFilesFolder,  processedFilesFolder, overwrite);
+        log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, overwrite={}",
+                  getClass().getName(), failedFilesFolder, processedFilesFolder, overwrite);
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
         this.overwrite = overwrite;
@@ -106,6 +102,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     /**
      * Create the xml file parser
+     *
      * @return a document builder
      */
     private synchronized DocumentBuilder getFileParser() {
@@ -124,12 +121,12 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             }
 
             @Override
-            public void fatalError(SAXParseException exception) throws SAXException {
+            public void error(SAXParseException exception) throws SAXException {
                 throw exception;
             }
 
             @Override
-            public void error(SAXParseException exception) throws SAXException {
+            public void fatalError(SAXParseException exception) throws SAXException {
                 throw exception;
             }
         };
@@ -143,20 +140,11 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param addedFile Full path to the new file.
      */
     @Override
-    public synchronized void fileAdded(Path addedFile)  {
+    public synchronized void fileAdded(Path addedFile) {
         if (isXmlFile(addedFile)) {
             log.debug("File {} added, start processing", addedFile);
             handleAddedOrModifiedFile(addedFile);
         }
-    }
-
-    /**
-     * Checks if the path is a regular file with the extension .xml
-     * @param file the file to check
-     * @return true if an xml file
-     */
-    private boolean isXmlFile(Path file) {
-        return file != null && Files.isRegularFile(file) && file.getFileName().toString().endsWith(".xml");
     }
 
     /**
@@ -165,15 +153,32 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param modifiedFile Full path to the modified file.
      */
     @Override
-    public void fileModified(Path modifiedFile)  {
+    public void fileModified(Path modifiedFile) {
         if (isXmlFile(modifiedFile)) {
             log.debug("File {} modified, start processing", modifiedFile);
             handleAddedOrModifiedFile(modifiedFile);
         }
     }
 
+    @Override
+    public void fileDeleted(Path deletedFile) {
+        log.debug("File was deleted and I do not care");
+        //Note, this will be invoked with this client moves the files out of the hotFolder....
+    }
+
+    /**
+     * Checks if the path is a regular file with the extension .xml
+     *
+     * @param file the file to check
+     * @return true if an xml file
+     */
+    private boolean isXmlFile(Path file) {
+        return file != null && Files.isRegularFile(file) && file.getFileName().toString().endsWith(".xml");
+    }
+
     /**
      * Handle a file that is added or modified, as this is the same for this client
+     *
      * @param file the file to handle
      */
     private void handleAddedOrModifiedFile(Path file) {
@@ -184,6 +189,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     /**
      * Checks if the file is already handled, by looking in the processedFilesFolder
+     *
      * @param file the file to examine
      * @return true if we already handled the file
      */
@@ -191,7 +197,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         try {
             Path possibleCopy = processedFilesFolder.resolve(file.getFileName());
             if (Files.isRegularFile(possibleCopy)) {
-                log.debug("Found possible copy of file {} in {}", file,  processedFilesFolder);
+                log.debug("Found possible copy of file {} in {}", file, processedFilesFolder);
 
                 long originalSum = FileUtils.checksumCRC32(file.toFile());
                 long copySum = FileUtils.checksumCRC32(possibleCopy.toFile());
@@ -214,12 +220,13 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     /**
      * Handles the file, by ingesting it in DOMS as a Program object
+     *
      * @param file the xml file to ingest
      */
     private void handleFile(Path file) {
         List<String> pidsInProgress = new ArrayList<>();
 
-        try  { //Trick to rename the thread and name it back
+        try { //Trick to rename the thread and name it back
             log.debug("Creating xml parser");
             DocumentBuilder fileParser = getFileParser();
 
@@ -236,12 +243,6 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         }
     }
 
-    @Override
-    public void fileDeleted(Path deletedFile) {
-        log.debug("File was deleted and I do not care");
-        //Note, this will be invoked with this client moves the files out of the hotFolder....
-    }
-
     /**
      * Create objects in DOMS for given program metadata. On success, the originating file will be moved to the folder
      * for processed files. On failure, a file in the folder of failed files will contain the pids that were not
@@ -251,10 +252,10 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param addedFile       The file containing the program metadata
      * @param pidsInProgress  Initially empty list of pids to update with pids collected during process, to be published
      *                        or reported as failed in the end.
-     * @throws IOException              On io trouble communicating.
-     * @throws ServerOperationFailed    On trouble updating DOMS.
-     * @throws XMLParseException        On trouble parsing XML.
-     * @throws NoObjectFound            if a URL is referenced, which is not found in DOMS.
+     * @throws IOException           On io trouble communicating.
+     * @throws ServerOperationFailed On trouble updating DOMS.
+     * @throws XMLParseException     On trouble parsing XML.
+     * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
     private void createRecord(Document radioTVMetadata,
                               Path addedFile,
@@ -276,9 +277,12 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         // Publish the objects created in the process
         log.trace("Publishing objects {}", pidsInProgress);
 
-        domsClient.publishObjects("Publishing objects "+ pidsInProgress + " as part of ingest of program "+addedFile.getFileName(), pidsInProgress.toArray(new String[pidsInProgress.size()]));
+        domsClient.publishObjects(
+                "Publishing objects " + pidsInProgress + " as part of ingest of program " + addedFile.getFileName(),
+                pidsInProgress.toArray(new String[pidsInProgress.size()]));
 
-        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", addedFile, processedFilesFolder);
+        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", addedFile,
+                  processedFilesFolder);
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
         Files.move(addedFile, processedFilesFolder.resolve(addedFile.getFileName()));
@@ -291,8 +295,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * Iteratively (over)write the pid the <code>InProcessPIDs</code> file
      * associated with the <code>preIngestFile</code>.
      *
-     * @param preIngestFile   The file containing the Metadata for a program.
-     * @param PIDs            A list of PIDs to write.
+     * @param preIngestFile The file containing the Metadata for a program.
+     * @param PIDs          A list of PIDs to write.
      * @return The <code>File</code> which the PIDs were written to.
      * @throws IOException thrown if the file cannot be written to.
      */
@@ -316,7 +320,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      *
      * @param addedFile     The file attempted to have added to the doms
      * @param pidsToPublish The failed PIDs
-     * @param exception the exception that mark the failure
+     * @param exception     the exception that mark the failure
      */
     private void failed(Path addedFile, List<String> pidsToPublish, Exception exception) {
         try {
@@ -325,14 +329,15 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             log.error("Ingest failed with exception, attempting cleanup for file={} and pids={}", addedFile,
                       pidsToPublish, exception);
 
-            Files.move(addedFile,failedFilesFolder.resolve(addedFile.getFileName()));
+            Files.move(addedFile, failedFilesFolder.resolve(addedFile.getFileName()));
             log.trace("Moved file {} to failedFilesFolder={}", addedFile, failedFilesFolder);
 
             // Rename the in-progress PIDs to failed PIDs.
             renamePidLists(addedFile);
 
             log.trace("Attempting to delete objects {} from doms", pidsToPublish);
-            String deleteComment = Util.domsCommenter(filename, " deleted objects {0} due to ingest failure", pidsToPublish);
+            String deleteComment = Util.domsCommenter(filename, " deleted objects {0} due to ingest failure",
+                                                      pidsToPublish);
             domsClient.deleteObjects(deleteComment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
 
             log.error("Cleanup succeeded for file={} and pids={}", addedFile, pidsToPublish);

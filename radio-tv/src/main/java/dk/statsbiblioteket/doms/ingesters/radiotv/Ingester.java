@@ -64,7 +64,7 @@ public class Ingester {
      * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws Exception {
-            mainMethod(args);
+        mainMethod(args);
     }
 
     private static void mainMethod(String[] args) throws IOException,
@@ -104,7 +104,7 @@ public class Ingester {
                      username, password, overwrite, numThreads, threadWaitTime);
     }
 
-     static long parseThreadWaitTime(CommandLine cmd) {
+    static long parseThreadWaitTime(CommandLine cmd) {
         long threadWaitTime = Long.parseLong(cmd.getOptionValue("threadwaittime", "1000"));
         log.info("threadwaittime = {}", threadWaitTime);
         return threadWaitTime;
@@ -157,11 +157,23 @@ public class Ingester {
     }
 
     static Path parseSchema(CommandLine cmd) {
-        Path preIngestFileSchemaFile = Paths.get(
-                cmd.getOptionValue("preingestschema",
-                                   new File(Thread.currentThread().getContextClassLoader().getResource("exportedRadioTVProgram.xsd").getFile()).getAbsolutePath()));
+        String defaultValue = fileInClasspath("exportedRadioTVProgram.xsd");
+        Path preIngestFileSchemaFile = Paths.get(cmd.getOptionValue("preingestschema", defaultValue));
         log.info("preIngestFileSchemaFile = {}", preIngestFileSchemaFile);
         return preIngestFileSchemaFile;
+    }
+
+    /**
+     * Find file from the classloader
+     * @param name the name of the file
+     * @return the path to the file
+     */
+    private static String fileInClasspath(String name) {
+        URL resource = Thread.currentThread().getContextClassLoader().getResource(name);
+        if (resource == null){
+            return null;
+        }
+        return new File(resource.getFile()).getAbsolutePath();
     }
 
     static URL parseWSDL(CommandLine cmd) throws ParseException {
@@ -172,7 +184,7 @@ public class Ingester {
 
 
     static boolean parseOverwrite(CommandLine cmd) {
-        boolean overwrite = Boolean.parseBoolean(cmd.getOptionValue("overwrite",Boolean.FALSE.toString()));
+        boolean overwrite = Boolean.parseBoolean(cmd.getOptionValue("overwrite", Boolean.FALSE.toString()));
         log.info("overwrite = {}", overwrite);
         return overwrite;
     }
@@ -219,14 +231,15 @@ public class Ingester {
         final Schema preIngestFileSchema = schemaFactory.newSchema(preIngestFileSchemaFile.toFile());
 
         DomsWSClient domsClient = new DomsWSClientImpl();
-        domsClient.setCredentials(domsAPIWSLocation,username,password);
+        domsClient.setCredentials(domsAPIWSLocation, username, password);
 
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
                 domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite);
 
-        final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient, numthreads, stopFolder);
+        final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient,
+                                                              numthreads, stopFolder);
 
-        Runtime.getRuntime().addShutdownHook(new Thread(){
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 folderWatcher.setClosed(true);//Hopefully this will cause the watchers to shut down in time

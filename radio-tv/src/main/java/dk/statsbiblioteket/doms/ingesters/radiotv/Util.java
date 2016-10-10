@@ -12,7 +12,7 @@ public class Util {
      * The message includes the version of this doms ingester, taken from the pom.xml file jar plugin
      *
      * @param filename the name of the preingest file that drove this change
-     * @param action the thing done
+     * @param action   the thing done
      * @return the formatted comment
      */
     public static String domsCommenter(String filename, String action, Object... args) {

@@ -5,26 +5,25 @@ import java.nio.file.Path;
 /**
  * Named implements AutoClosable but without throwing exceptions. Is used for renaming threads inside try-with-resources
  * blocks
+ *
  * @see #nameThread(String)
  */
 public interface Named extends AutoCloseable {
     //private static final Logger log = LoggerFactory.getLogger(Named.class);
 
-    @Override
-    void close();
-
     /**
      * A Trick to rename the thread for the duration of a try statement and get it automatically named back when closed
-     *
+     * <p>
      * use it like this
      * <pre>
-      try (Named ignored = nameThread(name)) {
-         //Do stuff
-      }
+     * try (Named ignored = nameThread(name)) {
+     * //Do stuff
+     * }
      * </pre>
-     *
+     * <p>
      * Works by returning a Named, which extends AutoClosable. The close method is implemented to set the thread name back
      * to what it was before.
+     *
      * @param name the name to apped to the thread name
      * @return an autoclosable instance for resetting the thread name
      */
@@ -39,9 +38,9 @@ public interface Named extends AutoCloseable {
         };
     }
 
-
     /**
      * Name the thread after the filename of the given path
+     *
      * @param path the path
      * @return a Named
      * @see #nameThread(String)
@@ -49,5 +48,8 @@ public interface Named extends AutoCloseable {
     static Named nameThread(Path path) {
         return nameThread(path.toFile().getName());
     }
+
+    @Override
+    void close();
 }
 
