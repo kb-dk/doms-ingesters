@@ -1,5 +1,8 @@
 Change log for radio/tv program ingester
 
+1.6.1
+Fixed bug that made the ingester not remove old relations when overwrite=true
+
 1.6
 Total redesign
  - Based on java 8 folder watchin features
