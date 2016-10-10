@@ -4,8 +4,11 @@ import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import dk.statsbiblioteket.doms.client.objects.DigitalObject;
 import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
+import dk.statsbiblioteket.doms.client.relations.ObjectRelation;
 import dk.statsbiblioteket.doms.client.relations.Relation;
+import dk.statsbiblioteket.doms.client.relations.RelationDeclaration;
 import dk.statsbiblioteket.util.xml.DOM;
 import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.slf4j.Logger;
@@ -124,17 +127,21 @@ public class RecordCreator {
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
-            String predicate = relation.getPredicate();
-            String subjectPid = relation.getSubjectPid();
-            log.debug("Found relation {},'{}',{}", programObjectPID, predicate, subjectPid);
-            //This predicate should be == Common.HAS_FILE_RELATION
-            if (!filePIDs.contains(subjectPid)) {
-                log.debug("Removing relation relation {},'{}',{}",
-                          programObjectPID, predicate, subjectPid);
-                String comment = Util.domsCommenter(filename, "removed relation '{0}' to '{1}'", predicate, subjectPid);
-                domsClient.removeObjectRelation((LiteralRelation) relation, comment);
-            } else {
-                existingRels.add(subjectPid);
+            if (relation instanceof ObjectRelation) {
+                LiteralRelation relationWrapper = wrapAsLiteral((ObjectRelation) relation);
+                String predicate = relationWrapper.getPredicate(); //This should be HAS_FILE_RELATION
+                String objectPid = relationWrapper.getObject(); //This should be prograObjectPid
+                String subjectPid = relationWrapper.getSubjectPid();
+                log.debug("Found relation {},'{}',{}", objectPid, predicate, subjectPid);
+                if (!filePIDs.contains(subjectPid)) {
+                    log.debug("Removing relation relation {},'{}',{}", objectPid, predicate, subjectPid);
+                    String comment = Util.domsCommenter(filename, "removed relation '{0}' to '{1}'",
+                                                        predicate,
+                                                        subjectPid);
+                    domsClient.removeObjectRelation(relationWrapper, comment);
+                } else {
+                    existingRels.add(subjectPid);
+                }
             }
         }
         for (String filePID : filePIDs) {
@@ -146,6 +153,36 @@ public class RecordCreator {
 
             }
         }
+    }
+
+    private LiteralRelation wrapAsLiteral(final ObjectRelation relation) {
+        return new LiteralRelation() {
+
+            @Override
+            public String getObject() {
+                return relation.getSubjectPid();
+            }
+
+            public DigitalObject getSubject() throws ServerOperationFailed {
+                return relation.getObject();
+            }
+
+            public String getSubjectPid() {
+                return relation.getObjectPid();
+            }
+
+            public String getPredicate() {
+                return relation.getPredicate();
+            }
+
+            public void remove() throws ServerOperationFailed {
+                relation.remove();
+            }
+
+            public Set<RelationDeclaration> getDeclarations() throws ServerOperationFailed {
+                return relation.getDeclarations();
+            }
+        };
     }
 
     private void addBroadcast(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
