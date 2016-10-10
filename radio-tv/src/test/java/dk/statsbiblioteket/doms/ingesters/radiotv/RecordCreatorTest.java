@@ -17,6 +17,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
 
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.GALLUP_ORIGINAL_DS_ID;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.HAS_FILE_RELATION;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_BROADCAST_DS_ID;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_PBCORE_DS_ID;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_TEMPLATE_PID;
+import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.RITZAU_ORIGINAL_DS_ID;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -104,7 +110,7 @@ public class RecordCreatorTest {
         when(testDomsClient.getPidFromOldIdentifier(tvMeterOldID)).thenReturn(Arrays.asList());
 
         //Return the programPid when new object is made
-        when(testDomsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID),
+        when(testDomsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID),
                                                      programObjectCreationComment)).thenReturn(programPid);
 
 
@@ -128,24 +134,24 @@ public class RecordCreatorTest {
         ordered.verify(testDomsClient).getPidFromOldIdentifier(tvMeterOldID);
 
         //It was not found, so we then create a new object
-        ordered.verify(testDomsClient).createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID,Arrays.asList(ritzauOldID, tvMeterOldID), programObjectCreationComment);
+        ordered.verify(testDomsClient).createObjectFromTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID), programObjectCreationComment);
 
         //And we set the label
         ordered.verify(testDomsClient).setObjectLabel(programPid, programTitle, setObjectLabelComment);
 
         //Then we add the four datastreamsw
         //TODO verify actual ds content...
-        verify(testDomsClient).updateDataStream(eq(programPid), eq(Common.PROGRAM_PBCORE_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(Common.RITZAU_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(Common.GALLUP_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(Common.PROGRAM_BROADCAST_DS_ID), any(Document.class), eq(updatedDatastreamComment));
+        verify(testDomsClient).updateDataStream(eq(programPid), eq(PROGRAM_PBCORE_DS_ID), any(Document.class), eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID), any(Document.class), eq(updatedDatastreamComment));
 
         //We check (unnessesarily) if our newly made object is already linked to the previously found file pids
-        ordered.verify(testDomsClient).listObjectRelations(programPid, Common.HAS_FILE_RELATION_TYPE);
+        ordered.verify(testDomsClient).listObjectRelations(programPid, HAS_FILE_RELATION);
 
         //As it is not linked, add two relations
-        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid1, Util.domsCommenter(filename, "added relation '" + Common.HAS_FILE_RELATION_TYPE + "' to '" + filePid1 + "'") );
-        ordered.verify(testDomsClient).addObjectRelation(programPid, Common.HAS_FILE_RELATION_TYPE, filePid2, Util.domsCommenter(filename, "added relation '" + Common.HAS_FILE_RELATION_TYPE + "' to '" + filePid2 + "'") );
+        ordered.verify(testDomsClient).addObjectRelation(programPid, HAS_FILE_RELATION, filePid1, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid1 + "'") );
+        ordered.verify(testDomsClient).addObjectRelation(programPid, HAS_FILE_RELATION, filePid2, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid2 + "'") );
 
         //That's all, folks
         ordered.verifyNoMoreInteractions();

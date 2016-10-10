@@ -6,6 +6,8 @@ import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
 import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
 import dk.statsbiblioteket.doms.client.relations.Relation;
+import dk.statsbiblioteket.util.xml.DOM;
+import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -29,11 +31,22 @@ import java.util.regex.Matcher;
  */
 public class RecordCreator {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    public static final String DC_NAMESPACE = "http://purl.org/dc/elements/1.1/";
+    public static final String PBCORE_DESCRIPTION_ELEMENT = "//program/pbcore/pbc:PBCoreDescriptionDocument";
+    public static final String PROGRAM_TEMPLATE_PID = "doms:Template_Program";
+    public static final String PROGRAM_PBCORE_DS_ID = "PBCORE";
+    public static final String RITZAU_ORIGINAL_DS_ID = "RITZAU_ORIGINAL";
+    public static final String GALLUP_ORIGINAL_DS_ID = "GALLUP_ORIGINAL";
+    public static final String PROGRAM_BROADCAST_DS_ID = "PROGRAM_BROADCAST";
+    public static final String DC_DS_ID = "DC";
+    public static final String HAS_FILE_RELATION = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasFile";
 
-    private DomsWSClient domsClient;
-    private boolean overwrite;
-    private DocumentBuilder documentBuilder;
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final DomsWSClient domsClient;
+    private final boolean overwrite;
+    private final DocumentBuilder documentBuilder;
+    private final XPathSelector xPathSelector;
+
 
     public RecordCreator(DomsWSClient domsClient, boolean overwrite) {
         this.domsClient = domsClient;
@@ -42,12 +55,22 @@ public class RecordCreator {
         try {
             documentBuilder = documentBuilderFactory.newDocumentBuilder();
         } catch (ParserConfigurationException e) {
-            throw new RuntimeException("Failed to understand xml...",e);
+            throw new RuntimeException("Failed to understand xml...", e);
         }
+        //This is not threadsafe so it must be created here, as we make a new RecordCreater for each file to ingest
+        xPathSelector = DOM.createXPathSelector(
+                "dc", DC_NAMESPACE,
+                "pbc", "http://www.pbcore.org/PBCore/PBCoreNamespace.html",
+                "ritzau", "http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#",
+                "gallup", "http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#",
+                "pb", "http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#");
     }
 
     /**
-     * Ingests or updates a program object
+     * Ingests or updates a program object.
+     *
+     * Synchronized on this object, not class, as the xpath system for reading the source file is not thread safe
+     *
      *
      * @param radioTVMetadata Bibliographical metadata about the program.
      * @param filename the name of the source file. Is only used for logging and doms audit comments
@@ -59,7 +82,7 @@ public class RecordCreator {
      * @throws MalformedURLException if a file element contains an invalid URL.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    public String ingestProgram(Document radioTVMetadata, String filename) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
+    public synchronized String ingestProgram(Document radioTVMetadata, String filename) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
         // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
         List<String> filePIDs = getFilePids(radioTVMetadata);
         log.debug("Found pids {} of referenced files",filePIDs);
@@ -98,106 +121,114 @@ public class RecordCreator {
 
 
     private void setFileRelations(String programObjectPID, List<String> filePIDs, String filename) throws ServerOperationFailed, XMLParseException {
-        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, Common.HAS_FILE_RELATION_TYPE);
+        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
-            log.debug("Found relation {},'{}',{}",programObjectPID,relation.getPredicate(),relation.getSubjectPid());
-            if (!filePIDs.contains(relation.getSubjectPid())) {
-                log.debug("Removing relation relation {},'{}',{}",programObjectPID,relation.getPredicate(),relation.getSubjectPid());
-                domsClient.removeObjectRelation((LiteralRelation) relation,
-                                                Util.domsCommenter(filename, "removed relation '{0}' to '{1}'", relation.getPredicate(),relation.getSubjectPid()));
+            String predicate = relation.getPredicate();
+            String subjectPid = relation.getSubjectPid();
+            log.debug("Found relation {},'{}',{}", programObjectPID, predicate, subjectPid);
+            //This predicate should be == Common.HAS_FILE_RELATION
+            if (!filePIDs.contains(subjectPid)) {
+                log.debug("Removing relation relation {},'{}',{}",
+                          programObjectPID, predicate, subjectPid);
+                String comment = Util.domsCommenter(filename, "removed relation '{0}' to '{1}'", predicate, subjectPid);
+                domsClient.removeObjectRelation((LiteralRelation) relation, comment);
             } else {
-                existingRels.add(relation.getSubjectPid());
+                existingRels.add(subjectPid);
             }
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
-                log.debug("Adding relation {},'{}',{}",programObjectPID,Common.HAS_FILE_RELATION_TYPE,filePID);
-                domsClient.addObjectRelation(programObjectPID, Common.HAS_FILE_RELATION_TYPE, filePID, Util.domsCommenter(
-                        filename, "added relation '{0}' to '{1}'", Common.HAS_FILE_RELATION_TYPE, filePID) );
+                log.debug("Adding relation {},'{}',{}", programObjectPID, HAS_FILE_RELATION, filePID);
+                String comment = Util.domsCommenter(filename, "added relation '{0}' to '{1}'",
+                                                    HAS_FILE_RELATION, filePID);
+                domsClient.addObjectRelation(programObjectPID, HAS_FILE_RELATION, filePID, comment);
 
             }
         }
     }
 
-    private void addBroadcast(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+    private void addBroadcast(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
         // Add the program broadcast datastream
-        log.debug("Adding/Updating {} datastream", Common.PROGRAM_BROADCAST_DS_ID);
-        Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, Common.PROGRAM_BROADCAST_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_BROADCAST_DS_ID, programBroadcastDocument,
-                                    comment);
+        log.debug("Adding/Updating {} datastream", PROGRAM_BROADCAST_DS_ID);
+        Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
+        domsClient.updateDataStream(objectPID, PROGRAM_BROADCAST_DS_ID, programBroadcastDocument, comment);
     }
 
-    private void addGallup(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+    private void addGallup(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
         // Add the Gallup datastream
-        log.debug("Adding/Updating {} datastream", Common.GALLUP_ORIGINAL_DS_ID);
-        Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.GALLUP_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument,
-                                    comment);
+        log.debug("Adding/Updating {} datastream", GALLUP_ORIGINAL_DS_ID);
+        Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata,
+                                                                 "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
+        domsClient.updateDataStream(objectPID, GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, comment);
     }
 
-    private void addRitzau(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+    private void addRitzau(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
         // Add Ritzau datastream
-        log.debug("Adding/Updating {} datastream", Common.RITZAU_ORIGINAL_DS_ID);
-        Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata, Common.RITZAU_ORIGINALS_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument,
-                                    comment);
+        log.debug("Adding/Updating {} datastream", RITZAU_ORIGINAL_DS_ID);
+        Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata,
+                                                                 "//program/originals/ritzau:ritzau_original");
+        domsClient.updateDataStream(objectPID, RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, comment);
     }
 
-    private void addPBCore(Document radioTVMetadata, String programObjectPID, String comment) throws ServerOperationFailed {
+    private void addPBCore(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
         // Add PBCore datastream
-        log.debug("Adding/Updating {} datastream", Common.PROGRAM_PBCORE_DS_ID);
-        Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
-        domsClient.updateDataStream(programObjectPID, Common.PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument,
-                                    comment);
+        log.debug("Adding/Updating {} datastream", PROGRAM_PBCORE_DS_ID);
+        Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
+        domsClient.updateDataStream(objectPID, PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, comment);
     }
 
-    private void setTitle(Document radioTVMetadata, String filename, String programObjectPID) throws ServerOperationFailed {
+    private void setTitle(Document radioTVMetadata, String filename, String objectPID) throws ServerOperationFailed {
         // Get the program title from the PBCore metadata and use that as the
         // object label for this program object.
-        Node titleNode = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_TITLE_ELEMENT);
+        Node titleNode = xPathSelector.selectNode(radioTVMetadata,
+                                                  "//pbc:pbcoreTitle[pbc:titleType=\"titel\"]/pbc:title");
         String programTitle = titleNode.getTextContent();
-        log.debug("Found program title '{}', setting this as label on {}",programTitle,programObjectPID);
-        domsClient.setObjectLabel(programObjectPID, programTitle, Util.domsCommenter(filename, "added program title '{0}' object label", programTitle));
+        log.debug("Found program title '{}', setting this as label on {}", programTitle, objectPID);
+        String comment = Util.domsCommenter(filename, "added program title '{0}' object label", programTitle);
+        domsClient.setObjectLabel(objectPID, programTitle, comment);
     }
 
     private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
         log.debug("Found existing object {}, to be overwritten", existingPid);
-        domsClient.unpublishObjects(Util.domsCommenter(filename, "unpublished object to allow for changes"), existingPid);
-        log.debug("Existing object {} unpublished",existingPid);
+        String comment = Util.domsCommenter(filename, "unpublished object to allow for changes");
+        domsClient.unpublishObjects(comment, existingPid);
+        log.debug("Existing object {} unpublished", existingPid);
         addOldPids(existingPid, oldIdentifiers, filename);
-        log.debug("Old identifiers added to program object {}",existingPid);
+        log.debug("Old identifiers added to program object {}", existingPid);
     }
 
     private String createNewProgramObject(String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
         String programObjectPID;// Create a program object in the DOMS and update the PBCore metadata
         // datastream with the PBCore metadata from the pre-ingest file.
-        programObjectPID = domsClient.createObjectFromTemplate(Common.PROGRAM_TEMPLATE_PID, oldIdentifiers, Util.domsCommenter(filename, "creating Program Object"));
-        log.debug("Creating new program object with pid {}",programObjectPID);
+        String comment = Util.domsCommenter(filename, "creating Program Object");
+        programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, oldIdentifiers, comment);
+        log.debug("Created new program object with pid {}", programObjectPID);
         return programObjectPID;
     }
 
     private void addOldPids(String existingPid, List<String> oldIdentifiers, String filename) throws ServerOperationFailed {
-        Document dcDataStream = domsClient.getDataStream(existingPid, Common.DC_DS_ID);
-        NodeList existingIDNodes = Common.XPATH_SELECTOR.selectNodeList(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
+        Document dcDataStream = domsClient.getDataStream(existingPid, DC_DS_ID);
+        NodeList existingIDNodes = xPathSelector.selectNodeList(dcDataStream, "//dc:identifier");
         Set<String> idsToAdd = new HashSet<String>(oldIdentifiers);
         for (int i = 0; i < existingIDNodes.getLength(); i++) {
             idsToAdd.remove(existingIDNodes.item(i).getTextContent());
         }
-        log.debug("Object {} is missing these {} old identifiers",existingPid, idsToAdd);
+        log.debug("Object {} is missing these {} old identifiers", existingPid, idsToAdd);
         if (idsToAdd.isEmpty()) {
             return;
         }
 
-        Node identifier = Common.XPATH_SELECTOR.selectNode(dcDataStream, Common.DC_IDENTIFIER_ELEMENT);
+        Node firstIdentifierNode = existingIDNodes.item(0);
         for (String id : idsToAdd) {
-            Element newIdentifier = dcDataStream.createElementNS(Common.DC_NAMESPACE, "identifier");
+            Element newIdentifier = dcDataStream.createElementNS(DC_NAMESPACE, "identifier");
             dcDataStream.setTextContent(id);
-            identifier.getParentNode().insertBefore(newIdentifier, identifier);
+            firstIdentifierNode.getParentNode().insertBefore(newIdentifier, firstIdentifierNode);
             log.debug("Adding {} to dc identifiers for object {}", id, existingPid);
         }
-        log.debug("Updating {} datastream with new old identifiers {}",Common.DC_DS_ID,oldIdentifiers);
-        domsClient.updateDataStream(existingPid, Common.DC_DS_ID, dcDataStream, Util.domsCommenter(filename, "added old identifiers {0}",oldIdentifiers));
+        log.debug("Updating {} datastream with new old identifiers {}", DC_DS_ID, oldIdentifiers);
+        String comment = Util.domsCommenter(filename, "added old identifiers {0}", oldIdentifiers);
+        domsClient.updateDataStream(existingPid, DC_DS_ID, dcDataStream, comment);
     }
 
     /**
@@ -208,7 +239,7 @@ public class RecordCreator {
      * @return A document containing the metadata form the node selected by xpath.
      */
     private Document createDocumentFromNode(Document radioTVMetadata, String xpath) {
-        final Node nodeToIngest = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, xpath);
+        final Node nodeToIngest = xPathSelector.selectNode(radioTVMetadata, xpath);
 
         // Build a data document for the data stream in the program object.
         final Document document = documentBuilder.newDocument();
@@ -220,10 +251,9 @@ public class RecordCreator {
      * Lookup a program in DOMS.
      * If program exists, returns the PID of the program. Otherwise returns null.
      *
-     * @return PID of program, if found. Null otherwise
-     *
-     * @throws ServerOperationFailed Could not communicate with DOMS.
      * @param oldIdentifiers List of old identifiers to look up.
+     * @return PID of program, if found. Null otherwise
+     * @throws ServerOperationFailed Could not communicate with DOMS.
      */
     private String alreadyExistsInRepo(List<String> oldIdentifiers) throws ServerOperationFailed {
         for (String oldId : oldIdentifiers) {
@@ -232,8 +262,8 @@ public class RecordCreator {
                 oldId = oldId.replaceAll("'", Matcher.quoteReplacement("\\'"));
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
                 if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
-                    if (pids.size() > 1){
-                        log.warn("Found {} pids for old identifiers {}, returning the first", pids,oldId);
+                    if (pids.size() > 1) {
+                        log.warn("Found {} pids for old identifiers {}, returning the first", pids, oldId);
                     }
                     return pids.get(0);
                 }
@@ -250,18 +280,20 @@ public class RecordCreator {
      * @param radioTVMetadata The document containing the program metadata.
      * @return Old indentifiers found.
      */
-    private List<String> getOldIdentifiers(Document radioTVMetadata)  {
+    private List<String> getOldIdentifiers(Document radioTVMetadata) {
         List<String> result = new ArrayList<String>();
 
-        Node radioTVPBCoreElement = Common.XPATH_SELECTOR.selectNode(radioTVMetadata, Common.PBCORE_DESCRIPTION_ELEMENT);
+        Node radioTVPBCoreElement = xPathSelector.selectNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
 
-        Node oldRitzauPIDNode = Common.XPATH_SELECTOR.selectNode(radioTVPBCoreElement, Common.PBCORE_RITZAU_IDENTIFIER_ELEMENT);
+        Node oldRitzauPIDNode = xPathSelector.selectNode(radioTVPBCoreElement,
+                                                         "pbc:pbcoreIdentifier[pbc:identifierSource=\"id\"]/pbc:identifier");
 
         if (oldRitzauPIDNode != null && !oldRitzauPIDNode.getTextContent().isEmpty()) {
             result.add(oldRitzauPIDNode.getTextContent());
         }
 
-        Node oldGallupPIDNode = Common.XPATH_SELECTOR.selectNode(radioTVPBCoreElement, Common.PBCORE_GALLUP_IDENTIFIER_ELEMENT);
+        Node oldGallupPIDNode = xPathSelector.selectNode(radioTVPBCoreElement,
+                                                         "pbc:pbcoreIdentifier[pbc:identifierSource=\"tvmeter\"]/pbc:identifier");
 
         if (oldGallupPIDNode != null && !oldGallupPIDNode.getTextContent().isEmpty()) {
             result.add(oldGallupPIDNode.getTextContent());
@@ -274,14 +306,13 @@ public class RecordCreator {
      *
      * @param radioTVMetadata Metadata XML document containing the file information.
      * @return A <code>List</code> of PIDs of the radio-tv file objects found in DOMS.
-     *
      * @throws MalformedURLException if a file element contains an invalid URL.
      * @throws ServerOperationFailed if looking up file URL failed.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
     private List<String> getFilePids(Document radioTVMetadata) throws MalformedURLException, NoObjectFound, ServerOperationFailed {
         // Get the recording files XML element and process the file information.
-        NodeList recordingFileURLs = Common.XPATH_SELECTOR.selectNodeList(radioTVMetadata, Common.RECORDING_FILES_URLS);
+        NodeList recordingFileURLs = xPathSelector.selectNodeList(radioTVMetadata, "//program/fileUrls/fileUrl");
 
         // Find the pids for all referenced file urls.
         List<String> fileObjectPIDs = new ArrayList<String>();
@@ -293,7 +324,7 @@ public class RecordCreator {
             URL fileURL = new URL(itemTextContent);
             String fileObjectPID = domsClient.getFileObjectPID(fileURL);
             fileObjectPIDs.add(fileObjectPID);
-            log.debug("Found file object pid {} for file url {}",fileObjectPID,fileURL);
+            log.debug("Found file object pid {} for file url {}", fileObjectPID, fileURL);
         }
         return fileObjectPIDs;
     }
