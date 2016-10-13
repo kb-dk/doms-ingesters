@@ -57,12 +57,8 @@ public class FolderWatcher implements Callable<Void> {
     private final int threadPoolSize;
     private final Path stopFolder;
     private final ThreadFactory threadFactory;
-    private final Object counterLock = new Object();
 
     private boolean closed = false;
-    private int filesAdded = 0;
-    private int filesModified = 0;
-    private int filesDeleted = 0;
 
 
     /**
@@ -149,11 +145,9 @@ public class FolderWatcher implements Callable<Void> {
                         if (event.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
                             log.debug("File {} was added. Scheduling work", file.getFileName());
                             handler = () -> {
-                                try (Named threadNamer2 = nameThread(file)) {
-                                    log.debug("Starting work on added file");
+                                try (Named threadNamer2 = nameThread(file);
+                                     Timed timer = Timed.timeExecution("added file")) {
                                     client.fileAdded(file);
-                                    incrementFilesAdded();
-                                    log.debug("Finished work on added file");
                                 }
                                 return file;
                             };
@@ -161,11 +155,9 @@ public class FolderWatcher implements Callable<Void> {
                         } else if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
                             log.debug("File {} was modified. Scheduling work", file.getFileName());
                             handler = () -> {
-                                try (Named threadNamer2 = nameThread(file)) {
-                                    log.debug("Starting work on modified file");
+                                try (Named threadNamer2 = nameThread(file);
+                                     Timed timer = Timed.timeExecution("modified file")) {
                                     client.fileModified(file);
-                                    incrementFilesModified();
-                                    log.debug("Finished work on modified file");
                                 }
                                 return file;
                             };
@@ -173,11 +165,9 @@ public class FolderWatcher implements Callable<Void> {
                         } else if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
                             log.debug("File {} was deleted. Scheduling work", file.getFileName());
                             handler = () -> {
-                                try (Named threadNamer2 = nameThread(file)) {
-                                    log.debug("Starting work on deleted file");
+                                try (Named threadNamer2 = nameThread(file);
+                                     Timed timer = Timed.timeExecution("deleted file")) {
                                     client.fileDeleted(file);
-                                    incrementFilesDeleted();
-                                    log.debug("Finished work on deleted file");
                                 }
                                 return file;
                             };
@@ -212,45 +202,6 @@ public class FolderWatcher implements Callable<Void> {
         } catch (InterruptedException e) {
             log.info("Interrupted so attempting orderly shutdown");
             return null;
-        }
-    }
-
-    /**
-     * Utility method to log number of handled added events
-     */
-    private void incrementFilesAdded() { //Rhese increment methods cannot be synchronized on the same thing as the call method (ie the class)
-        synchronized (counterLock) {
-            if (filesAdded % 100 == 0) {
-                log.info("File nr {} have been added", filesAdded);
-            }
-            filesAdded++;
-        }
-
-    }
-
-    /**
-     * Utility method to log number of handled modify events
-     */
-    private void incrementFilesModified() {
-        synchronized (counterLock) {
-            if (filesModified % 100 == 0) {
-                log.info("File nr {} have been modified", filesModified);
-            }
-            filesModified++;
-        }
-
-    }
-
-
-    /**
-     * Utility method to log number of handled deleted events
-     */
-    private void incrementFilesDeleted() {
-        synchronized (counterLock) {
-            if (filesDeleted % 100 == 0) {
-                log.info("File nr {} have been deleted", filesDeleted);
-            }
-            filesDeleted++;
         }
     }
 
@@ -319,11 +270,9 @@ public class FolderWatcher implements Callable<Void> {
         for (Path preFile : preFiles) {
             shouldStopNow(); //Check for each file, as this can take a while //TODO is this to much?
             Callable<Path> handler = () -> {
-                try (Named ignored = nameThread(preFile)) { //Trick to rename the thread and name it back
-                    log.debug("Starting work on preexisting file");
+                try (Named ignored = nameThread(preFile);
+                     Timed timer = Timed.timeExecution("preexisting file")) { //Trick to rename the thread and name it back
                     client.fileAdded(preFile);
-                    incrementFilesAdded();
-                    log.debug("Finishing work on preexisting file");
                 }
                 return preFile;
             };
