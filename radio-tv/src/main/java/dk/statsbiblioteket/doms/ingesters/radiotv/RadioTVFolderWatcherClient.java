@@ -142,7 +142,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     @Override
     public synchronized void fileAdded(Path addedFile) {
         if (isXmlFile(addedFile)) {
-            log.debug("File {} added, start processing", addedFile);
+            log.info("File {} added, start processing", addedFile);
             handleAddedOrModifiedFile(addedFile);
         }
     }
@@ -155,14 +155,14 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     @Override
     public void fileModified(Path modifiedFile) {
         if (isXmlFile(modifiedFile)) {
-            log.debug("File {} modified, start processing", modifiedFile);
+            log.info("File {} modified, start processing", modifiedFile);
             handleAddedOrModifiedFile(modifiedFile);
         }
     }
 
     @Override
     public void fileDeleted(Path deletedFile) {
-        log.debug("File was deleted and I do not care");
+        log.info("File {} was deleted and I do not care", deletedFile);
         //Note, this will be invoked with this client moves the files out of the hotFolder....
     }
 
