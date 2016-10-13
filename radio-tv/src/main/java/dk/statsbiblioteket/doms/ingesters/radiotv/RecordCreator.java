@@ -300,7 +300,7 @@ public class RecordCreator {
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
                 if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
                     if (pids.size() > 1) {
-                        log.warn("Found {} pids for old identifiers {}, returning the first", pids, oldId);
+                        log.warn("Found {} pids for old identifiers '{}', returning the first ({})", pids, oldId, pids.get(0));
                     }
                     return pids.get(0);
                 }
