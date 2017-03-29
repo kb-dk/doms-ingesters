@@ -32,17 +32,23 @@ import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
 import dk.statsbiblioteket.doms.folderwatching.FolderWatcherClient;
-import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.builder.Input;
+import org.xmlunit.diff.Comparison;
+import org.xmlunit.diff.ComparisonResult;
+import org.xmlunit.diff.ComparisonType;
+import org.xmlunit.diff.Diff;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -190,16 +196,34 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param file the file to examine
      * @return true if we already handled the file
      */
-    private boolean isAlreadyHandled(Path file) {
+    protected boolean isAlreadyHandled(Path file) {
         try {
             Path possibleCopy = processedFilesFolder.resolve(file.getFileName());
             if (Files.isRegularFile(possibleCopy)) {
                 log.debug("Found possible copy of file {} in {}", file, processedFilesFolder);
 
-                long originalSum = FileUtils.checksumCRC32(file.toFile());
-                long copySum = FileUtils.checksumCRC32(possibleCopy.toFile());
 
-                if (originalSum == copySum) {
+                Source control = Input.fromFile(file.toFile()).build();
+                Source test = Input.fromFile(possibleCopy.toFile()).build();
+
+                Diff d = DiffBuilder
+                        .compare(control)
+                        .withTest(test)
+                        .checkForIdentical()
+                        .ignoreComments()
+                        .ignoreWhitespace()
+                        .withDifferenceEvaluator(
+                                (Comparison comparison, ComparisonResult outcome) -> {
+                                    if (comparison.getType().equals(ComparisonType.NAMESPACE_PREFIX)) {
+                                        return ComparisonResult.EQUAL;
+                                    } else {
+                                        return outcome;
+                                    }
+                                })
+                        .build();
+
+                if (!d.hasDifferences()) {
+                    log.info(d.toString());
                     log.info("Found exact duplicate of file={} in processedFolder={}, so deleting file={}",
                              file, processedFilesFolder, file);
                     Files.deleteIfExists(file);
