@@ -26,8 +26,6 @@
  */
 package dk.statsbiblioteket.doms.folderwatching;
 
-import dk.statsbiblioteket.doms.folderwatching.FolderWatcher;
-import dk.statsbiblioteket.doms.folderwatching.FolderWatcherClient;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Test;
@@ -38,9 +36,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -59,7 +55,7 @@ import static org.mockito.Mockito.verify;
   */
 public class TestFolderWatcher {
 
-    private Path tempTestDir;
+    private Path folderToWatch;
     private Path stopFolder;
 
 
@@ -67,8 +63,8 @@ public class TestFolderWatcher {
 
     @After
     public void tearDown() throws Exception {
-        if (tempTestDir != null) {
-            FileUtils.deleteDirectory(tempTestDir.toFile());
+        if (folderToWatch != null) {
+            FileUtils.deleteDirectory(folderToWatch.toFile());
         }
         if (stopFolder != null) {
             FileUtils.deleteDirectory(stopFolder.toFile());
@@ -78,7 +74,7 @@ public class TestFolderWatcher {
     @Test
     public void testStartScanning() throws Exception {
 
-        tempTestDir = Files.createTempDirectory("hotFolder");
+        folderToWatch = Files.createTempDirectory("folderToWatch");
         stopFolder = Files.createTempDirectory("stopFolder");
 
         // Create a test file. It must be an XML file as the folder scanner
@@ -87,7 +83,7 @@ public class TestFolderWatcher {
 
         FolderWatcherClient FolderWatcherClient = mock(FolderWatcherClient.class);
 
-        FolderWatcher FolderWatcher = new FolderWatcher(tempTestDir, 1000, FolderWatcherClient, 1, stopFolder);
+        FolderWatcher FolderWatcher = new FolderWatcher(folderToWatch, 1000, FolderWatcherClient, 1, stopFolder);
 
 
         ExecutorService background = Executors.newSingleThreadExecutor();
@@ -112,7 +108,7 @@ public class TestFolderWatcher {
     @Test
     public void testFull() throws Exception {
 
-        tempTestDir = Files.createTempDirectory("hotFolder");
+        folderToWatch = Files.createTempDirectory("folderToWatch");
         stopFolder = Files.createTempDirectory("stopFolder");
 
         // Create a test file. It must be an XML file as the folder scanner
@@ -121,7 +117,7 @@ public class TestFolderWatcher {
 
         FolderWatcherClient FolderWatcherClient = mock(FolderWatcherClient.class);
 
-        FolderWatcher FolderWatcher = new FolderWatcher(tempTestDir, 1000, FolderWatcherClient, 1, stopFolder);
+        FolderWatcher FolderWatcher = new FolderWatcher(folderToWatch, 1000, FolderWatcherClient, 1, stopFolder);
 
 
         ExecutorService background = Executors.newSingleThreadExecutor();
@@ -157,7 +153,7 @@ public class TestFolderWatcher {
     @Test
     public void testFileAdded() throws Exception {
 
-        tempTestDir = Files.createTempDirectory("hotFolder");
+        folderToWatch = Files.createTempDirectory("folderToWatch");
         stopFolder = Files.createTempDirectory("stopFolder");
 
 
@@ -169,7 +165,7 @@ public class TestFolderWatcher {
             }
         };
 
-        FolderWatcher FolderWatcher = new FolderWatcher(tempTestDir, 1000, FolderWatcherClient, 1, stopFolder);
+        FolderWatcher FolderWatcher = new FolderWatcher(folderToWatch, 1000, FolderWatcherClient, 1, stopFolder);
 
 
         ExecutorService background = Executors.newSingleThreadExecutor();
@@ -200,7 +196,7 @@ public class TestFolderWatcher {
     @Test
     public void testMultiThreading() throws Exception {
 
-        tempTestDir = Files.createTempDirectory("hotFolder");
+        folderToWatch = Files.createTempDirectory("folderToWatch");
         stopFolder = Files.createTempDirectory("stopFolder");
 
         long handlingTime = 100;
@@ -234,7 +230,7 @@ public class TestFolderWatcher {
         };
 
         int numThreads = 2;
-        FolderWatcher FolderWatcher = new FolderWatcher(tempTestDir, 1000, FolderWatcherClient, numThreads, stopFolder);
+        FolderWatcher FolderWatcher = new FolderWatcher(folderToWatch, 1000, FolderWatcherClient, numThreads, stopFolder);
 
 
         ExecutorService background = Executors.newSingleThreadExecutor();
@@ -275,7 +271,7 @@ public class TestFolderWatcher {
     @Test
     public void testStopFolder() throws Exception {
 
-        tempTestDir = Files.createTempDirectory("hotFolder");
+        folderToWatch = Files.createTempDirectory("folderToWatch");
         stopFolder = Files.createTempDirectory("stopFolder");
 
         long handlingTime = 100;
@@ -292,7 +288,7 @@ public class TestFolderWatcher {
         };
 
         int numThreads = 1;
-        FolderWatcher FolderWatcher = new FolderWatcher(tempTestDir, 1000, FolderWatcherClient, numThreads, stopFolder);
+        FolderWatcher FolderWatcher = new FolderWatcher(folderToWatch, 1000, FolderWatcherClient, numThreads, stopFolder);
 
 
         ExecutorService background = Executors.newSingleThreadExecutor();
@@ -328,13 +324,13 @@ public class TestFolderWatcher {
 
 
     private Path createTempFile() throws IOException {
-        Path tempTestFile = tempTestDir.resolve(UUID.randomUUID().toString() + ".xml");
+        Path tempTestFile = folderToWatch.resolve(UUID.randomUUID().toString() + ".xml");
         Files.createFile(tempTestFile);
         return tempTestFile;
     }
 
     private Path createTempFile(int id) throws IOException {
-        Path tempTestFile = tempTestDir.resolve(id + ".xml");
+        Path tempTestFile = folderToWatch.resolve(id + ".xml");
         Files.createFile(tempTestFile);
         return tempTestFile;
     }

@@ -1,15 +1,16 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 import org.apache.commons.cli.CommandLine;
-import org.junit.After;
 import org.junit.Test;
 
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.MessageFormat;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Created by abr on 05-09-16.
@@ -18,25 +19,27 @@ public class IngesterTest {
     @Test
     public void testSetupCommandLineRealArguments() throws Exception {
 
-        //These paths will get made in the test
-        Path $HOTFOLDER = Paths.get("$HOTFOLDER");
-        Path $LUKEFOLDER = Paths.get("$LUKEFOLDER");
-        Path $COLDFOLDER = Paths.get("$COLDFOLDER");
-        Path $STOPFOLDER = Paths.get("$STOPFOLDER");
+        Path coldFolder = Files.createTempDirectory("coldFolder").toAbsolutePath();
+        Path hotFolder = Files.createTempDirectory("hotFolder").toAbsolutePath();
+        Path lukeFolder = Files.createTempDirectory("lukeFolder").toAbsolutePath();
+        Path stopFolder = Files.createTempDirectory("stopFolder").toAbsolutePath();
 
         //register them for cleanup
-        $HOTFOLDER.toFile().deleteOnExit();
-        $LUKEFOLDER.toFile().deleteOnExit();
-        $COLDFOLDER.toFile().deleteOnExit();
-        $STOPFOLDER.toFile().deleteOnExit();
+        coldFolder.toFile().deleteOnExit();
+        hotFolder.toFile().deleteOnExit();
+        lukeFolder.toFile().deleteOnExit();
+        stopFolder.toFile().deleteOnExit();
 
-        String commandLine = "-hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER -stopfolder=$STOPFOLDER -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200";
+        String commandLine = MessageFormat.format(
+                "-hotfolder={0} -lukefolder={1} -coldfolder={2} -stopfolder={3} -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200",
+                hotFolder, lukeFolder, coldFolder, stopFolder);
+
         CommandLine parsedArgs = Ingester.setupCommandLine(commandLine.split(" +"));
 
-        assertEquals(Ingester.parseHotfolder(parsedArgs), $HOTFOLDER);
-        assertEquals(Ingester.parseLukefolder(parsedArgs), $LUKEFOLDER);
-        assertEquals(Ingester.parseColdfolder(parsedArgs), $COLDFOLDER);
-        assertEquals(Ingester.parseStopfolder(parsedArgs), $STOPFOLDER);
+        assertEquals(Ingester.parseHotfolder(parsedArgs), hotFolder);
+        assertEquals(Ingester.parseLukefolder(parsedArgs), lukeFolder);
+        assertEquals(Ingester.parseColdfolder(parsedArgs), coldFolder);
+        assertEquals(Ingester.parseStopfolder(parsedArgs), stopFolder);
 
         assertEquals(Ingester.parseWSDL(parsedArgs), new URL("http://wsdl.net"));
         assertEquals(Ingester.parseUsername(parsedArgs),"$USERNAME");
