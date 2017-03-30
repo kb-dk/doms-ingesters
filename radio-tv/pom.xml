@@ -51,6 +51,8 @@
             <groupId>org.xmlunit</groupId>
             <artifactId>xmlunit-core</artifactId>
             <version>2.2.1</version>
+            <scope>compile</scope>
+            <!--This is NOT a test dependency, we use it to compare XML files so we do not ingest "unchanged" duplicates-->
         </dependency>
     </dependencies>
 

@@ -223,11 +223,12 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
                         .build();
 
                 if (!d.hasDifferences()) {
-                    log.info(d.toString());
                     log.info("Found exact duplicate of file={} in processedFolder={}, so deleting file={}",
                              file, processedFilesFolder, file);
                     Files.deleteIfExists(file);
                     return true;
+                } else {
+                    log.debug("File={} has differences from file {} in processedFolder={}, so continuing ingest: differences='{}' ",file,file,processedFilesFolder,d.toString());
                 }
             }
         } catch (IOException e) {

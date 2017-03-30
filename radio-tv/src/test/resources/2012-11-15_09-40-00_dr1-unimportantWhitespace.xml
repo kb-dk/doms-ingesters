@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<program xmlns:ns2="http://www.pbcore.org/PBCore/PBCoreNamespace.html" xmlns:ns3="http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#" xmlns:ns4="http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#" xmlns:ns5="http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#">
+    <pbcore>
+        <ns2:PBCoreDescriptionDocument>
+            <ns2:pbcoreIdentifier>
+                <ns2:identifier>5446075RitzauProgram</ns2:identifier>
+                <ns2:identifierSource>id</ns2:identifierSource>
+            </ns2:pbcoreIdentifier>
+            <ns2:pbcoreIdentifier>
+                <ns2:identifier>00011211150939541211151003515000281013002000400010001800221122111000400020030000Olivers tvist                                               Olivers tvist                                               Oliver's Twist                                                 33FREM      010000000000000000000Stereo    4:3       130000000000000210153200          000001TvmeterProgram</ns2:identifier>
+                <ns2:identifierSource>tvmeter</ns2:identifierSource>
+            </ns2:pbcoreIdentifier>
+            <ns2:pbcoreTitle>
+                <ns2:title>Olivers tvist</ns2:title>
+                <ns2:titleType>titel</ns2:titleType>
+            </ns2:pbcoreTitle>
+            <ns2:pbcoreTitle>
+                <ns2:title>Oliver's Twist</ns2:title>
+                <ns2:titleType>originaltitel</ns2:titleType>
+            </ns2:pbcoreTitle>
+            <ns2:pbcoreDescription>
+                <ns2:description>Engelsk madserie fra 2001.</ns2:description>
+                <ns2:descriptionType>kortomtale</ns2:descriptionType>
+            </ns2:pbcoreDescription>
+            <ns2:pbcoreDescription>
+                <ns2:description>Jamie Oliver gør det, han holder allermest af, nemlig at invitere gæster og lave mad til dem. Han møder alle mulige forskellige mennesker og inviterer dem hjem til en middag, de aldrig vil glemme.</ns2:description>
+                <ns2:descriptionType>langomtale1</ns2:descriptionType>
+            </ns2:pbcoreDescription>
+            <ns2:pbcoreGenre>
+                <ns2:genre>hovedgenre: Sundhed &amp; Mad</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcoreGenre>
+                <ns2:genre>undergenre: Mad</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcoreGenre>
+                <ns2:genre>indhold_emne: Mad og drikke</ns2:genre>
+            </ns2:pbcoreGenre>
+            <ns2:pbcorePublisher>
+                <ns2:publisher>dr1</ns2:publisher>
+                <ns2:publisherRole>channel_name</ns2:publisherRole>
+            </ns2:pbcorePublisher>
+            <ns2:pbcorePublisher>
+                <ns2:publisher>DR1</ns2:publisher>
+                <ns2:publisherRole>kanalnavn</ns2:publisherRole>
+            </ns2:pbcorePublisher>
+            <ns2:pbcoreInstantiation>
+                <ns2:dateCreated>2002</ns2:dateCreated>
+                <ns2:formatLocation>Statsbiblioteket; Radio/TV-samlingen</ns2:formatLocation>
+                <ns2:formatStandard>ikke hd</ns2:formatStandard>
+                <ns2:formatDuration>1437000</ns2:formatDuration>
+                <ns2:formatColors>farve</ns2:formatColors>
+                <ns2:formatChannelConfiguration>ikke surround</ns2:formatChannelConfiguration>
+                <ns2:pbcoreDateAvailable>
+                    <ns2:dateAvailableStart>2012-11-15T09:40:00+0100</ns2:dateAvailableStart>
+                    <ns2:dateAvailableEnd>2012-11-15T10:05:00+0100</ns2:dateAvailableEnd>
+                </ns2:pbcoreDateAvailable>
+                <ns2:pbcoreFormatID>
+                    <ns2:formatIdentifier>5446075RitzauProgram</ns2:formatIdentifier>
+                    <ns2:formatIdentifierSource>id</ns2:formatIdentifierSource>
+                </ns2:pbcoreFormatID>
+            </ns2:pbcoreInstantiation>
+            <ns2:pbcoreExtension>
+                <ns2:extension>antalepisoder:52</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>episodenr:33</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>premiere:ikke premiere</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>genudsendelse:ikke genudsendelse</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>hovedgenre_id:30</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>kanalid:3</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>live:ikke live</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>produktionsland_id:0</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>program_id:29121477</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>program_ophold:ikke program ophold</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>undergenre_id:640</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>afsnit_id:0</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>saeson_id:0</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>serie_id:0</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>tekstet:ikke tekstet</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>th:ikke tekstet for hørehæmmede</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>ttv:ikke tekst-tv</ns2:extension>
+            </ns2:pbcoreExtension>
+            <ns2:pbcoreExtension>
+                <ns2:extension>showviewcode:6251825</ns2:extension>
+            </ns2:pbcoreExtension>
+        </ns2:PBCoreDescriptionDocument>
+    </pbcore>
+    <originals>
+        <ns3:ritzau_original>RitzauProgram{Id=5446075, channel_name='dr1', kanalId=3, starttid=2012-11-15 09:40:00.0, sluttid=2012-11-15 10:05:00.0, annotation='null', originaltitel='Oliver's Twist', kanalnavn='DR1', titel='Olivers tvist', hovedgenre='Sundhed &amp; Mad', undergenre='Mad', kortomtale='Engelsk madserie fra 2001.', langomtale1='Jamie Oliver gør det, han holder allermest af, nemlig at invitere gæster og lave mad til dem. Han møder alle mulige forskellige mennesker og inviterer dem hjem til en middag, de aldrig vil glemme.', langomtale2='null', urllink='null', lydlink='null', episodetitel='null', instruktion='null', forfatter='null', produktionsland='null', medvirkende='null', programlaengde=0, produktionsaar=2002, episodenr=33, antalepisoder=52, showviewcode=6251825, surround=false, genudsendelse=false, ttv=false, sh=false, tekstet=false, sekstenni=false, bredformat=false, premiere=false, th=false, program_id=29121477, hovedgenre_id=30, undergenre_id=640, program_ophold=false, produktionsland_id=0, live=false, hd=false, afsnit_id=0, saeson_id=0, serie_id=0}</ns3:ritzau_original>
+        <ns4:tvmeterProgram>
+            <ns4:originalEntry>00011211150939541211151003515000281013002000400010001800221122111000400020030000Olivers tvist                                               Olivers tvist                                               Olivers Twist                                                 33FREM      010000000000000000000Stereo    4:3       130000000000000210153200          000001</ns4:originalEntry>
+            <ns4:sourceFileName>de121115.std</ns4:sourceFileName>
+            <ns4:logFormat>FORMAT_2</ns4:logFormat>
+            <ns4:stationID>DR1</ns4:stationID>
+            <ns4:startDate>2012-11-15 09:39:54.0</ns4:startDate>
+            <ns4:endDate>2012-11-15 10:03:51.0</ns4:endDate>
+            <ns4:parsedProgramClassification>
+                <ns4:targetGroup>Til  alle (Incl: uden målgruppeangivelse)</ns4:targetGroup>
+                <ns4:contentsItem>Mad og drikke</ns4:contentsItem>
+                <ns4:form>Dokumentar</ns4:form>
+                <ns4:frequency>Serie</ns4:frequency>
+                <ns4:origin>Fremmedproduktion</ns4:origin>
+                <ns4:sendstatus>Førstegangsudsendelse</ns4:sendstatus>
+                <ns4:productionDepartment>TV-INTERNATIONAL</ns4:productionDepartment>
+                <ns4:itemCountry>Storbritannien</ns4:itemCountry>
+                <ns4:productionCountry>Storbritannien</ns4:productionCountry>
+                <ns4:intent>.. er at informere</ns4:intent>
+                <ns4:productionTimeAndPlace>Redigeret udsendelse udefra/ENG/EFP</ns4:productionTimeAndPlace>
+                <ns4:targetGroupProductionYear>2003</ns4:targetGroupProductionYear>
+                <ns4:targetGroupProposedPlacement>0000</ns4:targetGroupProposedPlacement>
+            </ns4:parsedProgramClassification>
+            <ns4:mainTitle>Olivers tvist</ns4:mainTitle>
+            <ns4:subTitle>Olivers tvist</ns4:subTitle>
+            <ns4:originalTitle>Olivers Twist</ns4:originalTitle>
+            <ns4:episodeNumber>33</ns4:episodeNumber>
+            <ns4:broadcastType>FREM</ns4:broadcastType>
+            <ns4:overflowFlag>0</ns4:overflowFlag>
+            <ns4:regionFlags>10000000000000000000</ns4:regionFlags>
+            <ns4:expectedGRP>Stereo</ns4:expectedGRP>
+            <ns4:additionDeductionOnPrice>4:3</ns4:additionDeductionOnPrice>
+            <ns4:commonCode>3. Oplysning og Kultur.</ns4:commonCode>
+            <ns4:price>0000000000</ns4:price>
+            <ns4:internalIDCode>0210153200</ns4:internalIDCode>
+            <ns4:bid>00000</ns4:bid>
+            <ns4:emmisionsLevel>1</ns4:emmisionsLevel>
+        </ns4:tvmeterProgram>
+    </originals>
+    <ns5:programBroadcast>
+        <ns5:timeStart>2012-11-15T09:39:54.000+01:00</ns5:timeStart>
+        <ns5:timeStop>2012-11-15T10:03:51.000+01:00</ns5:timeStop>
+        <ns5:channelId>dr1</ns5:channelId>
+    </ns5:programBroadcast>
+    <fileUrls>
+        <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352966400-2012-11-15-09.00.00_1352970000-2012-11-15-10.00.00_dvb1-2.ts</fileUrl>
+        <fileUrl>http://bitfinder.statsbiblioteket.dk/bart/mux1.1352970000-2012-11-15-10.00.00_1352973600-2012-11-15-11.00.00_dvb1-1.ts</fileUrl>
+    </fileUrls>
+</program>
