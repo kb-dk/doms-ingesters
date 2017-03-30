@@ -1,5 +1,12 @@
 Change log for radio/tv program ingester
 
+1.7
+Do not bundle mockito and dependencies in production (only used in tests...)
+Replaced crc32 equals with xml equals for previously handled files
+Better logging of warn when finding multiple hits on old identifiers
+Timing of file handling logged without counters, used Timed
+Log handling on ingest and report filename when deleted
+
 1.6.1
 Fixed bug that made the ingester not remove old relations when overwrite=true
 
