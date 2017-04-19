@@ -7,7 +7,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.Assert.*;
 
@@ -36,7 +35,8 @@ public class XmlComparisonTest {
             FileUtils.copyInputStreamToFile(resourceAsStream, file.toFile());
         }
 
-        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false);
+        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
+                                                                           10);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -60,7 +60,8 @@ public class XmlComparisonTest {
             FileUtils.copyInputStreamToFile(resourceAsStream, file.toFile());
         }
 
-        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false);
+        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
+                                                                           10);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -85,7 +86,8 @@ public class XmlComparisonTest {
             FileUtils.copyInputStreamToFile(resourceAsStream, file.toFile());
         }
 
-        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false);
+        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
+                                                                           10);
         assertFalse(client.isAlreadyHandled(file));
     }
 
@@ -111,7 +113,8 @@ public class XmlComparisonTest {
             FileUtils.copyInputStreamToFile(resourceAsStream, file.toFile());
         }
 
-        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false);
+        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
+                                                                           10);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -136,7 +139,8 @@ public class XmlComparisonTest {
             FileUtils.copyInputStreamToFile(resourceAsStream, file.toFile());
         }
 
-        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false);
+        RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
+                                                                           10);
         assertFalse(client.isAlreadyHandled(file));
     }
 

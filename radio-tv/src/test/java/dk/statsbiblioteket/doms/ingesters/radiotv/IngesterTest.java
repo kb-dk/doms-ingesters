@@ -31,7 +31,7 @@ public class IngesterTest {
         stopFolder.toFile().deleteOnExit();
 
         String commandLine = MessageFormat.format(
-                "-hotfolder={0} -lukefolder={1} -coldfolder={2} -stopfolder={3} -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200",
+                "-hotfolder={0} -lukefolder={1} -coldfolder={2} -stopfolder={3} -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200 -maxFails=8",
                 hotFolder, lukeFolder, coldFolder, stopFolder);
 
         CommandLine parsedArgs = Ingester.setupCommandLine(commandLine.split(" +"));
@@ -50,6 +50,7 @@ public class IngesterTest {
 
         assertEquals(Ingester.parseNumThreads(parsedArgs),5);
         assertEquals(Ingester.parseThreadWaitTime(parsedArgs),1200);
+        assertEquals(Ingester.parseMaxFails(parsedArgs),8);
     }
 
     @Test
@@ -86,6 +87,7 @@ public class IngesterTest {
 
         assertEquals(Ingester.parseNumThreads(parsedArgs),4);
         assertEquals(Ingester.parseThreadWaitTime(parsedArgs),1000);
+        assertEquals(Ingester.parseMaxFails(parsedArgs),10);
     }
 
 }

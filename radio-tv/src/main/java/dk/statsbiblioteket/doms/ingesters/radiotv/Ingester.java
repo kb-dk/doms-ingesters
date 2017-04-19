@@ -99,10 +99,19 @@ public class Ingester {
 
         int numThreads = parseNumThreads(cmd);
 
+        int maxFails = parseMaxFails(cmd);
+
         startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
                      domsAPIWSLocation,
-                     username, password, overwrite, numThreads, threadWaitTime);
+                     username, password, overwrite, numThreads, threadWaitTime, maxFails);
     }
+
+    static int parseMaxFails(CommandLine cmd) {
+        int maxFails = Integer.parseInt(cmd.getOptionValue("maxFails", "10"));
+        log.info("maxFails = {}", maxFails);
+        return maxFails;
+    }
+
 
     static long parseThreadWaitTime(CommandLine cmd) {
         long threadWaitTime = Long.parseLong(cmd.getOptionValue("threadwaittime", "1000"));
@@ -207,6 +216,7 @@ public class Ingester {
 
         options.addOption(Option.builder().longOpt("numthreads").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("threadwaittime").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("maxFails").hasArg().valueSeparator().build());
 
 
         CommandLineParser parser = new DefaultParser();
@@ -223,7 +233,8 @@ public class Ingester {
                                      String password,
                                      boolean overwrite,
                                      int numthreads,
-                                     long threadWaitTime)
+                                     long threadWaitTime,
+                                     int maxFails)
             throws SAXException, IOException, InterruptedException {
 
 
@@ -234,7 +245,7 @@ public class Ingester {
         domsClient.setCredentials(domsAPIWSLocation, username, password);
 
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
-                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite);
+                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite, maxFails);
 
         final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient,
                                                               numthreads, stopFolder);

@@ -19,7 +19,7 @@ source $BASEDIR/config/ingest_config.sh
 #  characters")
 #
 
-while getopts c:l:h:w:u:p:s:o: opt
+while getopts c:l:h:w:u:p:s:o:n:t:f: opt
 do
     case "$opt" in
       c)  COLDFOLDER="$OPTARG";;
@@ -32,10 +32,11 @@ do
       o)  OVERWRITE="$OPTARG";;
       n)  THREADS="$OPTARG";;
       t)  WAIT="$OPTARG";;
+      f)  MAXFAILS="$OPTARG";;
       \?)		# unknown flag
       	  echo >&2 \
 	  "usage: $0 [-c coldfolder] [-l lukefolder] [-h hotfolder] [-w wsdl] \
-	  [-u username] [-p password] [-s preingestschema] [-o true|false] [-n numThreads] [-t threadPollInterval]"
+	  [-u username] [-p password] [-s preingestschema] [-o true|false] [-n numThreads] [-t threadPollInterval] [-f maxFails]"
 	  exit 1;;
     esac
 done
@@ -44,4 +45,4 @@ shift `expr $OPTIND - 1`
 java -cp .:$BASEDIR/config/*:$BASEDIR/lib/* dk.statsbiblioteket.doms.ingesters.radiotv.Ingester \
    -hotfolder=$HOTFOLDER -lukefolder=$LUKEFOLDER -coldfolder=$COLDFOLDER \
    -stopfolder=$STOPFOLDER -wsdl=$WSDL -username=$USERNAME -password=$PASSWORD \
-   -preingestschema=$SCHEMA -overwrite=$OVERWRITE -numthreads=$THREADS -threadwaittime=$WAIT
+   -preingestschema=$SCHEMA -overwrite=$OVERWRITE -numthreads=$THREADS -threadwaittime=$WAIT -maxFails=$MAXFAILS

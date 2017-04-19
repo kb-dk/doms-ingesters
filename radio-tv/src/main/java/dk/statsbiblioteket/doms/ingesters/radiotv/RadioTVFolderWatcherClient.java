@@ -78,6 +78,10 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      */
     private final DomsWSClient domsClient;
     /**
+     * Max number of exceptions before we shut down the watcher
+     */
+    private final int maxFails;
+    /**
      * How many times we failed during ingest.
      */
     private int exceptionCount = 0;
@@ -85,16 +89,17 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
     /**
      * Initialise the processor.
-     *
-     * @param domsClient           Client used for contacting DOMS.
+     *  @param domsClient           Client used for contacting DOMS.
      * @param failedFilesFolder    Folder to move failed files to.
      * @param processedFilesFolder Folder to move processed files to.
      * @param preIngestFileSchema  Schema for Raio/TV metadata to process.
      * @param overwrite            if true, will overwrite existing programs. If false, will throw OverwriteExceptions instead
+     * @param maxFails
      */
     public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
-                                      Schema preIngestFileSchema, boolean overwrite) {
+                                      Schema preIngestFileSchema, boolean overwrite, int maxFails) {
         this.domsClient = domsClient;
+        this.maxFails = maxFails;
         log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, overwrite={}",
                   getClass().getName(), failedFilesFolder, processedFilesFolder, overwrite);
         this.failedFilesFolder = failedFilesFolder;
@@ -401,7 +406,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      */
     private synchronized void incrementFailedTries() {
         exceptionCount += 1;
-        if (exceptionCount >= Common.MAX_FAIL_COUNT) {
+        if (maxFails > 0 && exceptionCount >= maxFails) {
             throw new RuntimeException("Too many errors (" + exceptionCount + ") in ingest. Exiting.");
         }
     }

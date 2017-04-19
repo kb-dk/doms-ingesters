@@ -1,5 +1,10 @@
 Change log for radio/tv program ingester
 
+1.8
+added command line param -f maxFails to control how many failures the ingester tolerates
+before shutting down. This was hardcoded to 10 before, which is now the default value.
+If set to 0 or less, the ingester will not stop from failures.
+
 1.7
 Do not bundle mockito and dependencies in production (only used in tests...)
 Replaced crc32 equals with xml equals for previously handled files
