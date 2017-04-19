@@ -36,7 +36,7 @@ public class XmlComparisonTest {
         }
 
         RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
-                                                                           10);
+                                                                           10, false);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -61,7 +61,7 @@ public class XmlComparisonTest {
         }
 
         RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
-                                                                           10);
+                                                                           10, false);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -87,7 +87,7 @@ public class XmlComparisonTest {
         }
 
         RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
-                                                                           10);
+                                                                           10, false);
         assertFalse(client.isAlreadyHandled(file));
     }
 
@@ -114,7 +114,7 @@ public class XmlComparisonTest {
         }
 
         RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
-                                                                           10);
+                                                                           10, false);
         assertTrue(client.isAlreadyHandled(file));
     }
 
@@ -140,7 +140,7 @@ public class XmlComparisonTest {
         }
 
         RadioTVFolderWatcherClient client = new RadioTVFolderWatcherClient(null, null, processedFilesFolder, null, false,
-                                                                           10);
+                                                                           10, false);
         assertFalse(client.isAlreadyHandled(file));
     }
 

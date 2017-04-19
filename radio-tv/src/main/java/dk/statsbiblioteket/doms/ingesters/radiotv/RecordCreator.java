@@ -17,10 +17,17 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.builder.Input;
+import org.xmlunit.diff.Comparison;
+import org.xmlunit.diff.ComparisonResult;
+import org.xmlunit.diff.ComparisonType;
+import org.xmlunit.diff.Diff;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Source;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -47,13 +54,15 @@ public class RecordCreator {
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final DomsWSClient domsClient;
     private final boolean overwrite;
+    private final boolean check;
     private final DocumentBuilder documentBuilder;
     private final XPathSelector xPathSelector;
 
 
-    public RecordCreator(DomsWSClient domsClient, boolean overwrite) {
+    public RecordCreator(DomsWSClient domsClient, boolean overwrite, boolean check) {
         this.domsClient = domsClient;
         this.overwrite = overwrite;
+        this.check = check;
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         try {
             documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -96,9 +105,15 @@ public class RecordCreator {
 
         String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
         if (programObjectPID != null){
-            if (overwrite){
+            if (overwrite){ //overwrite whatever is there
                 prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
-            } else {
+            } else if (check){ //check if what is there is identical to what we want to write
+                if (checkSemanticIdentity(programObjectPID,radioTVMetadata, filePIDs)){
+                    return programObjectPID;
+                } else {
+                    throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
+                }
+            } else { //fail
                 throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
             }
         } else {
@@ -120,6 +135,67 @@ public class RecordCreator {
         setFileRelations(programObjectPID, filePIDs, filename);
 
         return programObjectPID;
+    }
+
+    private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
+        //Title
+        String expectedTitle = getTitle(radioTVMetadata);
+        String actualTitle = domsClient.getLabel(programObjectPID);
+        boolean titleIdentical = expectedTitle.equals(actualTitle);
+
+        //PBCore
+        Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
+        Document pbCoreActual = domsClient.getDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID);
+        boolean pbcoreIdentical = compareDocuments(pbCoreExpected, pbCoreActual, programObjectPID);
+
+        //Ritzau
+        Document ritzauExpected = createDocumentFromNode(radioTVMetadata,"//program/originals/ritzau:ritzau_original");
+        Document ritzauActual = domsClient.getDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID);
+        boolean ritzauIdentical = compareDocuments(ritzauExpected, ritzauActual, programObjectPID);
+
+        //Gallup
+        Document gallupExpected = createDocumentFromNode(radioTVMetadata, "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
+        Document gallupActual = domsClient.getDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID);
+        boolean gallupIdentical = compareDocuments(gallupExpected, gallupActual, programObjectPID);
+
+        //Broadcast
+        Document broadcastExpected = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
+        Document broadcastActual = domsClient.getDataStream(programObjectPID,PROGRAM_BROADCAST_DS_ID);
+        boolean broadcastIdentical = compareDocuments(broadcastExpected, broadcastActual, programObjectPID);
+
+        //Relations
+        boolean relationsIdentical = checkFileRelations(programObjectPID,filePIDs);
+
+        return titleIdentical && pbcoreIdentical && ritzauIdentical && gallupIdentical && broadcastIdentical && relationsIdentical;
+
+    }
+
+
+    private boolean compareDocuments(Document expected, Document actual, String pid){
+        Source control = Input.fromDocument(expected).build();
+        Source test = Input.fromDocument(actual).build();
+
+        Diff d = DiffBuilder
+                .compare(control)
+                .withTest(test)
+                .checkForIdentical()
+                .ignoreComments()
+                .ignoreWhitespace()
+                .withDifferenceEvaluator(
+                        (Comparison comparison, ComparisonResult outcome) -> {
+                            if (comparison.getType().equals(ComparisonType.NAMESPACE_PREFIX)) {
+                                return ComparisonResult.EQUAL;
+                            } else {
+                                return outcome;
+                            }
+                        })
+                .build();
+        if (!d.hasDifferences()) {
+            return true;
+        } else {
+            log.debug("Differences from object {}.,differences='{}' ", pid, d.toString());
+            return false;
+        }
     }
 
 
@@ -154,6 +230,37 @@ public class RecordCreator {
             }
         }
     }
+
+
+    private boolean checkFileRelations(String programObjectPID, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
+        boolean identical = true;
+
+        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
+        HashSet<String> existingRels = new HashSet<String>();
+        for (Relation relation : relations) {
+            if (relation instanceof ObjectRelation) {
+                LiteralRelation relationWrapper = wrapAsLiteral((ObjectRelation) relation);
+                String predicate = relationWrapper.getPredicate(); //This should be HAS_FILE_RELATION
+                String objectPid = relationWrapper.getObject(); //This should be prograObjectPid
+                String subjectPid = relationWrapper.getSubjectPid();
+                log.debug("Found relation {},'{}',{}", objectPid, predicate, subjectPid);
+                if (!filePIDs.contains(subjectPid)) {
+                    log.debug("Found extranous relation {},'{}',{}", objectPid, predicate, subjectPid);
+                    identical = false;
+                } else {
+                    existingRels.add(subjectPid);
+                }
+            }
+        }
+        for (String filePID : filePIDs) {
+            if (!existingRels.contains(filePID)) {
+                log.debug("Missing relation {},'{}',{}", programObjectPID, HAS_FILE_RELATION, filePID);
+                identical = false;
+            }
+        }
+        return identical;
+    }
+
 
     private LiteralRelation wrapAsLiteral(final ObjectRelation relation) {
         return new LiteralRelation() {
@@ -216,14 +323,19 @@ public class RecordCreator {
     }
 
     private void setTitle(Document radioTVMetadata, String filename, String objectPID) throws ServerOperationFailed {
+        String programTitle = getTitle(radioTVMetadata);
+
+        log.debug("Found program title '{}', setting this as label on {}", programTitle, objectPID);
+        String comment = Util.domsCommenter(filename, "added program title '{0}' object label", programTitle);
+        domsClient.setObjectLabel(objectPID, programTitle, comment);
+    }
+
+    private String getTitle(Document radioTVMetadata) {
         // Get the program title from the PBCore metadata and use that as the
         // object label for this program object.
         Node titleNode = xPathSelector.selectNode(radioTVMetadata,
                                                   "//pbc:pbcoreTitle[pbc:titleType=\"titel\"]/pbc:title");
-        String programTitle = titleNode.getTextContent();
-        log.debug("Found program title '{}', setting this as label on {}", programTitle, objectPID);
-        String comment = Util.domsCommenter(filename, "added program title '{0}' object label", programTitle);
-        domsClient.setObjectLabel(objectPID, programTitle, comment);
+        return titleNode.getTextContent();
     }
 
     private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {

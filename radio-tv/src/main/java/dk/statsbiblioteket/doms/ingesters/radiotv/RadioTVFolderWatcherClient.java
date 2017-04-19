@@ -72,7 +72,16 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * Folder to move processed files to.
      */
     private final Path processedFilesFolder;
+    /**
+     * If true, will overwrite objects in doms
+     */
     private final boolean overwrite;
+    /**
+     * If true will report ingest successful if object in doms is semantically identical to the one we want to ingest.
+     * If neiter overwrite or check is true, the ingester will fail if the object is already in doms.
+     */
+    private boolean check;
+
     /**
      * Client for communicating with DOMS.
      */
@@ -87,6 +96,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     private int exceptionCount = 0;
 
 
+
     /**
      * Initialise the processor.
      *  @param domsClient           Client used for contacting DOMS.
@@ -97,9 +107,10 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param maxFails
      */
     public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
-                                      Schema preIngestFileSchema, boolean overwrite, int maxFails) {
+                                      Schema preIngestFileSchema, boolean overwrite, int maxFails, boolean check) {
         this.domsClient = domsClient;
         this.maxFails = maxFails;
+        this.check = check;
         log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, overwrite={}",
                   getClass().getName(), failedFilesFolder, processedFilesFolder, overwrite);
         this.failedFilesFolder = failedFilesFolder;
@@ -292,7 +303,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         log.debug("Starting to create doms record for file");
 
         log.trace("Creating record creator");
-        RecordCreator recordCreator = new RecordCreator(domsClient, overwrite);
+        RecordCreator recordCreator = new RecordCreator(domsClient, overwrite, check);
 
         log.trace("Ingesting program");
         String programPID = recordCreator.ingestProgram(radioTVMetadata, filename);

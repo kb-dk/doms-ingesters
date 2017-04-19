@@ -1,9 +1,12 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import dk.statsbiblioteket.doms.client.impl.relations.ObjectRelationImpl;
+import dk.statsbiblioteket.util.xml.DOM;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
+import org.mockito.Matchers;
 import org.w3c.dom.Document;
 
 import dk.statsbiblioteket.doms.client.DomsWSClient;
@@ -14,8 +17,10 @@ import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.GALLUP_ORIGINAL_DS_ID;
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.HAS_FILE_RELATION;
@@ -23,11 +28,13 @@ import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_B
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_PBCORE_DS_ID;
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_TEMPLATE_PID;
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.RITZAU_ORIGINAL_DS_ID;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -117,7 +124,7 @@ public class RecordCreatorTest {
 
         /*Invoke method*/
 
-        new RecordCreator(testDomsClient,true).ingestProgram(metadataDocument, filename);
+        new RecordCreator(testDomsClient,true, false).ingestProgram(metadataDocument, filename);
 
 
 
@@ -156,6 +163,118 @@ public class RecordCreatorTest {
         //That's all, folks
         ordered.verifyNoMoreInteractions();
     }
+
+
+
+
+
+
+    @Test
+    public void testIngestExistingProgram() throws Exception {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        documentBuilderFactory.setNamespaceAware(true);
+        String filename = "2012-11-14_23-20-00_dr1.xml";
+
+        /*Setup constants*/
+        String programPid = "uuid:"+UUID.randomUUID().toString();
+
+        URL fileURL1 = new URL(
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts");
+        String filePid1 = "uuid:"+UUID.randomUUID().toString();
+
+        URL fileURL2 = new URL(
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts");
+        String filePid2 = "uuid:"+UUID.randomUUID().toString();
+
+        String ritzauOrigID = "5444487";
+        String tvMeterOrigID = "00011211142323021211150004242000310044002000410010001800310031003000400020090000Damages                                                     Damages                                                     Damages                                                        33FREM      010000000000000000000Stereo    16:9      172000000000000211636800          000001";
+        String tvMeterOldID = tvMeterOrigID + "TvmeterProgram";
+
+        String ritzauOldID = ritzauOrigID + "RitzauProgram";
+
+        String programTitle = "Damages";
+
+        String pbCoreString = getPBCore(ritzauOldID, tvMeterOldID, programTitle);
+
+        Date approxStart = origDateFormat.parse("2012-11-14 23:20:00.0");
+        Date approxEnd = origDateFormat.parse("2012-11-15 00:00:00.0");
+        Date preciseStart = origDateFormat.parse("2012-11-14 23:23:02.0");
+        Date preciseEnd = origDateFormat.parse("2012-11-15 00:04:24.0");
+
+        String ritzauOrig = getRitzau(ritzauOldID, approxStart, approxEnd, programTitle);
+        String tvmeterOrig = getTvMeter(tvMeterOldID, preciseStart, preciseEnd);
+        String programBroadcast = getProgramBroadcast(preciseStart, preciseEnd);
+
+        String fileContents = getExportedObject(pbCoreString, fileURL1.toString(), fileURL2.toString(), ritzauOrig,
+                                                tvmeterOrig, programBroadcast);
+
+        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        Document metadataDocument = documentBuilder.parse(stream(fileContents), filename);
+
+
+        /*Setup mocks*/
+        DomsWSClient testDomsClient = mock(DomsWSClient.class);
+
+        //Return the two filepids when searching for their URLs
+        when(testDomsClient.getFileObjectPID(fileURL1)).thenReturn(filePid1);
+        when(testDomsClient.getFileObjectPID(fileURL2)).thenReturn(filePid2);
+
+
+        //Program found in doms already, so return programpid
+        when(testDomsClient.getPidFromOldIdentifier(ritzauOldID)).thenReturn(Collections.singletonList(programPid));
+        when(testDomsClient.getPidFromOldIdentifier(tvMeterOldID)).thenReturn(Collections.singletonList(programPid));
+
+        when(testDomsClient.getLabel(programPid)).thenReturn(programTitle);
+
+        when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_PBCORE_DS_ID)).thenReturn(DOM.stringToDOM(pbCoreString,true));
+        when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_BROADCAST_DS_ID)).thenReturn(DOM.stringToDOM(programBroadcast,true));
+        when(testDomsClient.getDataStream(programPid,RecordCreator.GALLUP_ORIGINAL_DS_ID)).thenReturn(DOM.stringToDOM(tvmeterOrig,true));
+        when(testDomsClient.getDataStream(programPid,RecordCreator.RITZAU_ORIGINAL_DS_ID)).thenReturn(DOM.stringToDOM(ritzauOrig,true));
+
+        when(testDomsClient.listObjectRelations(programPid,RecordCreator.HAS_FILE_RELATION)).thenReturn(Arrays.asList(new ObjectRelationImpl(programPid,RecordCreator.HAS_FILE_RELATION,filePid1,null),new ObjectRelationImpl(programPid,RecordCreator.HAS_FILE_RELATION,filePid2,null)));
+
+        /*Invoke method*/
+
+        String ingestedPid = new RecordCreator(testDomsClient, false, true).ingestProgram(metadataDocument, filename);
+
+        assertEquals("Wrong pid of ingested program",programPid,ingestedPid);
+
+
+        //First the file objects are found from their URLs
+        verify(testDomsClient).getFileObjectPID(fileURL1);
+        verify(testDomsClient).getFileObjectPID(fileURL2);
+
+        //Then we search for the program pid from the ritzau/gallup identifiers
+        verify(testDomsClient).getPidFromOldIdentifier(Matchers.matches("^("
+                                                                        + Pattern.quote(ritzauOldID)
+                                                                        + "|"
+                                                                        + Pattern.quote(tvMeterOldID)
+                                                                        + ")$"));
+
+
+        //And we het the label
+        verify(testDomsClient).getLabel(programPid);
+
+        //Then we add the four datastreamsw
+        verify(testDomsClient).getDataStream(eq(programPid), eq(PROGRAM_PBCORE_DS_ID));
+        verify(testDomsClient).getDataStream(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID));
+        verify(testDomsClient).getDataStream(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID));
+        verify(testDomsClient).getDataStream(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID));
+
+        //We check (unnessesarily) if our newly made object is already linked to the previously found file pids
+        verify(testDomsClient).listObjectRelations(programPid, HAS_FILE_RELATION);
+
+        //That's all, folks
+        verifyNoMoreInteractions(testDomsClient);
+    }
+
+
+
+
+
+
+
+
 
     private ByteArrayInputStream stream(String pbCoreString) {
         return new ByteArrayInputStream(pbCoreString.getBytes());
@@ -323,7 +442,7 @@ public class RecordCreatorTest {
 
     private String getProgramBroadcast(final Date startDate, final Date endDate) {
         SimpleDateFormat pbcdf = new SimpleDateFormat("yyyy-mm-dd'T'HH:MM:SS.sss+ZZZZ");
-        return "    <ns5:programBroadcast>\n" +
+        return "    <ns5:programBroadcast xmlns:ns5=\"http://doms.statsbiblioteket.dk/types/program_broadcast/0/1/#\">\n" +
                "        <ns5:timeStart>" + pbcdf.format(startDate) + "</ns5:timeStart>\n" +
                "        <ns5:timeStop>" + pbcdf.format(endDate) + "</ns5:timeStop>\n" +
                                       "        <ns5:channelId>dr1</ns5:channelId>\n" +
@@ -331,7 +450,7 @@ public class RecordCreatorTest {
     }
 
     private String getTvMeter(final String id, final Date startDate, final Date endDate) {
-        return "        <ns4:tvmeterProgram>\n" +
+        return "        <ns4:tvmeterProgram xmlns:ns4=\"http://doms.statsbiblioteket.dk/types/gallup_original/0/1/#\">\n" +
                "            <ns4:originalEntry>" + id + "</ns4:originalEntry>\n" +
                                  "            <ns4:sourceFileName>de121114.std</ns4:sourceFileName>\n" +
                                  "            <ns4:logFormat>FORMAT_2</ns4:logFormat>\n" +
@@ -371,7 +490,7 @@ public class RecordCreatorTest {
     }
 
     private String getRitzau(final String id, final Date startDate, final Date endDate, final String title) {
-        return "        <ns3:ritzau_original>RitzauProgram{Id=" + id +
+        return "        <ns3:ritzau_original xmlns:ns3=\"http://doms.statsbiblioteket.dk/types/ritzau_original/0/1/#\">RitzauProgram{Id=" + id +
                ", channel_name='dr1', kanalId=3, starttid=" + origDateFormat.format(startDate) +
                ", sluttid=" + origDateFormat.format(endDate) +
                ", annotation='null', originaltitel='null', kanalnavn='DR1', titel='" + title +

@@ -101,9 +101,17 @@ public class Ingester {
 
         int maxFails = parseMaxFails(cmd);
 
+        boolean check = parseCheck(cmd);
+
         startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
                      domsAPIWSLocation,
-                     username, password, overwrite, numThreads, threadWaitTime, maxFails);
+                     username, password, overwrite, numThreads, threadWaitTime, maxFails, check);
+    }
+
+    private static boolean parseCheck(CommandLine cmd) {
+        boolean check = Boolean.parseBoolean(cmd.getOptionValue("check", Boolean.FALSE.toString()));
+        log.info("check = {}", check);
+        return check;
     }
 
     static int parseMaxFails(CommandLine cmd) {
@@ -213,6 +221,7 @@ public class Ingester {
 
         options.addOption(Option.builder().longOpt("preingestschema").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("overwrite").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("check").hasArg().valueSeparator().build());
 
         options.addOption(Option.builder().longOpt("numthreads").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("threadwaittime").hasArg().valueSeparator().build());
@@ -234,7 +243,8 @@ public class Ingester {
                                      boolean overwrite,
                                      int numthreads,
                                      long threadWaitTime,
-                                     int maxFails)
+                                     int maxFails,
+                                     boolean check)
             throws SAXException, IOException, InterruptedException {
 
 
@@ -245,7 +255,7 @@ public class Ingester {
         domsClient.setCredentials(domsAPIWSLocation, username, password);
 
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
-                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite, maxFails);
+                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite, maxFails, check);
 
         final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient,
                                                               numthreads, stopFolder);
