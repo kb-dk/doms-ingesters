@@ -54,6 +54,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -272,13 +273,26 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             Document radioTVMetadata = fileParser.parse(file.toFile());
 
             log.debug("Creating doms record");
-            createRecord(radioTVMetadata, file, pidsInProgress);
+            Path tempFile = createRecord(radioTVMetadata, file, pidsInProgress);
+
+            moveToProcessed(file, tempFile);
 
             log.debug("Ingest complete");
         } catch (Exception e) {
             // Handle anything unanticipated.
             failed(file, pidsInProgress, e);
         }
+    }
+
+    private void moveToProcessed(Path file, Path tempFile) throws IOException {
+        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", file,
+                  processedFilesFolder);
+        // The ingest was successful, if we make it here...
+        // Move the processed file to the finished files folder.
+        Files.move(file, processedFilesFolder.resolve(file.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+
+        // And it is now safe to delete the "in progress" PID file.
+        Files.deleteIfExists(tempFile);
     }
 
     /**
@@ -295,7 +309,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @throws XMLParseException     On trouble parsing XML.
      * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    private void createRecord(Document radioTVMetadata,
+    private Path createRecord(Document radioTVMetadata,
                               Path addedFile,
                               List<String> pidsInProgress) throws IOException, ServerOperationFailed, XMLParseException, NoObjectFound {
         String filename = addedFile.getFileName().toString();
@@ -319,14 +333,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
                 "Publishing objects " + pidsInProgress + " as part of ingest of program " + addedFile.getFileName(),
                 pidsInProgress.toArray(new String[pidsInProgress.size()]));
 
-        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", addedFile,
-                  processedFilesFolder);
-        // The ingest was successful, if we make it here...
-        // Move the processed file to the finished files folder.
-        Files.move(addedFile, processedFilesFolder.resolve(addedFile.getFileName()));
-
-        // And it is now safe to delete the "in progress" PID file.
-        Files.deleteIfExists(allWrittenPIDs);
+        return allWrittenPIDs;
     }
 
     /**
@@ -367,7 +374,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             log.error("Ingest failed with exception, attempting cleanup for file={} and pids={}", addedFile,
                       pidsToPublish, exception);
 
-            Files.move(addedFile, failedFilesFolder.resolve(addedFile.getFileName()));
+            Files.move(addedFile, failedFilesFolder.resolve(addedFile.getFileName()), StandardCopyOption.REPLACE_EXISTING);
             log.trace("Moved file {} to failedFilesFolder={}", addedFile, failedFilesFolder);
 
             // Rename the in-progress PIDs to failed PIDs.
@@ -398,7 +405,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         Path activePIDsFile = inProcessPids(failedMetadataFile);
         Path failedPIDsFile = failedPids(failedMetadataFile);
         if (Files.exists(activePIDsFile)) {
-            Files.move(activePIDsFile, failedPIDsFile);
+            Files.move(activePIDsFile, failedPIDsFile, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
