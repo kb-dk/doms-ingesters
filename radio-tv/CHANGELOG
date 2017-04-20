@@ -1,9 +1,16 @@
 Change log for radio/tv program ingester
 
 1.8
-added command line param -f maxFails to control how many failures the ingester tolerates
+* added command line param -f maxFails to control how many failures the ingester tolerates
 before shutting down. This was hardcoded to 10 before, which is now the default value.
 If set to 0 or less, the ingester will not stop from failures.
+* added the check flag (-v). When this flag is set, and the ingester attempts to ingest a record that already exists in DOMS, it will check if the doms record is semantically identical to the attempted ingest. If this is the case, the ingest will be reported as succesful, even through nothing new have been written.
+Meant to be a overwrite-lite flag in that it allows you to reingest records that might or
+might not be in doms without the danger of overwrite.
+* The ingester no longer fails when moving a file onto an existing file.
+* When a file is succesfully ingested, if the same filename exists in failedFolder and is
+semantically identical, the file in failedFolder is deleted. This is to prevent a file from being marked as both sucessful ingested and failed.
+
 
 1.7
 Do not bundle mockito and dependencies in production (only used in tests...)
