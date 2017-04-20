@@ -112,8 +112,8 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         this.domsClient = domsClient;
         this.maxFails = maxFails;
         this.check = check;
-        log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, overwrite={}",
-                  getClass().getName(), failedFilesFolder, processedFilesFolder, overwrite);
+        log.debug("Creating {} with params domsClient, failedFilesFolder={}, processedFilesFolder={}, overwrite={}, maxFails={}, check={}",
+                  getClass().getName(), failedFilesFolder, processedFilesFolder, overwrite, maxFails, check);
         this.failedFilesFolder = failedFilesFolder;
         this.processedFilesFolder = processedFilesFolder;
         this.overwrite = overwrite;
@@ -293,6 +293,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
 
         // And it is now safe to delete the "in progress" PID file.
         Files.deleteIfExists(tempFile);
+
     }
 
     /**

@@ -105,16 +105,20 @@ public class RecordCreator {
 
         String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
         if (programObjectPID != null){
-            if (overwrite){ //overwrite whatever is there
-                prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
-            } else if (check){ //check if what is there is identical to what we want to write
-                if (checkSemanticIdentity(programObjectPID,radioTVMetadata, filePIDs)){
+            if (check) {
+                log.debug("Preparing to check semantic equivalence of pid={}",programObjectPID);
+                if (checkSemanticIdentity(programObjectPID, radioTVMetadata, filePIDs)) {
+                    //check if what is there is identical to what we want to write
+                    log.debug("Object pid={} is semantically identical, so no updates is performed.", programObjectPID);
                     return programObjectPID;
                 } else {
-                    throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
+                    log.debug("Object pid={} is not semantically identical.");
                 }
+            }
+            if (overwrite){ //overwrite whatever is there
+                prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
             } else { //fail
-                throw new OverwriteException("Attempted to overwrite pid='"+programObjectPID+"");
+                throw new OverwriteException("Found existing object pid='"+programObjectPID+"' and overwrite flag is false");
             }
         } else {
             log.debug("Old identifiers {} did not find a program object in doms", oldIdentifiers);
