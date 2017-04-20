@@ -38,11 +38,7 @@ import org.w3c.dom.Document;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
-import org.xmlunit.builder.DiffBuilder;
 import org.xmlunit.builder.Input;
-import org.xmlunit.diff.Comparison;
-import org.xmlunit.diff.ComparisonResult;
-import org.xmlunit.diff.ComparisonType;
 import org.xmlunit.diff.Diff;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -223,21 +219,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
                 Source control = Input.fromFile(file.toFile()).build();
                 Source test = Input.fromFile(possibleCopy.toFile()).build();
 
-                Diff d = DiffBuilder
-                        .compare(control)
-                        .withTest(test)
-                        .checkForIdentical()
-                        .ignoreComments()
-                        .ignoreWhitespace()
-                        .withDifferenceEvaluator(
-                                (Comparison comparison, ComparisonResult outcome) -> {
-                                    if (comparison.getType().equals(ComparisonType.NAMESPACE_PREFIX)) {
-                                        return ComparisonResult.EQUAL;
-                                    } else {
-                                        return outcome;
-                                    }
-                                })
-                        .build();
+                Diff d = Util.xmlDiff(control, test);
 
                 if (!d.hasDifferences()) {
                     log.info("Found exact duplicate of file={} in processedFolder={}, so deleting file={}",
@@ -284,15 +266,38 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         }
     }
 
-    private void moveToProcessed(Path file, Path tempFile) throws IOException {
-        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", file,
+    private void moveToProcessed(Path ingested_file, Path tempFile) throws IOException {
+        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", ingested_file,
                   processedFilesFolder);
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
-        Files.move(file, processedFilesFolder.resolve(file.getFileName()), StandardCopyOption.REPLACE_EXISTING);
+        Files.move(ingested_file, processedFilesFolder.resolve(ingested_file.getFileName()), StandardCopyOption.REPLACE_EXISTING);
 
         // And it is now safe to delete the "in progress" PID file.
         Files.deleteIfExists(tempFile);
+
+        try {
+            // If the file also exists in failedFilesFolder, and that file is identical to the one we just ingested, delete it
+            Path failedFile = failedFilesFolder.resolve(ingested_file.getFileName());
+            if (Files.exists(failedFile)){
+                log.info("File {} also found in failedFolder",ingested_file,failedFilesFolder);
+                Source control = Input.fromFile(ingested_file.toFile()).build();
+                Source test = Input.fromFile(failedFile.toFile()).build();
+
+                Diff d = Util.xmlDiff(control, test);
+
+                if (!d.hasDifferences()) {
+                    log.info("Successfully ingested file {} is identical to file {} in failedFolder={}, so deleting {}",
+                             ingested_file, failedFilesFolder, failedFile);
+                    Files.deleteIfExists(failedFile);
+                } else {
+                    log.info("Successfully ingested file {} is different from file {} in failedFolder={}. Just Saying: differences='{}' ",
+                              ingested_file,failedFile,failedFilesFolder,d.toString());
+                }
+            }
+        } catch (IOException e) {
+            log.warn("Failed to check for semantic equivalent file in {} after successful ingest of {}",failedFilesFolder,ingested_file,e);
+        }
 
     }
 

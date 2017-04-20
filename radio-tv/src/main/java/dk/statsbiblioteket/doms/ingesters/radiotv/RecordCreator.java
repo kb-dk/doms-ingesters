@@ -179,21 +179,8 @@ public class RecordCreator {
         Source control = Input.fromDocument(expected).build();
         Source test = Input.fromDocument(actual).build();
 
-        Diff d = DiffBuilder
-                .compare(control)
-                .withTest(test)
-                .checkForIdentical()
-                .ignoreComments()
-                .ignoreWhitespace()
-                .withDifferenceEvaluator(
-                        (Comparison comparison, ComparisonResult outcome) -> {
-                            if (comparison.getType().equals(ComparisonType.NAMESPACE_PREFIX)) {
-                                return ComparisonResult.EQUAL;
-                            } else {
-                                return outcome;
-                            }
-                        })
-                .build();
+        Diff d = Util.xmlDiff(control,test);
+
         if (!d.hasDifferences()) {
             return true;
         } else {

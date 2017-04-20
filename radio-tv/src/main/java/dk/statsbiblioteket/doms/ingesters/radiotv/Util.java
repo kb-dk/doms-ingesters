@@ -1,5 +1,12 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import org.xmlunit.builder.DiffBuilder;
+import org.xmlunit.diff.Comparison;
+import org.xmlunit.diff.ComparisonResult;
+import org.xmlunit.diff.ComparisonType;
+import org.xmlunit.diff.Diff;
+
+import javax.xml.transform.Source;
 import java.text.MessageFormat;
 
 /**
@@ -22,5 +29,29 @@ public class Util {
         MessageFormat form = new MessageFormat(escapedAction);
         String formattedAction = form.format(args);
         return "RadioTV Digitv Ingester (" + version + ") " + formattedAction + " as part of ingest of " + filename;
+    }
+
+    /**
+     * Diff two xml files. It allows for differences in namespace prefixes, comments and whitespaces
+     * @param control the control document
+     * @param test the test document
+     * @return the difference between the documents
+     */
+    public static Diff xmlDiff(Source control, Source test) {
+        return DiffBuilder
+                .compare(control)
+                .withTest(test)
+                .checkForIdentical()
+                .ignoreComments()
+                .ignoreWhitespace()
+                .withDifferenceEvaluator(
+                        (Comparison comparison, ComparisonResult outcome) -> {
+                            if (comparison.getType().equals(ComparisonType.NAMESPACE_PREFIX)) {
+                                return ComparisonResult.EQUAL;
+                            } else {
+                                return outcome;
+                            }
+                        })
+                .build();
     }
 }
