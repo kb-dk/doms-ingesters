@@ -14,6 +14,12 @@ SCHEMA=$BASEDIR/config/exportedRadioTVProgram.xsd
 # Should the ingester overwrite existing objects?
 OVERWRITE=false
 
+# Should the ingester attempt to do semantic matching against existing objects in DOMS?
+VERIFY=false
+
+# The maximum number of errors tolerated before the ingester stops
+MAXFAILS=10
+
 # This setting is used only by ingest-object-mover, it should match the folder
 # used when exporting objects for ingest
 EXPORTFOLDER=$BASEDIR/files/export
