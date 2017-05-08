@@ -1,6 +1,21 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import dk.statsbiblioteket.doms.client.datastreams.Datastream;
+import dk.statsbiblioteket.doms.client.exceptions.NotFoundException;
+import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
+import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import dk.statsbiblioteket.doms.client.impl.objects.AbstractDigitalObject;
 import dk.statsbiblioteket.doms.client.impl.relations.ObjectRelationImpl;
+import dk.statsbiblioteket.doms.client.links.LinkPattern;
+import dk.statsbiblioteket.doms.client.methods.Method;
+import dk.statsbiblioteket.doms.client.objects.CollectionObject;
+import dk.statsbiblioteket.doms.client.objects.ContentModelObject;
+import dk.statsbiblioteket.doms.client.objects.DigitalObject;
+import dk.statsbiblioteket.doms.client.objects.DigitalObjectFactory;
+import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
+import dk.statsbiblioteket.doms.client.relations.ObjectRelation;
+import dk.statsbiblioteket.doms.client.relations.Relation;
+import dk.statsbiblioteket.doms.client.utils.Constants;
 import dk.statsbiblioteket.util.xml.DOM;
 import org.junit.After;
 import org.junit.Before;
@@ -19,6 +34,8 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -224,7 +241,14 @@ public class RecordCreatorTest {
         when(testDomsClient.getPidFromOldIdentifier(ritzauOldID)).thenReturn(Collections.singletonList(programPid));
         when(testDomsClient.getPidFromOldIdentifier(tvMeterOldID)).thenReturn(Collections.singletonList(programPid));
 
-        when(testDomsClient.getLabel(programPid)).thenReturn(programTitle);
+
+        //All this for label
+        DigitalObjectFactory dof = mock(DigitalObjectFactory.class);
+        DigitalObject digo = mock(DigitalObject.class);
+        when(testDomsClient.getDigitalObjectFactory()).thenReturn(dof);
+        when(dof.getDigitalObject(programPid)).thenReturn(digo);
+        when(digo.getTitle()).thenReturn(programTitle);
+
 
         when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_PBCORE_DS_ID)).thenReturn(DOM.stringToDOM(pbCoreString,true));
         when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_BROADCAST_DS_ID)).thenReturn(DOM.stringToDOM(programBroadcast,true));
@@ -251,9 +275,10 @@ public class RecordCreatorTest {
                                                                         + Pattern.quote(tvMeterOldID)
                                                                         + ")$"));
 
-
-        //And we het the label
-        verify(testDomsClient).getLabel(programPid);
+        //And we get the label
+        verify(testDomsClient).getDigitalObjectFactory();
+        verify(dof).getDigitalObject(programPid);
+        verify(digo).getTitle();
 
         //Then we add the four datastreamsw
         verify(testDomsClient).getDataStream(eq(programPid), eq(PROGRAM_PBCORE_DS_ID));

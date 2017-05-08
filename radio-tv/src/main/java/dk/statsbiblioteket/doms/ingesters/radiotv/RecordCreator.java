@@ -1,9 +1,14 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
+import dk.statsbiblioteket.doms.central.InvalidCredentialsException;
+import dk.statsbiblioteket.doms.central.InvalidResourceException;
+import dk.statsbiblioteket.doms.central.MethodFailedException;
 import dk.statsbiblioteket.doms.client.DomsWSClient;
 import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
+import dk.statsbiblioteket.doms.client.exceptions.NotFoundException;
 import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
 import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import dk.statsbiblioteket.doms.client.impl.objects.AbstractDigitalObjectFactory;
 import dk.statsbiblioteket.doms.client.objects.DigitalObject;
 import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
 import dk.statsbiblioteket.doms.client.relations.ObjectRelation;
@@ -35,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 /**
  * Code to create programs.
@@ -144,8 +150,9 @@ public class RecordCreator {
     private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
         //Title
         String expectedTitle = getTitle(radioTVMetadata);
-        String actualTitle = domsClient.getLabel(programObjectPID);
-        boolean titleIdentical = expectedTitle.equals(actualTitle);
+        //TODO This is so inefficient but I DO NOT WANT TO UPGRADE THE ENTIRE SYSTEM TO FIX IT
+        DigitalObject digitalObject = domsClient.getDigitalObjectFactory().getDigitalObject(programObjectPID);
+        boolean titleIdentical = expectedTitle.equals(digitalObject.getTitle());
 
         //PBCore
         Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
@@ -227,6 +234,9 @@ public class RecordCreator {
         boolean identical = true;
 
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
+
+        //        List<Relation> relations = domsClient.getDigitalObjectFactory().getDigitalObject(programObjectPID).getRelations().stream().filter(relation -> relation.getPredicate().equals(HAS_FILE_RELATION)).collect(Collectors.toList());
+
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
             if (relation instanceof ObjectRelation) {
