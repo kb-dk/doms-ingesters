@@ -31,7 +31,7 @@ public class IngesterTest {
         stopFolder.toFile().deleteOnExit();
 
         String commandLine = MessageFormat.format(
-                "-hotfolder={0} -lukefolder={1} -coldfolder={2} -stopfolder={3} -wsdl=http://wsdl.net -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200 -maxFails=8",
+                "-hotfolder={0} -lukefolder={1} -coldfolder={2} -stopfolder={3} -fedora_url=http://fedora.org -doms_pidgen_url=http://pidgen.org -username=$USERNAME -password=$PASSWORD  -preingestschema=$SCHEMA -overwrite=false -numthreads=5 -threadwaittime=1200 -maxFails=8",
                 hotFolder, lukeFolder, coldFolder, stopFolder);
 
         CommandLine parsedArgs = Ingester.setupCommandLine(commandLine.split(" +"));
@@ -41,7 +41,8 @@ public class IngesterTest {
         assertEquals(Ingester.parseColdfolder(parsedArgs), coldFolder);
         assertEquals(Ingester.parseStopfolder(parsedArgs), stopFolder);
 
-        assertEquals(Ingester.parseWSDL(parsedArgs), new URL("http://wsdl.net"));
+        assertEquals(Ingester.parseFedoraUrl(parsedArgs), "http://fedora.org");
+        assertEquals(Ingester.parsePidgenUrl(parsedArgs), "http://pidgen.org");
         assertEquals(Ingester.parseUsername(parsedArgs),"$USERNAME");
         assertEquals(Ingester.parsePassword(parsedArgs),"$PASSWORD");
 
@@ -67,15 +68,16 @@ public class IngesterTest {
         processedFiles.toFile().deleteOnExit();
         stopFolder.toFile().deleteOnExit();
 
-        String commandLine = "-wsdl=http://wsdl.net";
-        CommandLine parsedArgs = Ingester.setupCommandLine(commandLine.split(" +"));
+        CommandLine parsedArgs = Ingester.setupCommandLine(null);
 
         assertEquals(Ingester.parseHotfolder(parsedArgs), radioTVMetaData);
         assertEquals(Ingester.parseLukefolder(parsedArgs), failedFiles);
         assertEquals(Ingester.parseColdfolder(parsedArgs), processedFiles);
         assertEquals(Ingester.parseStopfolder(parsedArgs), stopFolder);
 
-        assertEquals(Ingester.parseWSDL(parsedArgs), new URL("http://wsdl.net"));
+        assertEquals(Ingester.parseFedoraUrl(parsedArgs), "http://localhost:7880/fedora/objects");
+        assertEquals(Ingester.parsePidgenUrl(parsedArgs), "http://localhost:7880/pidgenerator-service");
+
         assertEquals(Ingester.parseUsername(parsedArgs),"fedoraAdmin");
         assertEquals(Ingester.parsePassword(parsedArgs),"fedoraAdminPass");
 

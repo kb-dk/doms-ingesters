@@ -26,12 +26,12 @@
  */
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.central.InvalidCredentialsException;
-import dk.statsbiblioteket.doms.central.MethodFailedException;
-import dk.statsbiblioteket.doms.client.DomsWSClient;
-import dk.statsbiblioteket.doms.client.DomsWSClientImpl;
+import dk.statsbiblioteket.doms.central.connectors.EnhancedFedora;
+import dk.statsbiblioteket.doms.central.connectors.EnhancedFedoraImpl;
+import dk.statsbiblioteket.doms.central.connectors.fedora.pidGenerator.PIDGeneratorException;
 import dk.statsbiblioteket.doms.folderwatching.FolderWatcher;
 import dk.statsbiblioteket.doms.folderwatching.FolderWatcherClient;
+import dk.statsbiblioteket.sbutil.webservices.authentication.Credentials;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
 
 import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBException;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.File;
@@ -60,15 +61,12 @@ public class Ingester {
     /**
      * @param args
      * @throws MalformedURLException
-     * @throws MethodFailedException
-     * @throws InvalidCredentialsException
      */
     public static void main(String[] args) throws Exception {
         mainMethod(args);
     }
 
     private static void mainMethod(String[] args) throws IOException,
-            InvalidCredentialsException, MethodFailedException,
             InterruptedException, SAXException, ParseException {
 
         log.info("Ingester starting up ");
@@ -87,7 +85,9 @@ public class Ingester {
 
         Path preIngestFileSchemaFile = parseSchema(cmd);
 
-        URL domsAPIWSLocation = parseWSDL(cmd);
+        String fedoraUrl = parseFedoraUrl(cmd);
+
+        String pidgenUrl = parsePidgenUrl(cmd);
 
         String username = parseUsername(cmd);
 
@@ -104,8 +104,7 @@ public class Ingester {
         boolean check = parseCheck(cmd);
 
         startScanner(hotFolder, coldFolder, lukewarmFolder, stopFolder, preIngestFileSchemaFile,
-                     domsAPIWSLocation,
-                     username, password, overwrite, numThreads, threadWaitTime, maxFails, check);
+                     fedoraUrl, pidgenUrl, username, password, overwrite, numThreads, threadWaitTime, maxFails, check);
     }
 
     private static boolean parseCheck(CommandLine cmd) {
@@ -193,10 +192,16 @@ public class Ingester {
         return new File(resource.getFile()).getAbsolutePath();
     }
 
-    static URL parseWSDL(CommandLine cmd) throws ParseException {
-        URL domsAPIWSLocation = (URL) cmd.getParsedOptionValue("wsdl");
-        log.info("domsAPIWSLocation = {}", domsAPIWSLocation.toString());
-        return domsAPIWSLocation;
+    static String parseFedoraUrl(CommandLine cmd) {
+        String fedora_url = cmd.getOptionValue("fedora_url", "http://localhost:7880/fedora/objects");
+        log.info("fedora_url = {}", fedora_url);
+        return fedora_url;
+    }
+
+    static String parsePidgenUrl(CommandLine cmd) {
+        String doms_pidgen_url = cmd.getOptionValue("doms_pidgen_url", "http://localhost:7880/pidgenerator-service");
+        log.info("doms_pidgen_url = {}", doms_pidgen_url);
+        return doms_pidgen_url;
     }
 
 
@@ -215,7 +220,8 @@ public class Ingester {
         options.addOption(Option.builder().longOpt("coldfolder").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("stopfolder").hasArg().valueSeparator().build());
 
-        options.addOption(Option.builder().longOpt("wsdl").hasArg().type(URL.class).valueSeparator().required().build());
+        options.addOption(Option.builder().longOpt("fedora_url").hasArg().valueSeparator().build());
+        options.addOption(Option.builder().longOpt("doms_pidgen_url").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("username").hasArg().valueSeparator().build());
         options.addOption(Option.builder().longOpt("password").hasArg().valueSeparator().build());
 
@@ -237,7 +243,8 @@ public class Ingester {
                                      Path lukewarmFolder,
                                      Path stopFolder,
                                      Path preIngestFileSchemaFile,
-                                     URL domsAPIWSLocation,
+                                     String fedora_url,
+                                     String pidgen_url,
                                      String username,
                                      String password,
                                      boolean overwrite,
@@ -251,11 +258,16 @@ public class Ingester {
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema preIngestFileSchema = schemaFactory.newSchema(preIngestFileSchemaFile.toFile());
 
-        DomsWSClient domsClient = new DomsWSClientImpl();
-        domsClient.setCredentials(domsAPIWSLocation, username, password);
+        EnhancedFedora fedora;
+        try {
+            fedora = new EnhancedFedoraImpl(new Credentials(username, password), fedora_url , pidgen_url,
+                                            null);
+        } catch (PIDGeneratorException | JAXBException e) {
+            throw new IOException("Failed to connect to doms", e);
+        }
 
         final FolderWatcherClient radioTVHotFolderClient = new RadioTVFolderWatcherClient(
-                domsClient, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite, maxFails, check);
+                fedora, lukewarmFolder, coldFolder, preIngestFileSchema, overwrite, maxFails, check);
 
         final FolderWatcher folderWatcher = new FolderWatcher(hotFolder, threadWaitTime, radioTVHotFolderClient,
                                                               numthreads, stopFolder);

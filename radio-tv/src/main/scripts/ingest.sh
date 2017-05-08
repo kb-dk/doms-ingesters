@@ -15,7 +15,8 @@ COLDFOLDER=$BASEDIR/coldfolder
 LUKEFOLDER=$BASEDIR/lukewarm
 HOTFOLDER=$BASEDIR/hotfolder
 STOPFOLDER=$BASEDIR/stopfolder
-WSDL=http://alhena:7980/centralWebservice-service/central/?wsdl
+FEDORA_URL=http://alhena:7980/fedora
+DOMS_PIDGEN_URL=http://alhena:7980/pidgenerator-service
 USERNAME=fedoraAdmin
 PASSWORD=fedoraAdminPass
 SCHEMA=$BASEDIR/config/exportedRadioTVProgram.xsd
@@ -39,13 +40,14 @@ source $BASEDIR/config/ingest_config.sh
 # ("don't use the getopt command if the arguments may contain whitespace
 #  characters")
 #
-while getopts c:l:h:w:u:p:s:o:n:t:f:v: opt
+while getopts c:l:h:d:i:u:p:s:o:n:t:f:v: opt
 do
     case "$opt" in
       c)  COLDFOLDER="$OPTARG";;
       l)  LUKEFOLDER="$OPTARG";;
       h)  HOTFOLDER="$OPTARG";;
-      w)  WSDL="$OPTARG";;
+      d)  FEDORA_URL="$OPTARG";;
+      i)  DOMS_PIDGEN_URL="$OPTARG";;
       u)  USERNAME="$OPTARG";;
       p)  PASSWORD="$OPTARG";;
       s)  SCHEMA="$OPTARG";;
@@ -56,7 +58,8 @@ do
       v)  VERIFY="$OPTARG";;
       \?)		# unknown flag
       	  echo >&2 \
-	  "usage: $0 [-c coldfolder] [-l lukefolder] [-h hotfolder] [-w wsdl] \
+	  "usage: $0 [-c coldfolder] [-l lukefolder] [-h hotfolder] \
+	  [-d fedora_url] [-i doms_pidgen_url]\
 	  [-u username] [-p password] [-s preingestschema] [-o true|false] \
 	  [-n numThreads] [-t threadPollInterval] [-f maxFails] [-v true|false]"
 	  exit 1;;
@@ -71,7 +74,8 @@ java -Dlogback.configurationFile=$BASEDIR/config/logback.xml \
     -lukefolder=$LUKEFOLDER \
     -coldfolder=$COLDFOLDER \
     -stopfolder=$STOPFOLDER \
-    -wsdl=$WSDL \
+    -fedora_url=$FEDORA_URL \
+    -pidgen_url=$DOMS_PIDGEN_URL \
     -username=$USERNAME \
     -password=$PASSWORD \
     -preingestschema=$SCHEMA \

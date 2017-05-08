@@ -1,7 +1,9 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.client.impl.relations.ObjectRelationImpl;
-import dk.statsbiblioteket.util.xml.DOM;
+import dk.statsbiblioteket.doms.central.connectors.EnhancedFedora;
+import dk.statsbiblioteket.doms.central.connectors.fedora.structures.FedoraRelation;
+import dk.statsbiblioteket.doms.central.connectors.fedora.structures.ObjectProfile;
+import dk.statsbiblioteket.doms.central.connectors.fedora.structures.SearchResult;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -9,12 +11,9 @@ import org.mockito.InOrder;
 import org.mockito.Matchers;
 import org.w3c.dom.Document;
 
-import dk.statsbiblioteket.doms.client.DomsWSClient;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,7 +28,7 @@ import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_P
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.PROGRAM_TEMPLATE_PID;
 import static dk.statsbiblioteket.doms.ingesters.radiotv.RecordCreator.RITZAU_ORIGINAL_DS_ID;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -65,12 +64,12 @@ public class RecordCreatorTest {
         /*Setup constants*/
         String programPid = "uuid:"+UUID.randomUUID().toString();
 
-        URL fileURL1 = new URL(
-                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts");
+        String fileURL1 =
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts";
         String filePid1 = "uuid:"+UUID.randomUUID().toString();
 
-        URL fileURL2 = new URL(
-                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts");
+        String fileURL2 =
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts";
         String filePid2 = "uuid:"+UUID.randomUUID().toString();
 
         String ritzauOrigID = "5444487";
@@ -105,19 +104,20 @@ public class RecordCreatorTest {
 
 
 
+
         /*Setup mocks*/
-        DomsWSClient testDomsClient = mock(DomsWSClient.class);
+        EnhancedFedora testDomsClient = mock(EnhancedFedora.class);
 
         //Return the two filepids when searching for their URLs
-        when(testDomsClient.getFileObjectPID(fileURL1)).thenReturn(filePid1);
-        when(testDomsClient.getFileObjectPID(fileURL2)).thenReturn(filePid2);
+        when(testDomsClient.listObjectsWithThisLabel(fileURL1)).thenReturn(Arrays.asList(filePid1));
+        when(testDomsClient.listObjectsWithThisLabel(fileURL2)).thenReturn(Arrays.asList(filePid2));
 
         //Program Not found in doms already, so return empty lists
-        when(testDomsClient.getPidFromOldIdentifier(ritzauOldID)).thenReturn(Arrays.asList());
-        when(testDomsClient.getPidFromOldIdentifier(tvMeterOldID)).thenReturn(Arrays.asList());
+        when(testDomsClient.findObjectFromDCIdentifier(ritzauOldID)).thenReturn(Arrays.asList());
+        when(testDomsClient.findObjectFromDCIdentifier(tvMeterOldID)).thenReturn(Arrays.asList());
 
         //Return the programPid when new object is made
-        when(testDomsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID),
+        when(testDomsClient.cloneTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID),
                                                      programObjectCreationComment)).thenReturn(programPid);
 
 
@@ -133,32 +133,33 @@ public class RecordCreatorTest {
         InOrder ordered = inOrder(testDomsClient);
 
         //First the file objects are found from their URLs
-        ordered.verify(testDomsClient).getFileObjectPID(fileURL1);
-        ordered.verify(testDomsClient).getFileObjectPID(fileURL2);
+        ordered.verify(testDomsClient).listObjectsWithThisLabel(fileURL1);
+        ordered.verify(testDomsClient).listObjectsWithThisLabel(fileURL2);
 
         //Then we search for the program pid from the ritzau/gallup identifiers
-        ordered.verify(testDomsClient).getPidFromOldIdentifier(ritzauOldID);
-        ordered.verify(testDomsClient).getPidFromOldIdentifier(tvMeterOldID);
+        ordered.verify(testDomsClient).fieldsearch(ritzauOldID,0,1);
+        ordered.verify(testDomsClient).fieldsearch(tvMeterOldID, 0, 1);
 
         //It was not found, so we then create a new object
-        ordered.verify(testDomsClient).createObjectFromTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID), programObjectCreationComment);
+        ordered.verify(testDomsClient).cloneTemplate(PROGRAM_TEMPLATE_PID, Arrays.asList(ritzauOldID, tvMeterOldID), programObjectCreationComment);
 
         //And we set the label
-        ordered.verify(testDomsClient).setObjectLabel(programPid, programTitle, setObjectLabelComment);
+        ordered.verify(testDomsClient).modifyObjectLabel(programPid, programTitle, setObjectLabelComment);
 
         //Then we add the four datastreamsw
         //TODO verify actual ds content...
-        verify(testDomsClient).updateDataStream(eq(programPid), eq(PROGRAM_PBCORE_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID), any(Document.class), eq(updatedDatastreamComment));
-        ordered.verify(testDomsClient).updateDataStream(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID), any(Document.class), eq(updatedDatastreamComment));
+        verify(testDomsClient).modifyDatastreamByValue(eq(programPid), eq(PROGRAM_PBCORE_DS_ID), anyString(), eq(null), eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).modifyDatastreamByValue(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID), anyString(), eq(null),
+        eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).modifyDatastreamByValue(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID), anyString(), eq(null), eq(updatedDatastreamComment));
+        ordered.verify(testDomsClient).modifyDatastreamByValue(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID), anyString(), eq(null), eq(updatedDatastreamComment));
 
         //We check (unnessesarily) if our newly made object is already linked to the previously found file pids
-        ordered.verify(testDomsClient).listObjectRelations(programPid, HAS_FILE_RELATION);
+        ordered.verify(testDomsClient).getNamedRelations(programPid, HAS_FILE_RELATION,null);
 
         //As it is not linked, add two relations
-        ordered.verify(testDomsClient).addObjectRelation(programPid, HAS_FILE_RELATION, filePid1, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid1 + "'") );
-        ordered.verify(testDomsClient).addObjectRelation(programPid, HAS_FILE_RELATION, filePid2, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid2 + "'") );
+        ordered.verify(testDomsClient).addRelation(programPid, programPid,HAS_FILE_RELATION, filePid1, false, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid1 + "'") );
+        ordered.verify(testDomsClient).addRelation(programPid, programPid, HAS_FILE_RELATION, filePid2, false, Util.domsCommenter(filename, "added relation '" + HAS_FILE_RELATION + "' to '" + filePid2 + "'") );
 
         //That's all, folks
         ordered.verifyNoMoreInteractions();
@@ -178,12 +179,12 @@ public class RecordCreatorTest {
         /*Setup constants*/
         String programPid = "uuid:"+UUID.randomUUID().toString();
 
-        URL fileURL1 = new URL(
-                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts");
+        String fileURL1 =
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352930400-2012-11-14-23.00.00_1352934000-2012-11-15-00.00.00_dvb1-2.ts";
         String filePid1 = "uuid:"+UUID.randomUUID().toString();
 
-        URL fileURL2 = new URL(
-                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts");
+        String fileURL2 =
+                "http://bitfinder.statsbiblioteket.dk/bart/mux1.1352934000-2012-11-15-00.00.00_1352937600-2012-11-15-01.00.00_dvb1-2.ts";
         String filePid2 = "uuid:"+UUID.randomUUID().toString();
 
         String ritzauOrigID = "5444487";
@@ -213,25 +214,34 @@ public class RecordCreatorTest {
 
 
         /*Setup mocks*/
-        DomsWSClient testDomsClient = mock(DomsWSClient.class);
+        EnhancedFedora testDomsClient = mock(EnhancedFedora.class);
 
         //Return the two filepids when searching for their URLs
-        when(testDomsClient.getFileObjectPID(fileURL1)).thenReturn(filePid1);
-        when(testDomsClient.getFileObjectPID(fileURL2)).thenReturn(filePid2);
+        when(testDomsClient.listObjectsWithThisLabel(fileURL1)).thenReturn(Arrays.asList(filePid1));
+        when(testDomsClient.listObjectsWithThisLabel(fileURL2)).thenReturn(Arrays.asList(filePid2));
 
 
         //Program found in doms already, so return programpid
-        when(testDomsClient.getPidFromOldIdentifier(ritzauOldID)).thenReturn(Collections.singletonList(programPid));
-        when(testDomsClient.getPidFromOldIdentifier(tvMeterOldID)).thenReturn(Collections.singletonList(programPid));
+        when(testDomsClient.fieldsearch(ritzauOldID, 0, 1)).thenReturn(Collections.singletonList(new SearchResult(programPid,null,null,0,0)));
+        when(testDomsClient.fieldsearch(tvMeterOldID, 0, 1)).thenReturn(Collections.singletonList(new SearchResult(programPid,null,null,0,0)));
 
-        when(testDomsClient.getLabel(programPid)).thenReturn(programTitle);
+        when(testDomsClient.getLimitedObjectProfile(programPid, null))
+                .thenReturn(new ObjectProfile() {
+                    @Override
+                    public String getLabel() {
+                        return programTitle;
+                    }
+                });
 
-        when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_PBCORE_DS_ID)).thenReturn(DOM.stringToDOM(pbCoreString,true));
-        when(testDomsClient.getDataStream(programPid,RecordCreator.PROGRAM_BROADCAST_DS_ID)).thenReturn(DOM.stringToDOM(programBroadcast,true));
-        when(testDomsClient.getDataStream(programPid,RecordCreator.GALLUP_ORIGINAL_DS_ID)).thenReturn(DOM.stringToDOM(tvmeterOrig,true));
-        when(testDomsClient.getDataStream(programPid,RecordCreator.RITZAU_ORIGINAL_DS_ID)).thenReturn(DOM.stringToDOM(ritzauOrig,true));
+        when(testDomsClient.getXMLDatastreamContents(programPid,RecordCreator.PROGRAM_PBCORE_DS_ID)).thenReturn(pbCoreString);
+        when(testDomsClient.getXMLDatastreamContents(programPid,RecordCreator.PROGRAM_BROADCAST_DS_ID)).thenReturn(programBroadcast);
+        when(testDomsClient.getXMLDatastreamContents(programPid,RecordCreator.GALLUP_ORIGINAL_DS_ID)).thenReturn(tvmeterOrig);
+        when(testDomsClient.getXMLDatastreamContents(programPid,RecordCreator.RITZAU_ORIGINAL_DS_ID)).thenReturn(ritzauOrig);
 
-        when(testDomsClient.listObjectRelations(programPid,RecordCreator.HAS_FILE_RELATION)).thenReturn(Arrays.asList(new ObjectRelationImpl(programPid,RecordCreator.HAS_FILE_RELATION,filePid1,null),new ObjectRelationImpl(programPid,RecordCreator.HAS_FILE_RELATION,filePid2,null)));
+        when(testDomsClient.getNamedRelations(programPid,RecordCreator.HAS_FILE_RELATION, null)).thenReturn(
+                Arrays.asList(
+                        new FedoraRelation(programPid,RecordCreator.HAS_FILE_RELATION, filePid1),
+                        new FedoraRelation(programPid,RecordCreator.HAS_FILE_RELATION, filePid2)));
 
         /*Invoke method*/
 
@@ -241,28 +251,30 @@ public class RecordCreatorTest {
 
 
         //First the file objects are found from their URLs
-        verify(testDomsClient).getFileObjectPID(fileURL1);
-        verify(testDomsClient).getFileObjectPID(fileURL2);
+        verify(testDomsClient).listObjectsWithThisLabel(fileURL1);
+        verify(testDomsClient).listObjectsWithThisLabel(fileURL2);
 
         //Then we search for the program pid from the ritzau/gallup identifiers
-        verify(testDomsClient).getPidFromOldIdentifier(Matchers.matches("^("
+        verify(testDomsClient).fieldsearch(Matchers.matches("^("
                                                                         + Pattern.quote(ritzauOldID)
                                                                         + "|"
                                                                         + Pattern.quote(tvMeterOldID)
-                                                                        + ")$"));
+                                                                        + ")$"),
+                                           eq(0),
+                                           eq(1));
 
 
         //And we het the label
-        verify(testDomsClient).getLabel(programPid);
+        verify(testDomsClient).getLimitedObjectProfile(programPid, null);
 
         //Then we add the four datastreamsw
-        verify(testDomsClient).getDataStream(eq(programPid), eq(PROGRAM_PBCORE_DS_ID));
-        verify(testDomsClient).getDataStream(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID));
-        verify(testDomsClient).getDataStream(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID));
-        verify(testDomsClient).getDataStream(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID));
+        verify(testDomsClient).getXMLDatastreamContents(eq(programPid), eq(PROGRAM_PBCORE_DS_ID));
+        verify(testDomsClient).getXMLDatastreamContents(eq(programPid), eq(RITZAU_ORIGINAL_DS_ID));
+        verify(testDomsClient).getXMLDatastreamContents(eq(programPid), eq(GALLUP_ORIGINAL_DS_ID));
+        verify(testDomsClient).getXMLDatastreamContents(eq(programPid), eq(PROGRAM_BROADCAST_DS_ID));
 
         //We check (unnessesarily) if our newly made object is already linked to the previously found file pids
-        verify(testDomsClient).listObjectRelations(programPid, HAS_FILE_RELATION);
+        verify(testDomsClient).getNamedRelations(programPid, HAS_FILE_RELATION, null);
 
         //That's all, folks
         verifyNoMoreInteractions(testDomsClient);

@@ -1,14 +1,14 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
-import dk.statsbiblioteket.doms.client.DomsWSClient;
-import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
-import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
-import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
-import dk.statsbiblioteket.doms.client.objects.DigitalObject;
-import dk.statsbiblioteket.doms.client.relations.LiteralRelation;
-import dk.statsbiblioteket.doms.client.relations.ObjectRelation;
-import dk.statsbiblioteket.doms.client.relations.Relation;
-import dk.statsbiblioteket.doms.client.relations.RelationDeclaration;
+import com.sun.jersey.api.client.WebResource;
+import dk.statsbiblioteket.doms.central.connectors.BackendInvalidCredsException;
+import dk.statsbiblioteket.doms.central.connectors.BackendInvalidResourceException;
+import dk.statsbiblioteket.doms.central.connectors.BackendMethodFailedException;
+import dk.statsbiblioteket.doms.central.connectors.EnhancedFedora;
+import dk.statsbiblioteket.doms.central.connectors.fedora.pidGenerator.PIDGeneratorException;
+import dk.statsbiblioteket.doms.central.connectors.fedora.structures.FedoraRelation;
+import dk.statsbiblioteket.doms.central.connectors.fedora.structures.SearchResult;
+import dk.statsbiblioteket.doms.central.connectors.fedora.templates.ObjectIsWrongTypeException;
 import dk.statsbiblioteket.util.xml.DOM;
 import dk.statsbiblioteket.util.xml.XPathSelector;
 import org.slf4j.Logger;
@@ -28,8 +28,8 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -52,14 +52,14 @@ public class RecordCreator {
     public static final String HAS_FILE_RELATION = "http://doms.statsbiblioteket.dk/relations/default/0/1/#hasFile";
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final DomsWSClient domsClient;
+    private final EnhancedFedora domsClient;
     private final boolean overwrite;
     private final boolean check;
     private final DocumentBuilder documentBuilder;
     private final XPathSelector xPathSelector;
 
 
-    public RecordCreator(DomsWSClient domsClient, boolean overwrite, boolean check) {
+    public RecordCreator(EnhancedFedora domsClient, boolean overwrite, boolean check) {
         this.domsClient = domsClient;
         this.overwrite = overwrite;
         this.check = check;
@@ -88,83 +88,86 @@ public class RecordCreator {
      * @param filename the name of the source file. Is only used for logging and doms audit comments
      * @return PID of the newly created program object, created by the DOMS.
      *
-     * @throws ServerOperationFailed    if creation or manipulation of the program object fails.
-     * @throws XMLParseException        if any errors were encountered while processing the
-     *                                  <code>radioTVMetadata</code> XML document.
+     * @throws OperationFailed    if creation or manipulation of the program object fails.
      * @throws MalformedURLException if a file element contains an invalid URL.
-     * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    public synchronized String ingestProgram(Document radioTVMetadata, String filename) throws NoObjectFound, ServerOperationFailed, MalformedURLException, OverwriteException, XMLParseException {
-        // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
-        List<String> filePIDs = getFilePids(radioTVMetadata);
-        log.debug("Found pids {} of referenced files",filePIDs);
+    public synchronized String ingestProgram(Document radioTVMetadata, String filename) throws MalformedURLException, OverwriteException, OperationFailed {
+        try {
+            // Get pids of referenced files - do this first, to ensure fail-early in case of missing files.
+            List<String> filePIDs = getFilePids(radioTVMetadata);
+            log.debug("Found pids {} of referenced files", filePIDs);
 
-        // Find or create program object.
-        List<String> oldIdentifiers = getOldIdentifiers(radioTVMetadata);
-        log.debug("Found these old identifiers {} in the program to ingest", oldIdentifiers);
+            // Find or create program object.
+            List<String> oldIdentifiers = getOldIdentifiers(radioTVMetadata);
+            log.debug("Found these old identifiers {} in the program to ingest", oldIdentifiers);
 
-        String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
-        if (programObjectPID != null){
-            if (check) {
-                log.debug("Preparing to check semantic equivalence of pid={}",programObjectPID);
-                if (checkSemanticIdentity(programObjectPID, radioTVMetadata, filePIDs)) {
-                    //check if what is there is identical to what we want to write
-                    log.debug("Object pid={} is semantically identical, so no updates is performed.", programObjectPID);
-                    return programObjectPID;
-                } else {
-                    log.debug("Object pid={} is not semantically identical.");
+            String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
+            if (programObjectPID != null) {
+                if (check) {
+                    log.debug("Preparing to check semantic equivalence of pid={}", programObjectPID);
+                    if (checkSemanticIdentity(programObjectPID, radioTVMetadata, filePIDs)) {
+                        //check if what is there is identical to what we want to write
+                        log.debug("Object pid={} is semantically identical, so no updates is performed.",
+                                  programObjectPID);
+                        return programObjectPID;
+                    } else {
+                        log.debug("Object pid={} is not semantically identical.");
+                    }
                 }
+                if (overwrite) { //overwrite whatever is there
+                    prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
+                } else { //fail
+                    throw new OverwriteException(
+                            "Found existing object pid='" + programObjectPID + "' and overwrite flag is false");
+                }
+            } else {
+                log.debug("Old identifiers {} did not find a program object in doms", oldIdentifiers);
+                programObjectPID = createNewProgramObject(filename, oldIdentifiers);
             }
-            if (overwrite){ //overwrite whatever is there
-                prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
-            } else { //fail
-                throw new OverwriteException("Found existing object pid='"+programObjectPID+"' and overwrite flag is false");
-            }
-        } else {
-            log.debug("Old identifiers {} did not find a program object in doms", oldIdentifiers);
-            programObjectPID = createNewProgramObject(filename, oldIdentifiers);
+
+            //Set label as title
+            setTitle(radioTVMetadata, filename, programObjectPID);
+
+            //Add/update the datastreams
+            String datastreamComment = Util.domsCommenter(filename, "updated datastream");
+            addPBCore(radioTVMetadata, programObjectPID, datastreamComment);
+            addRitzau(radioTVMetadata, programObjectPID, datastreamComment);
+            addGallup(radioTVMetadata, programObjectPID, datastreamComment);
+            addBroadcast(radioTVMetadata, programObjectPID, datastreamComment);
+
+            //Set the relations to the data files
+            setFileRelations(programObjectPID, filePIDs, filename);
+
+            return programObjectPID;
+        } catch (PIDGeneratorException | TransformerException | ObjectIsWrongTypeException| BackendInvalidResourceException | BackendInvalidCredsException | BackendMethodFailedException e){
+            throw new OperationFailed(e);
         }
-
-        //Set label as title
-        setTitle(radioTVMetadata, filename, programObjectPID);
-
-        //Add/update the datastreams
-        String datastreamComment = Util.domsCommenter(filename, "updated datastream");
-        addPBCore(radioTVMetadata, programObjectPID, datastreamComment);
-        addRitzau(radioTVMetadata, programObjectPID, datastreamComment);
-        addGallup(radioTVMetadata, programObjectPID, datastreamComment);
-        addBroadcast(radioTVMetadata, programObjectPID, datastreamComment);
-
-        //Set the relations to the data files
-        setFileRelations(programObjectPID, filePIDs, filename);
-
-        return programObjectPID;
     }
 
-    private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
+    private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws BackendInvalidResourceException, BackendInvalidCredsException, BackendMethodFailedException {
         //Title
         String expectedTitle = getTitle(radioTVMetadata);
-        String actualTitle = domsClient.getLabel(programObjectPID);
+        String actualTitle = domsClient.getLimitedObjectProfile(programObjectPID,null).getLabel();
         boolean titleIdentical = expectedTitle.equals(actualTitle);
 
         //PBCore
         Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
-        Document pbCoreActual = domsClient.getDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID);
+        Document pbCoreActual = DOM.stringToDOM(domsClient.getXMLDatastreamContents(programObjectPID, PROGRAM_PBCORE_DS_ID),true);
         boolean pbcoreIdentical = compareDocuments(pbCoreExpected, pbCoreActual, programObjectPID);
 
         //Ritzau
         Document ritzauExpected = createDocumentFromNode(radioTVMetadata,"//program/originals/ritzau:ritzau_original");
-        Document ritzauActual = domsClient.getDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID);
+        Document ritzauActual = DOM.stringToDOM(domsClient.getXMLDatastreamContents(programObjectPID, RITZAU_ORIGINAL_DS_ID), true);
         boolean ritzauIdentical = compareDocuments(ritzauExpected, ritzauActual, programObjectPID);
 
         //Gallup
         Document gallupExpected = createDocumentFromNode(radioTVMetadata, "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
-        Document gallupActual = domsClient.getDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID);
+        Document gallupActual = DOM.stringToDOM(domsClient.getXMLDatastreamContents(programObjectPID, GALLUP_ORIGINAL_DS_ID), true);
         boolean gallupIdentical = compareDocuments(gallupExpected, gallupActual, programObjectPID);
 
         //Broadcast
         Document broadcastExpected = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
-        Document broadcastActual = domsClient.getDataStream(programObjectPID,PROGRAM_BROADCAST_DS_ID);
+        Document broadcastActual = DOM.stringToDOM(domsClient.getXMLDatastreamContents(programObjectPID,PROGRAM_BROADCAST_DS_ID),true);
         boolean broadcastIdentical = compareDocuments(broadcastExpected, broadcastActual, programObjectPID);
 
         //Relations
@@ -190,58 +193,58 @@ public class RecordCreator {
     }
 
 
-    private void setFileRelations(String programObjectPID, List<String> filePIDs, String filename) throws ServerOperationFailed, XMLParseException {
-        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
+    private void setFileRelations(String programObjectPID, List<String> filePIDs, String filename) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
+        List<FedoraRelation> relations = domsClient.getNamedRelations(
+                programObjectPID, HAS_FILE_RELATION, null);
+
         HashSet<String> existingRels = new HashSet<String>();
-        for (Relation relation : relations) {
-            if (relation instanceof ObjectRelation) {
-                LiteralRelation relationWrapper = wrapAsLiteral((ObjectRelation) relation);
-                String predicate = relationWrapper.getPredicate(); //This should be HAS_FILE_RELATION
-                String objectPid = relationWrapper.getObject(); //This should be prograObjectPid
-                String subjectPid = relationWrapper.getSubjectPid();
-                log.debug("Found relation {},'{}',{}", objectPid, predicate, subjectPid);
-                if (!filePIDs.contains(subjectPid)) {
-                    log.debug("Removing relation relation {},'{}',{}", objectPid, predicate, subjectPid);
+        for (FedoraRelation relation : relations) {
+            String subjectPid = relation.getSubject(); //This should be prograObjectPid
+            String predicate = relation.getPredicate(); //This should be HAS_FILE_RELATION
+            String objectPid = relation.getObject(); //This should be the pid of the file object
+
+                log.debug("Found relation {},'{}',{}", subjectPid, predicate, objectPid);
+                if (!filePIDs.contains(objectPid)) {
+                    log.debug("Removing relation relation {},'{}',{}", subjectPid, predicate, objectPid);
                     String comment = Util.domsCommenter(filename, "removed relation '{0}' to '{1}'",
                                                         predicate,
-                                                        subjectPid);
-                    domsClient.removeObjectRelation(relationWrapper, comment);
+                                                        objectPid);
+                    domsClient.deleteRelation(programObjectPID,subjectPid,predicate,objectPid,false,comment);
                 } else {
-                    existingRels.add(subjectPid);
+                    existingRels.add(objectPid);
                 }
-            }
+
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
                 log.debug("Adding relation {},'{}',{}", programObjectPID, HAS_FILE_RELATION, filePID);
                 String comment = Util.domsCommenter(filename, "added relation '{0}' to '{1}'",
                                                     HAS_FILE_RELATION, filePID);
-                domsClient.addObjectRelation(programObjectPID, HAS_FILE_RELATION, filePID, comment);
+                domsClient.addRelation(programObjectPID,programObjectPID, HAS_FILE_RELATION, filePID, false, comment);
 
             }
         }
     }
 
 
-    private boolean checkFileRelations(String programObjectPID, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
+    private boolean checkFileRelations(String programObjectPID, List<String> filePIDs) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
         boolean identical = true;
 
-        List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
+        List<FedoraRelation> relations = domsClient.getNamedRelations(
+                programObjectPID, HAS_FILE_RELATION, null);
         HashSet<String> existingRels = new HashSet<String>();
-        for (Relation relation : relations) {
-            if (relation instanceof ObjectRelation) {
-                LiteralRelation relationWrapper = wrapAsLiteral((ObjectRelation) relation);
-                String predicate = relationWrapper.getPredicate(); //This should be HAS_FILE_RELATION
-                String objectPid = relationWrapper.getObject(); //This should be prograObjectPid
-                String subjectPid = relationWrapper.getSubjectPid();
-                log.debug("Found relation {},'{}',{}", objectPid, predicate, subjectPid);
-                if (!filePIDs.contains(subjectPid)) {
-                    log.debug("Found extranous relation {},'{}',{}", objectPid, predicate, subjectPid);
+        for (FedoraRelation relation : relations) {
+                String predicate = relation.getPredicate(); //This should be HAS_FILE_RELATION
+                String objectPid = relation.getObject(); //This should be prograObjectPid
+                String subjectPid = relation.getSubject();
+                log.debug("Found relation {},'{}',{}", subjectPid, predicate, objectPid);
+                if (!filePIDs.contains(objectPid)) {
+                    log.debug("Found extranous relation {},'{}',{}", subjectPid, predicate, objectPid);
                     identical = false;
                 } else {
-                    existingRels.add(subjectPid);
+                    existingRels.add(objectPid);
                 }
-            }
+
         }
         for (String filePID : filePIDs) {
             if (!existingRels.contains(filePID)) {
@@ -252,73 +255,46 @@ public class RecordCreator {
         return identical;
     }
 
-
-    private LiteralRelation wrapAsLiteral(final ObjectRelation relation) {
-        return new LiteralRelation() {
-
-            @Override
-            public String getObject() {
-                return relation.getSubjectPid();
-            }
-
-            public DigitalObject getSubject() throws ServerOperationFailed {
-                return relation.getObject();
-            }
-
-            public String getSubjectPid() {
-                return relation.getObjectPid();
-            }
-
-            public String getPredicate() {
-                return relation.getPredicate();
-            }
-
-            public void remove() throws ServerOperationFailed {
-                relation.remove();
-            }
-
-            public Set<RelationDeclaration> getDeclarations() throws ServerOperationFailed {
-                return relation.getDeclarations();
-            }
-        };
-    }
-
-    private void addBroadcast(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
+    private void addBroadcast(Document radioTVMetadata, String objectPID, String comment) throws TransformerException, BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
         // Add the program broadcast datastream
         log.debug("Adding/Updating {} datastream", PROGRAM_BROADCAST_DS_ID);
         Document programBroadcastDocument = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
-        domsClient.updateDataStream(objectPID, PROGRAM_BROADCAST_DS_ID, programBroadcastDocument, comment);
+        String broadcastString = DOM.domToString(programBroadcastDocument);
+        domsClient.modifyDatastreamByValue(objectPID, PROGRAM_BROADCAST_DS_ID, broadcastString,null, comment);
     }
 
-    private void addGallup(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
+    private void addGallup(Document radioTVMetadata, String objectPID, String comment) throws TransformerException, BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
         // Add the Gallup datastream
         log.debug("Adding/Updating {} datastream", GALLUP_ORIGINAL_DS_ID);
         Document gallupOriginalDocument = createDocumentFromNode(radioTVMetadata,
                                                                  "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
-        domsClient.updateDataStream(objectPID, GALLUP_ORIGINAL_DS_ID, gallupOriginalDocument, comment);
+        String gallupString = DOM.domToString(gallupOriginalDocument);
+        domsClient.modifyDatastreamByValue(objectPID, GALLUP_ORIGINAL_DS_ID, gallupString,null, comment);
     }
 
-    private void addRitzau(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
+    private void addRitzau(Document radioTVMetadata, String objectPID, String comment) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException, TransformerException {
         // Add Ritzau datastream
         log.debug("Adding/Updating {} datastream", RITZAU_ORIGINAL_DS_ID);
         Document ritzauOriginalDocument = createDocumentFromNode(radioTVMetadata,
                                                                  "//program/originals/ritzau:ritzau_original");
-        domsClient.updateDataStream(objectPID, RITZAU_ORIGINAL_DS_ID, ritzauOriginalDocument, comment);
+        String ritzauString = DOM.domToString(ritzauOriginalDocument);
+        domsClient.modifyDatastreamByValue(objectPID, RITZAU_ORIGINAL_DS_ID, ritzauString,null, comment);
     }
 
-    private void addPBCore(Document radioTVMetadata, String objectPID, String comment) throws ServerOperationFailed {
+    private void addPBCore(Document radioTVMetadata, String objectPID, String comment) throws TransformerException, BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
         // Add PBCore datastream
         log.debug("Adding/Updating {} datastream", PROGRAM_PBCORE_DS_ID);
         Document pbCoreDataStreamDocument = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
-        domsClient.updateDataStream(objectPID, PROGRAM_PBCORE_DS_ID, pbCoreDataStreamDocument, comment);
+        String pbCoreAsString = DOM.domToString(pbCoreDataStreamDocument);
+        domsClient.modifyDatastreamByValue(objectPID, PROGRAM_PBCORE_DS_ID, pbCoreAsString,null, comment);
     }
 
-    private void setTitle(Document radioTVMetadata, String filename, String objectPID) throws ServerOperationFailed {
+    private void setTitle(Document radioTVMetadata, String filename, String objectPID) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException {
         String programTitle = getTitle(radioTVMetadata);
 
         log.debug("Found program title '{}', setting this as label on {}", programTitle, objectPID);
         String comment = Util.domsCommenter(filename, "added program title '{0}' object label", programTitle);
-        domsClient.setObjectLabel(objectPID, programTitle, comment);
+        domsClient.modifyObjectLabel(objectPID, programTitle, comment);
     }
 
     private String getTitle(Document radioTVMetadata) {
@@ -329,26 +305,25 @@ public class RecordCreator {
         return titleNode.getTextContent();
     }
 
-    private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
+    private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException, TransformerException {
         log.debug("Found existing object {}, to be overwritten", existingPid);
         String comment = Util.domsCommenter(filename, "unpublished object to allow for changes");
-        domsClient.unpublishObjects(comment, existingPid);
+        domsClient.modifyObjectState(existingPid,EnhancedFedora.STATE_INACTIVE,comment);
         log.debug("Existing object {} unpublished", existingPid);
         addOldPids(existingPid, oldIdentifiers, filename);
         log.debug("Old identifiers added to program object {}", existingPid);
     }
 
-    private String createNewProgramObject(String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
-        String programObjectPID;// Create a program object in the DOMS and update the PBCore metadata
-        // datastream with the PBCore metadata from the pre-ingest file.
+    private String createNewProgramObject(String filename, List<String> oldIdentifiers) throws BackendMethodFailedException, PIDGeneratorException, ObjectIsWrongTypeException, BackendInvalidResourceException, BackendInvalidCredsException {
+        // Create a program object in the DOMS
         String comment = Util.domsCommenter(filename, "creating Program Object");
-        programObjectPID = domsClient.createObjectFromTemplate(PROGRAM_TEMPLATE_PID, oldIdentifiers, comment);
+        String programObjectPID = domsClient.cloneTemplate(PROGRAM_TEMPLATE_PID, oldIdentifiers, comment);
         log.debug("Created new program object with pid {}", programObjectPID);
         return programObjectPID;
     }
 
-    private void addOldPids(String existingPid, List<String> oldIdentifiers, String filename) throws ServerOperationFailed {
-        Document dcDataStream = domsClient.getDataStream(existingPid, DC_DS_ID);
+    private void addOldPids(String existingPid, List<String> oldIdentifiers, String filename) throws BackendMethodFailedException, BackendInvalidResourceException, BackendInvalidCredsException, TransformerException {
+        Document dcDataStream = DOM.stringToDOM(domsClient.getXMLDatastreamContents(existingPid, DC_DS_ID),true);
         NodeList existingIDNodes = xPathSelector.selectNodeList(dcDataStream, "//dc:identifier");
         Set<String> idsToAdd = new HashSet<String>(oldIdentifiers);
         for (int i = 0; i < existingIDNodes.getLength(); i++) {
@@ -368,7 +343,8 @@ public class RecordCreator {
         }
         log.debug("Updating {} datastream with new old identifiers {}", DC_DS_ID, oldIdentifiers);
         String comment = Util.domsCommenter(filename, "added old identifiers {0}", oldIdentifiers);
-        domsClient.updateDataStream(existingPid, DC_DS_ID, dcDataStream, comment);
+        String dcDatastreamAsString = DOM.domToString(dcDataStream);
+        domsClient.modifyDatastreamByValue(existingPid, DC_DS_ID, dcDatastreamAsString,null, comment);
     }
 
     /**
@@ -393,22 +369,17 @@ public class RecordCreator {
      *
      * @param oldIdentifiers List of old identifiers to look up.
      * @return PID of program, if found. Null otherwise
-     * @throws ServerOperationFailed Could not communicate with DOMS.
      */
-    private String alreadyExistsInRepo(List<String> oldIdentifiers) throws ServerOperationFailed {
+    private String alreadyExistsInRepo(List<String> oldIdentifiers) throws BackendInvalidCredsException, BackendMethodFailedException {
         for (String oldId : oldIdentifiers) {
-            try {
-                //TODO Remove this when fixed in doms central RI query
-                oldId = oldId.replaceAll("'", Matcher.quoteReplacement("\\'"));
-                List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
-                if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
-                    if (pids.size() > 1) {
-                        log.warn("Found {} pids for old identifiers '{}', returning the first ({})", pids, oldId, pids.get(0));
-                    }
-                    return pids.get(0);
-                }
-            } catch (NoObjectFound e) {
-                // Ignore, then
+            //TODO Remove this when fixed in doms central RI query
+            oldId = oldId.replaceAll("'", Matcher.quoteReplacement("\\'"));
+
+            List<SearchResult> hits = domsClient.fieldsearch(
+                    oldId, 0, 1);
+
+            if (!hits.isEmpty()){
+                return hits.get(0).getPid();
             }
         }
         return null;
@@ -445,12 +416,10 @@ public class RecordCreator {
      * Get the PIDs for all the file URLs.
      *
      * @param radioTVMetadata Metadata XML document containing the file information.
-     * @return A <code>List</code> of PIDs of the radio-tv file objects found in DOMS.
+     * @return A <code>List</code> of PIDs of the radio-tv file objects found in DOMS. If no pids is found, an empty list is returned
      * @throws MalformedURLException if a file element contains an invalid URL.
-     * @throws ServerOperationFailed if looking up file URL failed.
-     * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
-    private List<String> getFilePids(Document radioTVMetadata) throws MalformedURLException, NoObjectFound, ServerOperationFailed {
+    private List<String> getFilePids(Document radioTVMetadata) throws MalformedURLException, BackendInvalidCredsException, BackendMethodFailedException {
         // Get the recording files XML element and process the file information.
         NodeList recordingFileURLs = xPathSelector.selectNodeList(radioTVMetadata, "//program/fileUrls/fileUrl");
 
@@ -459,12 +428,17 @@ public class RecordCreator {
         for (int nodeIndex = 0; nodeIndex < recordingFileURLs.getLength(); nodeIndex++) {
             // Lookup file object.
             Node item = recordingFileURLs.item(nodeIndex);
-            String itemTextContent = item.getTextContent();
-            log.debug("Found file url {} from metadata", itemTextContent);
-            URL fileURL = new URL(itemTextContent);
-            String fileObjectPID = domsClient.getFileObjectPID(fileURL);
-            fileObjectPIDs.add(fileObjectPID);
-            log.debug("Found file object pid {} for file url {}", fileObjectPID, fileURL);
+            String fileUrl = item.getTextContent();
+            log.debug("Found file url {} from metadata", fileUrl);
+
+            List<String> pids = domsClient.listObjectsWithThisLabel(fileUrl);
+            if (pids != null && !pids.isEmpty()) {
+                String fileObjectPID = pids.get(0);
+                fileObjectPIDs.add(fileObjectPID);
+                log.debug("Found file object pid {} for file url {}", fileObjectPID, fileUrl);
+            } else {
+                log.warn("Found no file objects for file url {}",fileUrl);
+            }
         }
         return fileObjectPIDs;
     }

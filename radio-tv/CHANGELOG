@@ -1,5 +1,10 @@
 Change log for radio/tv program ingester
 
+1.9
+Reimplemented the entire functionality to use EnhancedFedora from https://github.com/statsbiblioteket/doms-server. We are no longer
+dependent on the running CentralWebservice. Updated config files and command lines to match
+
+
 1.8
 * added command line param -f maxFails to control how many failures the ingester tolerates
 before shutting down. This was hardcoded to 10 before, which is now the default value.

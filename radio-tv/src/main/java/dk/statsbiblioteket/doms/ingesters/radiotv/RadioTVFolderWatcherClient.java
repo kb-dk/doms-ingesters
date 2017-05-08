@@ -27,10 +27,10 @@
 package dk.statsbiblioteket.doms.ingesters.radiotv;
 
 
-import dk.statsbiblioteket.doms.client.DomsWSClient;
-import dk.statsbiblioteket.doms.client.exceptions.NoObjectFound;
-import dk.statsbiblioteket.doms.client.exceptions.ServerOperationFailed;
-import dk.statsbiblioteket.doms.client.exceptions.XMLParseException;
+import dk.statsbiblioteket.doms.central.connectors.BackendInvalidCredsException;
+import dk.statsbiblioteket.doms.central.connectors.BackendInvalidResourceException;
+import dk.statsbiblioteket.doms.central.connectors.BackendMethodFailedException;
+import dk.statsbiblioteket.doms.central.connectors.EnhancedFedora;
 import dk.statsbiblioteket.doms.folderwatching.FolderWatcherClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +48,7 @@ import javax.xml.transform.Source;
 import javax.xml.validation.Schema;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -82,7 +83,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     /**
      * Client for communicating with DOMS.
      */
-    private final DomsWSClient domsClient;
+    private final EnhancedFedora domsClient;
     /**
      * Max number of exceptions before we shut down the watcher
      */
@@ -103,7 +104,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param overwrite            if true, will overwrite existing programs. If false, will throw OverwriteExceptions instead
      * @param maxFails
      */
-    public RadioTVFolderWatcherClient(DomsWSClient domsClient, Path failedFilesFolder, Path processedFilesFolder,
+    public RadioTVFolderWatcherClient(EnhancedFedora domsClient, Path failedFilesFolder, Path processedFilesFolder,
                                       Schema preIngestFileSchema, boolean overwrite, int maxFails, boolean check) {
         this.domsClient = domsClient;
         this.maxFails = maxFails;
@@ -311,13 +312,10 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
      * @param pidsInProgress  Initially empty list of pids to update with pids collected during process, to be published
      *                        or reported as failed in the end.
      * @throws IOException           On io trouble communicating.
-     * @throws ServerOperationFailed On trouble updating DOMS.
-     * @throws XMLParseException     On trouble parsing XML.
-     * @throws NoObjectFound         if a URL is referenced, which is not found in DOMS.
      */
     private Path createRecord(Document radioTVMetadata,
                               Path addedFile,
-                              List<String> pidsInProgress) throws IOException, ServerOperationFailed, XMLParseException, NoObjectFound {
+                              List<String> pidsInProgress) throws OperationFailed, IOException {
         String filename = addedFile.getFileName().toString();
         // Create or update program object for this program
         log.debug("Starting to create doms record for file");
@@ -335,9 +333,13 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         // Publish the objects created in the process
         log.trace("Publishing objects {}", pidsInProgress);
 
-        domsClient.publishObjects(
-                "Publishing objects " + pidsInProgress + " as part of ingest of program " + addedFile.getFileName(),
-                pidsInProgress.toArray(new String[pidsInProgress.size()]));
+        for (String inProgress : pidsInProgress) {
+            try {
+                domsClient.modifyObjectState(inProgress,EnhancedFedora.STATE_ACTIVE,"Publishing objects " + pidsInProgress + " as part of ingest of program " + addedFile.getFileName());
+            } catch (BackendInvalidCredsException | BackendMethodFailedException | BackendInvalidResourceException e) {
+                throw new OperationFailed(e);
+            }
+        }
 
         return allWrittenPIDs;
     }
@@ -389,7 +391,9 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
             log.trace("Attempting to delete objects {} from doms", pidsToPublish);
             String deleteComment = Util.domsCommenter(filename, " deleted objects {0} due to ingest failure",
                                                       pidsToPublish);
-            domsClient.deleteObjects(deleteComment, pidsToPublish.toArray(new String[pidsToPublish.size()]));
+            for (String toPublish : pidsToPublish) {
+                domsClient.modifyObjectState(toPublish,EnhancedFedora.STATE_DELETED,deleteComment);
+            }
 
             log.error("Cleanup succeeded for file={} and pids={}", addedFile, pidsToPublish);
 
