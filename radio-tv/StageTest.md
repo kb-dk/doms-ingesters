@@ -1,5 +1,28 @@
 #Hvordan vi tester den...
 
+
+## Deploy on digiv-devel
+
+```bash
+version=1.9-SNAPSHOT
+scp target/radio-tv-$version-ingester.tar.gz  digitv@digitv-devel:.
+
+#Deploy the ingester
+ssh digitv@digitv-devel <<EOS
+    rm -rf ingester radio-tv-$version
+    tar -xvzf radio-tv-$version-ingester.tar.gz
+    ln -s radio-tv-$version ingester
+    cd ingester
+    mkdir hotfolder coldfolder lukewarm stopfolder
+    echo -e "\nVERIFY=true" >> config/ingest_config.sh
+EOS
+
+#Test files
+scp develro@digitv-stage:/ingest/lukewarm/*.xml digitv@digitv-devel:~/ingester/hotfolder/
+
+```
+
+
 Vi har vel nogen export filer i stage (dvs. input filer til ingesteren).
 
     TGC, v1.8, 2/5/2017:
