@@ -14,6 +14,7 @@
         <fileSet>
             <includes>
                 <include>CHANGELOG</include>
+                <include>StageTest.md</include>
             </includes>
 	</fileSet>
         <fileSet>
