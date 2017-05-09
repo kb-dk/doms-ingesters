@@ -150,41 +150,52 @@ public class RecordCreator {
         return programObjectPID;
     }
 
-    private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
-        //Title
-        String expectedTitle = getTitle(radioTVMetadata);
-        String actualTitle = getDomsTitle(programObjectPID);
-        boolean titleIdentical = expectedTitle.equals(actualTitle);
-        if (!titleIdentical) {
-            log.debug("Titles not identical, {} vs {}", expectedTitle, actualTitle);
+    private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) {
+
+        try {
+            //Title
+            String expectedTitle = getTitle(radioTVMetadata);
+            String actualTitle = getDomsTitle(programObjectPID);
+            boolean titleIdentical = expectedTitle.equals(actualTitle);
+            if (!titleIdentical) {
+                log.debug("Titles not identical, {} vs {}", expectedTitle, actualTitle);
+            }
+
+            //PBCore
+            Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
+            Document pbCoreActual = domsClient.getDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID);
+            boolean pbcoreIdentical = compareDocuments(pbCoreExpected, pbCoreActual, programObjectPID);
+
+            //Ritzau
+            Document ritzauExpected = createDocumentFromNode(radioTVMetadata,
+                                                             "//program/originals/ritzau:ritzau_original");
+            Document ritzauActual = domsClient.getDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID);
+            boolean ritzauIdentical = compareDocuments(ritzauExpected, ritzauActual, programObjectPID);
+
+            //Gallup
+            Document gallupExpected = createDocumentFromNode(radioTVMetadata,
+                                                             "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
+            Document gallupActual = domsClient.getDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID);
+            boolean gallupIdentical = compareDocuments(gallupExpected, gallupActual, programObjectPID);
+
+            //Broadcast
+            Document broadcastExpected = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
+            Document broadcastActual = domsClient.getDataStream(programObjectPID, PROGRAM_BROADCAST_DS_ID);
+            boolean broadcastIdentical = compareDocuments(broadcastExpected, broadcastActual, programObjectPID);
+
+            //Relations
+            boolean relationsIdentical = checkFileRelations(programObjectPID, filePIDs);
+
+            log.debug("Identicals: title={}, pbcore={}, ritzau={}, gallup={}, broadcast={}, relations={}",
+                      titleIdentical, pbcoreIdentical, ritzauIdentical, gallupIdentical, broadcastIdentical,
+                      relationsIdentical);
+
+            return titleIdentical && pbcoreIdentical && ritzauIdentical && gallupIdentical && broadcastIdentical &&
+                   relationsIdentical;
+        } catch (XMLParseException | ServerOperationFailed e) {
+            log.warn("Caught exception while checking semantic identicality of pid={}, so the objects are regarded as not identical",programObjectPID, e);
+            return false;
         }
-
-        //PBCore
-        Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
-        Document pbCoreActual = domsClient.getDataStream(programObjectPID, PROGRAM_PBCORE_DS_ID);
-        boolean pbcoreIdentical = compareDocuments(pbCoreExpected, pbCoreActual, programObjectPID);
-
-        //Ritzau
-        Document ritzauExpected = createDocumentFromNode(radioTVMetadata,"//program/originals/ritzau:ritzau_original");
-        Document ritzauActual = domsClient.getDataStream(programObjectPID, RITZAU_ORIGINAL_DS_ID);
-        boolean ritzauIdentical = compareDocuments(ritzauExpected, ritzauActual, programObjectPID);
-
-        //Gallup
-        Document gallupExpected = createDocumentFromNode(radioTVMetadata, "//program/originals/gallup:gallup_original|//program/originals/gallup:tvmeterProgram");
-        Document gallupActual = domsClient.getDataStream(programObjectPID, GALLUP_ORIGINAL_DS_ID);
-        boolean gallupIdentical = compareDocuments(gallupExpected, gallupActual, programObjectPID);
-
-        //Broadcast
-        Document broadcastExpected = createDocumentFromNode(radioTVMetadata, "//program/pb:programBroadcast");
-        Document broadcastActual = domsClient.getDataStream(programObjectPID,PROGRAM_BROADCAST_DS_ID);
-        boolean broadcastIdentical = compareDocuments(broadcastExpected, broadcastActual, programObjectPID);
-
-        //Relations
-        boolean relationsIdentical = checkFileRelations(programObjectPID,filePIDs);
-
-        log.debug("Identicals: title={}, pbcore={}, ritzau={}, gallup={}, broadcast={}, relations={}",titleIdentical, pbcoreIdentical, ritzauIdentical, gallupIdentical, broadcastIdentical, relationsIdentical);
-
-        return titleIdentical && pbcoreIdentical && ritzauIdentical && gallupIdentical && broadcastIdentical && relationsIdentical;
 
     }
 
@@ -351,7 +362,7 @@ public class RecordCreator {
     }
 
     private void prepareProgramForOverwrite(String existingPid, String filename, List<String> oldIdentifiers) throws ServerOperationFailed {
-        log.debug("Found existing object {}, to be overwritten", existingPid);
+        log.debug("Existing object {} will be overwritten", existingPid);
         String comment = Util.domsCommenter(filename, "unpublished object to allow for changes");
         domsClient.unpublishObjects(comment, existingPid);
         log.debug("Existing object {} unpublished", existingPid);
