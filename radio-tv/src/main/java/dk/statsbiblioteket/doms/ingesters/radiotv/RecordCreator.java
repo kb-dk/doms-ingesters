@@ -111,24 +111,27 @@ public class RecordCreator {
 
         String programObjectPID = alreadyExistsInRepo(oldIdentifiers);
         if (programObjectPID != null){
+            log.info("Program already exist in repo, with pid={}",programObjectPID);
             if (check) {
-                log.debug("Preparing to check semantic equivalence of pid={}",programObjectPID);
+                log.info("Preparing to check semantic equivalence of pid={}",programObjectPID);
                 if (checkSemanticIdentity(programObjectPID, radioTVMetadata, filePIDs)) {
                     //check if what is there is identical to what we want to write
-                    log.debug("Object pid={} is semantically identical, so no updates is performed.", programObjectPID);
+                    log.info("Object pid={} is semantically identical, so no updates are performed.", programObjectPID);
                     return programObjectPID;
                 } else {
-                    log.debug("Object pid={} is not semantically identical.");
+                    log.info("Object pid={} is not semantically identical.", programObjectPID);
                 }
             }
             if (overwrite){ //overwrite whatever is there
+                log.info("Starting to overwrite contents of Program pid={}",programObjectPID);
                 prepareProgramForOverwrite(programObjectPID, filename, oldIdentifiers);
             } else { //fail
                 throw new OverwriteException("Found existing object pid='"+programObjectPID+"' and overwrite flag is false");
             }
         } else {
-            log.debug("Old identifiers {} did not find a program object in doms", oldIdentifiers);
+            log.debug("Old identifiers {} did not find a program object in doms, so creating a new one", oldIdentifiers);
             programObjectPID = createNewProgramObject(filename, oldIdentifiers);
+            log.info("Created new program object with pid={}", programObjectPID);
         }
 
         //Set label as title
@@ -150,9 +153,11 @@ public class RecordCreator {
     private boolean checkSemanticIdentity(String programObjectPID, Document radioTVMetadata, List<String> filePIDs) throws ServerOperationFailed, XMLParseException {
         //Title
         String expectedTitle = getTitle(radioTVMetadata);
-        //TODO This is so inefficient but I DO NOT WANT TO UPGRADE THE ENTIRE SYSTEM TO FIX IT
-        DigitalObject digitalObject = domsClient.getDigitalObjectFactory().getDigitalObject(programObjectPID);
-        boolean titleIdentical = expectedTitle.equals(digitalObject.getTitle());
+        String actualTitle = getDomsTitle(programObjectPID);
+        boolean titleIdentical = expectedTitle.equals(actualTitle);
+        if (!titleIdentical) {
+            log.debug("Titles not identical, {} vs {}", expectedTitle, actualTitle);
+        }
 
         //PBCore
         Document pbCoreExpected = createDocumentFromNode(radioTVMetadata, PBCORE_DESCRIPTION_ELEMENT);
@@ -177,8 +182,16 @@ public class RecordCreator {
         //Relations
         boolean relationsIdentical = checkFileRelations(programObjectPID,filePIDs);
 
+        log.debug("Identicals: title={}, pbcore={}, ritzau={}, gallup={}, broadcast={}, relations={}",titleIdentical, pbcoreIdentical, ritzauIdentical, gallupIdentical, broadcastIdentical, relationsIdentical);
+
         return titleIdentical && pbcoreIdentical && ritzauIdentical && gallupIdentical && broadcastIdentical && relationsIdentical;
 
+    }
+
+    private String getDomsTitle(String programObjectPID) throws ServerOperationFailed {
+        //TODO This is so inefficient but I DO NOT WANT TO UPGRADE THE ENTIRE SYSTEM TO FIX IT
+        DigitalObject digitalObject = domsClient.getDigitalObjectFactory().getDigitalObject(programObjectPID);
+        return digitalObject.getTitle();
     }
 
 
@@ -191,7 +204,7 @@ public class RecordCreator {
         if (!d.hasDifferences()) {
             return true;
         } else {
-            log.debug("Differences from object {}.,differences='{}' ", pid, d.toString());
+            log.debug("Differences from object pid={}. Differences='{}' ", pid, d.toString());
             return false;
         }
     }
@@ -411,7 +424,7 @@ public class RecordCreator {
                 List<String> pids = domsClient.getPidFromOldIdentifier(oldId);
                 if (!pids.isEmpty() && !pids.get(0).isEmpty()) {
                     if (pids.size() > 1) {
-                        log.warn("Found {} pids for old identifiers '{}', returning the first ({})", pids, oldId, pids.get(0));
+                        log.warn("Found more than one pids ({}) for old identifiers '{}', returning the first ({})", pids, oldId, pids.get(0));
                     }
                     return pids.get(0);
                 }

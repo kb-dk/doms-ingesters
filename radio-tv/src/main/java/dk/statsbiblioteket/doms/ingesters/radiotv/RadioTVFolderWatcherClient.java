@@ -222,7 +222,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
                 Diff d = Util.xmlDiff(control, test);
 
                 if (!d.hasDifferences()) {
-                    log.info("Found exact duplicate of file={} in processedFolder={}, so deleting file={}",
+                    log.info("Found semantic duplicate of file={} in processedFolder={}, so deleting file={}",
                              file, processedFilesFolder, file);
                     Files.deleteIfExists(file);
                     return true;
@@ -267,7 +267,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
     }
 
     private void moveToProcessed(Path ingested_file, Path tempFile) throws IOException {
-        log.trace("Ingest was successful, so move file {} to the processedFilesFolder={}", ingested_file,
+        log.debug("Ingest was successful, so move file {} to the processedFilesFolder={}", ingested_file,
                   processedFilesFolder);
         // The ingest was successful, if we make it here...
         // Move the processed file to the finished files folder.
@@ -322,23 +322,24 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
         // Create or update program object for this program
         log.debug("Starting to create doms record for file");
 
-        log.trace("Creating record creator");
+        log.debug("Creating record creator");
         RecordCreator recordCreator = new RecordCreator(domsClient, overwrite, check);
 
-        log.trace("Ingesting program");
+        log.info("Ingesting program");
         String programPID = recordCreator.ingestProgram(radioTVMetadata, filename);
-        log.trace("Program ingested with pid={}", programPID);
+        log.info("Program ingested with pid={}", programPID);
 
         pidsInProgress.add(programPID);
         Path allWrittenPIDs = writePIDs(addedFile, pidsInProgress);
 
         // Publish the objects created in the process
-        log.trace("Publishing objects {}", pidsInProgress);
+        log.debug("Publishing objects {}", pidsInProgress);
 
         domsClient.publishObjects(
                 "Publishing objects " + pidsInProgress + " as part of ingest of program " + addedFile.getFileName(),
                 pidsInProgress.toArray(new String[pidsInProgress.size()]));
 
+        log.info("Finished creating doms record for file");
         return allWrittenPIDs;
     }
 
@@ -381,7 +382,7 @@ public class RadioTVFolderWatcherClient extends FolderWatcherClient {
                       pidsToPublish, exception);
 
             Files.move(addedFile, failedFilesFolder.resolve(addedFile.getFileName()), StandardCopyOption.REPLACE_EXISTING);
-            log.trace("Moved file {} to failedFilesFolder={}", addedFile, failedFilesFolder);
+            log.debug("Moved file {} to failedFilesFolder={}", addedFile, failedFilesFolder);
 
             // Rename the in-progress PIDs to failed PIDs.
             renamePidLists(addedFile);
