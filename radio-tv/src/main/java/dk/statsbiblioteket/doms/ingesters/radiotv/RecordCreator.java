@@ -235,8 +235,6 @@ public class RecordCreator {
 
         List<Relation> relations = domsClient.listObjectRelations(programObjectPID, HAS_FILE_RELATION);
 
-        //        List<Relation> relations = domsClient.getDigitalObjectFactory().getDigitalObject(programObjectPID).getRelations().stream().filter(relation -> relation.getPredicate().equals(HAS_FILE_RELATION)).collect(Collectors.toList());
-
         HashSet<String> existingRels = new HashSet<String>();
         for (Relation relation : relations) {
             if (relation instanceof ObjectRelation) {
